@@ -1,0 +1,276 @@
+
+
+@mixin header {
+	
+	/* Header Panel */
+	.header {
+		height: 76px !important;
+		$v-background-color: #F1F1F1;
+		background-color: $v-background-color;
+		/* @include valo-menubar;
+		@include valo-label;
+		@include valo-button; */
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 1000;
+		box-shadow: 0 0 18px rgba(0, 0, 0, 0.18) !important;
+		border-bottom: 1px solid #bbb;
+		
+		.v-panel-content {
+			overflow: hidden;
+			text-align: center;
+			
+			.content {
+				width: 85%;
+				height: 100%;
+				position: relative;
+				
+				.left-layout, .right-layout {
+					height: 60px;
+					margin: 9px 0 5px 0;
+					display: inline-block;
+				}
+				
+				.left-layout {
+					
+					& > .v-widget {
+						position: relative;
+						display: inline-block;
+						vertical-align: baseline;
+					}
+					
+					.nav-layout {
+						height: 28px;
+						left: 12px;
+						
+						a { outline: 0; }
+						
+						.v-link {
+							height: 100%;
+							line-height: 100%;
+							margin: 0 5px;
+							font-size: 20px !important;
+							text-decoration: none;
+							border-color: rgba(0, 0, 0, 0);
+							transition: border-color 1s;
+							
+							&:hover, &:focus {
+								border-bottom: 1px solid $dark-grey;
+								margin-bottom: -1px;
+							}
+						} /* END .v-link */
+					} /* END .nav-layout */
+				} /* END .left-layout */
+				
+				.right-layout {
+					float: right;
+					
+					.user-menu {
+						.v-menubar-menuitem {
+							white-space: nowrap;
+							font-size: 20px;
+							padding-top: 1px;
+							color: $dark-grey;
+						}
+					}
+					
+					/* login button */
+					.login-link {
+						margin-right: 3px;
+						height: 100%;
+						text-decoration: none;
+						font-weight: bold;
+					}
+					
+				} /* END .right-layout */
+				
+			} /* END .content */
+			
+		} /* END .v-panel-content */
+		
+	} /* END .header */
+	
+	/* Menubar Dropdown */
+	.v-menubar-popup {
+		.user-menu .v-menubar-menuitem {
+			padding-left: 18px;
+			padding-right: 36px;
+			color: #666;
+			
+			.v-icon { 
+				margin-right: 16px; 
+				color: #666;
+			}
+		}
+		
+		.user-menu .v-menubar-menuitem-selected .v-icon { color: #FFFFFF !important; }
+		
+		.user-menu .v-menubar-menuitem-selected .v-menubar-menuitem-caption {
+			color: #FFFFFF;
+		}
+	} /* END .v-menubar-popup */
+	
+	/* Expanding Media Player Panel */
+	.media-player-panel {
+	
+		.n-mejs-player {
+			padding: 0 14px;
+		}
+	
+		/* Fixes to make player 24px tall and save space */
+		.n-mejs-player .mejs-container {
+			padding: 0 10px;
+			
+			.mejs-inner {
+				height: inherit;
+			
+				.mejs-controls {
+					height: inherit;
+					
+					.mejs-button button { margin: 4px 6px; }
+					.mejs-time-rail { padding-top: 3px; }
+					.mejs-time { padding: 7px 3px 0 0; }
+				}
+			}
+		}
+		
+		margin-top: 16px;
+		margin-left: -30px;
+		height: 30px !important;
+		width: 30px;
+		position: absolute;
+		
+		/* 350ms transition, wait for player to fade (200ms +50ms) */
+		transition: width 350ms linear 250ms, height 350ms linear 250ms, margin 350ms linear 250ms;
+		-webkit-transition: width 350ms linear 250ms, height 350ms linear 250ms, margin 350ms linear 250ms;
+		-ms-transition: width 350ms linear 250ms, height 350ms linear 250ms, margin 350ms linear 250ms;
+		-o-transition: width 350ms linear 250ms, height 350ms linear 250ms, margin 350ms linear 250ms;
+		-moz-transition: width 350ms linear 250ms, height 350ms linear 250ms, margin 350ms linear 250ms;
+		
+		.player-toggle-button {
+			padding: 0px;
+			width: 29px;
+			height: 29px;
+			color: $dark-grey;
+			opacity: .8;
+			
+			/* match the container delay and speed */
+			transition: margin 350ms linear 200ms, color 350ms linear 200ms;
+			-webkit-transition: margin 350ms linear 200ms, color 350ms linear 200ms;
+			-ms-transition: margin 350ms linear 200ms, color 350ms linear 200ms;
+			-o-transition: margin 350ms linear 200ms, color 350ms linear 200ms;
+			-moz-transition: margin 350ms linear 200ms, color 350ms linear 200ms;
+			
+		}
+		
+		& > .v-panel-content > .v-horizontallayout {
+			width: 100%;
+			height: 100%;
+		}
+		
+		.v-slot-player {
+			width: 340px;
+			margin-left: -5px;
+			
+			.player {
+				width: 100%;
+				padding: 3px 12px;
+				visibility: hidden;
+				opacity: 0;
+				
+				/* fade player first */
+				transition: opacity 200ms ease-in-out, visibility 200ms ease-in-out;
+				-webkit-transition: opacity 200ms ease-in-out, visibility 200ms ease-in-out;
+				-ms-transition: opacity 200ms ease-in-out, visibility 200ms ease-in-out;
+				-o-transition: opacity 200ms ease-in-out, visibility 200ms ease-in-out;
+				-moz-transition: opacity 200ms ease-in-out, visibility 200ms ease-in-out;
+			}
+		}
+		
+		&.media-player-panel-toggled {
+		
+			margin-left: -375px;
+			width: 375px;
+			height: 60px !important;
+			margin-top: 0px;
+			
+			/* expand container first */
+			transition: width 350ms, height 350ms, margin 350ms;
+			-webkit-transition: width 350ms, height 350ms, margin 350ms;
+			-ms-transition: width 350ms, height 350ms, margin 350ms;
+			-o-transition: width 350ms, height 350ms, margin 350ms;
+			-moz-transition: width 350ms, height 350ms, margin 350ms;
+			
+			/* match the container delay and speed */
+			.player-toggle-button { 
+				color: $v-focus-color;
+				margin-top: 15px;
+				margin-bottom: 15px;
+				margin-left: 8px;
+				margin-right: 2px;
+				font-size: 18px;
+				transition: margin 350ms, color 350ms, font-size 350ms;
+				-webkit-transition: margin 350ms, color 350ms, font-size 350ms;
+				-ms-transition: margin 350ms, color 350ms, font-size 350ms;
+				-o-transition: margin 350ms, color 350ms, font-size 350ms;
+				-moz-transition: margin 350ms, color 350ms, font-size 350ms;
+			}
+			
+			.player { 
+				visibility: visible;
+				opacity: 1;
+				
+				/* wait for container transition to finish, then show player */
+				transition: opacity 200ms ease-in-out 350ms, visibility 200ms ease-in-out 350ms;
+				-webkit-transition: opacity 200ms ease-in-out 350ms, visibility 200ms ease-in-out 350ms;
+				-ms-transition: opacity 200ms ease-in-out 350ms, visibility 200ms ease-in-out 350ms;
+				-o-transition: opacity 200ms ease-in-out 350ms, visibility 200ms ease-in-out 350ms;
+				-moz-transition: opacity 200ms ease-in-out 350ms, visibility 200ms ease-in-out 350ms;
+			}
+		} /* END &.media-player-panel-toggled */
+		
+		.v-slot-now-playing {
+			font-size: 14px;
+			height: 24px;
+			
+			.now-playing { 
+				width: 100%;
+			}
+		}
+		
+		.media-player-button {
+			padding: 0px;
+			height: 24px;
+			color: $dark-grey;
+
+			&:hover {
+				color: $v-focus-color;
+			}
+		}
+		
+		.v-slot-media-player-button + .v-slot-media-player-button {
+			padding-left: 12px;
+		}
+		
+		.media-player-repeat-enabled, .media-player-shuffle-enabled { color: $v-focus-color !important; }
+		.media-player-repeat-one-enabled { .v-button-caption { display: inline-block !important; } }
+			
+		.media-player-repeat {
+			.v-button-caption { 
+				font-family: monospace;
+				display: none;
+				position: fixed;
+				margin-left: -12px;
+				padding: 2px 0;
+				font-weight: 700;
+				font-size: 14px;
+				color: $dark-grey;
+			}
+		}
+	}
+}

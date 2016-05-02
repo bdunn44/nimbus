@@ -1,0 +1,339 @@
+
+
+@mixin shares {
+	
+	.v-slot-user-access-layout {
+		position: relative;
+		
+		.v-slot-user-list-layout {
+			position: absolute;
+			top: 30px;
+			bottom: 0px;
+			left: 0px;
+			right: 0px;
+			overflow-x: hidden;
+			overflow-y: auto;
+			padding-right: 10px;
+		}
+		
+		.user-access-layout {
+			.v-csslayout {
+				
+				.h3 {
+					vertical-align: middle;
+					display: inline;
+				}
+				
+				.v-button {
+					margin-left: 10px;
+				}
+			}
+			
+			.v-slot-user-layout {
+				width: 100%;
+				
+				.user-layout {
+					
+					.fa-stack { font-size: 1.6666em; }
+					.fa-user { color: $v-focus-color; }
+					.fa-square-o { color: $dark-grey; }
+					.v-button .v-button-wrap .v-icon { color: $dark-grey; }
+					
+					.right-layout {
+						padding-left: 5px;
+						
+						.user-desc {
+							font-size: larger;
+							
+							.user-email {
+								font-weight: normal;
+								font-size: x-small;
+								
+							}
+						}
+					} /* END .right-layout */
+					
+					.v-horizontallayout .v-spacing {
+						width: 15px;
+					}
+				
+				} /* END .user-layout */
+				
+			} /* END .v-slot-user-layout */
+		
+		} /* END .user-access-layout */
+		
+	} /* END .v-slot-user-access-layout */
+	
+	
+	.ext-share-view {
+		.v-icon, .fa {
+			color: $dark-grey;
+		}
+		
+		.v-treetable-treespacer {
+			margin-top: 5px;
+		}
+		
+		.v-table-cell-content .fa {
+			padding-left: 5px;
+		}
+		
+		/* Treetable padding fix hack */
+		.v-treetable .v-table-table .v-table-cell-wrapper {
+			padding: 9px 0px;
+		}
+	}
+	
+	.share-list-view {
+		.block-icon {
+			display: table;
+			.fa {
+				display: table-cell;
+				vertical-align: middle;
+			}
+		}
+		
+		.stats-label, .v-caption-stats-label {
+			width: 100%;
+			text-align: center;
+			padding-bottom: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			
+			.v-captiontext {
+				text-decoration: underline;
+			}
+		}
+		
+	}
+	
+	.share-block-info-panel {
+		position: relative;
+		z-index: 1;
+		
+		.v-label-block-icon {
+			text-align: center;
+		}
+		
+		.main-detail-layout {
+			color: $dark-grey;
+			position: relative;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			
+			textarea {
+				width: 100%;
+			}
+		}
+		
+		.v-slot-user-access-layout {
+			overflow-x: hidden;
+			overflow-y: auto;
+			
+			.v-spacing {
+				height: 2px;
+			}
+		}
+	}
+	
+	.share-list-view {
+		
+		.v-slot-section-header {
+			margin-bottom: 15px;
+			
+			.h1 {
+				padding-right: 10px;
+			}
+		}
+		
+		.v-spacing + .v-slot-section-header {
+			margin-top: 15px;
+		}
+		
+		.v-slot-share-list-layout {
+			margin-left: 15px;
+			display: inline-block;
+		}
+		
+		.share-list-layout {
+			
+			.v-slot-expanded {
+				display: block;
+				width: initial !important;
+				margin-left: initial !important;
+				
+				& + .v-spacing {
+					width: 0;
+				}
+			}
+			
+			.v-spacing + .v-slot-expanded {
+				
+			}
+			
+			.share-block-layout {
+				transition: all 500ms ease-in-out 200ms;
+				-webkit-transition: all 500ms ease-in-out 200ms; 
+				-ms-transition: all 500ms ease-in-out 200ms;
+				-o-transition: all 500ms ease-in-out 200ms;
+				-moz-transition: all 500ms ease-in-out 200ms;
+				
+				position: relative;
+				
+				&.expanded {
+					.expanded-layout {
+						opacity: 1;
+						visibility: visible;
+						
+						transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						-webkit-transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						-ms-transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						-o-transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						-moz-transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+					}
+					.collapsed-layout {
+						opacity: 0;
+						visibility: hidden;
+						
+						transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						-webkit-transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						-ms-transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						-o-transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						-moz-transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+					}
+				}
+				
+				&.collapsed {
+					.expanded-layout {
+						transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						-webkit-transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						-ms-transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						-o-transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						-moz-transition: visibility 200ms ease-in-out, opacity 200ms ease-in-out;
+						
+						opacitiy: 0;
+						visibility: hidden;
+					}
+					.collapsed-layout {
+						transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						-webkit-transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						-ms-transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						-o-transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						-moz-transition: visibility 500ms ease-in-out 700ms, opacity 500ms ease-in-out 700ms;
+						
+						opacitiy: 1;
+						visibility: visible;
+					}
+					
+					&:hover {
+						cursor: pointer;
+					}
+					
+					&:hover, &:focus {
+						border-color: $v-focus-color;
+						box-shadow: 0 0 0 2px rgba($v-focus-color, .5);
+					}
+				}
+				
+				.expanded-layout, .collapsed-layout {
+					position: absolute;
+					top: 0;
+					left: 0;
+				}
+				
+				.expanded-layout {
+				
+					div > .v-absolutelayout-margin {
+						overflow: visible !important;
+					}
+				
+					padding: 20px 15px;
+					/* border-top: 1px solid $dark-grey;
+					border-bottom: 1px solid $dark-grey; */
+					
+					.v-spacing { height: 5px; width: 10px; }
+					
+					.block-detail-layout {
+						/* need this for user access layout overflow */
+						position: absolute;
+						top: 0px;
+						bottom: 0px;
+						
+						.v-csslayout {
+							width: 100%;
+							padding: 2px;
+							
+							input, textarea, .v-datefield, .v-button, .v-filterselect {
+								float: right;
+							}
+							
+							.v-button:focus:after {
+								border: none;
+								box-shadow: none;
+							}
+						} /* END .v-csslayout */
+						
+						.ext-options-layout {
+							margin-left: 35px;
+						}
+						
+						.v-slot-user-access-layout { /* contains the user access layout list */
+							position: absolute !important;
+							top: 210px;
+							bottom: 0px;
+							left: 0px;
+							right: 0px;
+							.v-slot-user-list-layout {
+								top: 50px !important;
+							}
+						}
+						
+						.user-access-layout {
+							.v-csslayout { 
+								padding: 10px 15px;
+								border-bottom: 1px solid $dark-grey;
+								box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+							}
+						}
+						
+					} /* END .block-detail-layout */
+					
+					.button-layout {
+						color: $dark-grey;
+					}
+					
+				} /* END .expanded-layout */
+				
+				.collapsed-layout {
+					.name-label {
+						white-space: nowrap;
+						overflow: hidden;
+						text-overflow: ellipsis;
+					}
+					
+					/* .block-icon {
+						display: table;
+						.fa {
+							display: table-cell;
+							vertical-align: middle;
+						}
+					} */
+					
+					/* .stats-label, .v-caption-stats-label {
+						width: 100%;
+						text-align: center;
+						padding-bottom: 0;
+						overflow: hidden;
+						text-overflow: ellipsis;
+					} */
+				
+				} /* END .collapsed-layout */
+				
+			} /* END .share-block-layout */
+			
+		} /* END .share-list-layout */
+		
+	} /* END .share-list-view */
+}

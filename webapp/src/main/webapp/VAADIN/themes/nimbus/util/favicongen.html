@@ -1,0 +1,45 @@
+<html>
+	<head>
+		<link href="file:///C:/Users/kdunn/Documents/STS/FontAwesome-Vaadin/WebContent/VAADIN/addons/font-awesome-label/css/font-awesome.min.css" rel="stylesheet">
+		
+		<style>
+			
+			@font-face {
+				font-family: 'FontAwesome1';
+				src: url('file:///C:/Users/kdunn/Documents/STS/FontAwesome-Vaadin/WebContent/VAADIN/addons/font-awesome-label/fontawesome-webfont.ttf');
+			}
+		</style>
+	</head>
+	<body>
+		<div id="div1" style="font-family: FontAwesome1;">Here it is:  </div>
+		
+		
+		<canvas id="myCanvas" width="320" height="320" style="border:1px solid #d3d3d3;">
+		<!--canvas id="myCanvas" width="395" height="385" style="border:1px solid #d3d3d3;"-->
+		Your browser does not support the HTML5 canvas tag.</canvas>
+		
+		<button onclick="go()">Click me</button>
+		<script>
+		document.getElementById("div1").innerText="\uF0C2"; // fa-cloud
+		//document.getElementById("div1").innerText="\uF024"; // fa-flag
+		//document.getElementById("div1").innerText="\uF087"; // fa-thumbs-o-up
+		
+		function go() {
+			var c=document.getElementById("myCanvas");
+			var context=c.getContext("2d");
+			//context.fillStyle = "#419186";
+			//context.fillStyle = "#FFFFFF";
+			context.fillStyle = "rgb(121, 199, 83)"; //"#197DE1";
+			context.font      = '280px FontAwesome1';
+			//context.font      = '400px FontAwesome1';
+			context.fillText(String.fromCharCode("0xf0C2", 16), 10, 250); // fa-cloud
+			//context.fillText(String.fromCharCode("0xf024", 16), -10, 315); // fa-flag
+			//context.fillText(String.fromCharCode("0xf087", 16), 25, 350); // fa-thumbs-o-up
+		}
+		
+		//s.innerHtml="Unicode: ";// +String.fromCharCode(0xf0c2, 16));
+
+		</script>
+		
+	</body>
+</html>

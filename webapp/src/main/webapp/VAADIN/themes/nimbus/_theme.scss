@@ -1,0 +1,46 @@
+
+
+/* This file contains all of the classes accessible using the NimbusTheme java class */
+
+@mixin theme {
+	
+	/* LABELS */
+	
+	.n-label-ellipsis-overflow {
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+	
+	.n-label-center-align {
+		text-align: center;
+	}
+	
+	.n-label-success-color, .v-caption-n-label-success-color {
+		color: $success-color;
+	}
+	
+	.n-label-warning-color, .v-caption-n-label-warning-color {
+		color: $warning-color;
+	}
+	
+	.n-label-error-color, .v-caption-n-label-error-color {
+		color: $error-color;
+	}
+	
+	.v-caption-n-label-caption-only {
+		display: inline;
+	}
+	
+	/* OPTION GROUPS */
+	
+	/* only works if parent width is set */
+	.n-optiongroup-ellipsis-overflow {
+		label {
+			width: 100%;
+			overflow: hidden;
+			white-space: nowrap !important;
+			text-overflow: ellipsis;
+		}
+	}
+}

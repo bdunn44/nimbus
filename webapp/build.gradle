@@ -1,0 +1,67 @@
+plugins {
+	id "fi.jasoft.plugin.vaadin" version "0.10.7"
+}
+
+apply plugin: 'eclipse-wtp'
+	
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+
+        resources {
+            srcDirs = ['src/main/vaadin']
+        }
+    }
+}
+
+dependencies {
+    compile project(':common') 
+    compile fileTree(dir: 'src/main/webapp/WEB-INF/lib', include: '*.jar') // Needed b/c of resource folder weirdness
+	providedCompile 'javax.servlet:javax.servlet-api:3.0.1' // Servlet 3.0 API
+    
+    // Misc.
+	compile 'commons-io:commons-io:2.4' // Apache Commons IO
+	compile 'commons-lang:commons-lang:2.3' // Apache Commons Lang
+	compile 'joda-time:joda-time:2.3' // Joda Time
+	compile 'org.vaadin.addon:oauthpopup:0.0.5-SNAPSHOT' // OAuthPopup addon
+}
+
+eclipse {
+	classpath {
+		wtp {
+			component {
+				contextPath = '/'
+				deployName = 'nimbus-webapp'
+			}
+		}
+	}
+}
+
+vaadin {
+	version rootProject.vaadinVersion
+	widgetset 'com.kbdunn.nimbus.web.NimbusWidgetset'
+	push true
+	mainSourceSet sourceSets.main.java
+	gwt {
+		optimize 9
+		logLevel "INFO"
+		draftCompile true
+	}
+	plugin {
+		useClassPathJar = false // Was causing issues for some reason
+	}
+}
+
+war {
+	rootSpec.include('VAADIN/**/*')
+	rootSpec.exclude('VAADIN/themes/nimbus/util/')
+	rootSpec.exclude('VAADIN/gwt-unitCache/')
+	rootSpec.exclude('**/*.scss')
+	rootSpec.exclude('**/*sources.jar')
+	rootSpec.exclude('**/*javadoc.jar')
+}
+
+jar.dependsOn(war) // Force theme/widgetset compilation, etc.
+build.finalizedBy(jar)

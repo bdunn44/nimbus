@@ -1,0 +1,175 @@
+
+
+@mixin files {
+	
+	/* File Manager Layout */
+	.file-manager {
+	
+		/* Current folder name desc and controlbar */
+		.top-row {
+		
+			.container-desc {
+				white-space: nowrap;
+				display: inline-block;
+				color: $dark-grey;
+				margin-bottom: 10px;
+				
+				.name {
+					font-size: 34px;
+					margin: 0 5px 0 15px;
+					max-width: 75%;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					vertical-align: middle;
+					display: inline-block;
+				}
+				
+				.desc {
+					font-size: 14px;
+					vertical-align: bottom;
+					margin-bottom: 8px;
+					display: inline-block;
+				}
+			}
+		}
+		
+		/* Breadcrumb slide in-out transition */ 
+		.v-slot-breadcrumbs {
+			padding-bottom: 25px;
+			height: 30px;
+			margin-top: 0px;
+			opacity: 1;
+			
+			transition: margin 400ms ease-in-out, opacity 400ms ease-in-out;
+			-webkit-transition: margin 400ms ease-in-out, opacity 400ms ease-in-out;
+			-ms-transition: margin 400ms ease-in-out, opacity 400ms ease-in-out;
+			-o-transition: margin 400ms ease-in-out, opacity 400ms ease-in-out;
+			-moz-transition: margin 400ms ease-in-out, opacity 400ms ease-in-out;
+			
+			&.v-slot-breadcrumbs-hidden {
+				margin-top: -30px;
+				opacity: 0;
+				pointer-events: none;
+			}
+		}
+		
+		.breadcrumbs {
+			
+			/*.v-horizontallayout-wrapping > .v-slot:first-child { 
+				margin-bottom: inherit; 
+			}*/
+			
+			box-shadow: none;
+			
+			.v-panel-content {
+				overflow: hidden;
+			}
+			
+			.v-slot { 
+				padding: 0 4px; 
+				font-size: 20px;
+				
+				.fa-angle-right { 
+					color: $v-focus-color; 
+					margin-bottom: 8px;
+				}
+				
+				a {
+					color: $dark-grey;
+					text-decoration: none;
+					
+					&:hover, &:focus {
+						border-bottom: 1px solid $dark-grey;
+					}
+				}
+			}
+		}
+	}
+	
+	/* Upload Dialog */
+	.upload-dialog {
+		
+		/* Classic */
+		.classic-upload-field {
+			.v-button {
+				/* v-button-tiny */
+				padding: 0 14px;
+				border-radius: 4px;
+				margin-left	3px;
+			}
+			.v-button, .gwt-FileUpload {
+				height: 25px;
+				font-size: 14px;
+			}
+		}
+		
+		.v-slot-classic-upload-field+.v-slot-classic-upload-field {
+			padding-top: 5px;
+		}
+		
+		.v-slot-add-upload {
+			padding-top: 15px;
+			padding-bottom: 2px;
+		}
+	
+		/* Drag n Drop */
+		.v-ddwrapper, .drop-panel { width: 350px; height: 250px; border: none;  }
+		
+		.drop-panel-caption, .drop-panel-check, 
+		.v-panel-content-drop-panel, .v-tabsheet-tabsheetpanel 
+			{ text-align: center; }
+		
+		.v-tabsheet-tabsheetpanel > .v-scrollable > .v-verticallayout {
+			text-align: center;
+			padding-top: 15px;
+		}
+		
+		.v-panel-content-drop-panel {
+			.v-csslayout { height: 100%; }
+			border: 2px dashed $dark-grey;
+			border-radius: 10px;
+			background-color: #EFEFEF;
+		}
+		
+		.drop-panel-caption {
+			margin-top: 100px;
+		}
+		
+		.drop-panel-check {
+			display: none;
+			color: $success-color;
+			margin-top: 55px;
+			font-size: 1.8em;
+		}
+		
+		.v-ddwrapper-over, v-ddwrapper-over-right, v-ddwrapper-over-left, 
+		v-ddwrapper-over-middle, .v-ddwrapper-over-center {
+			.drop-panel-caption { display: none !important; }
+			.drop-panel-check { display: block !important; }
+			
+			&:after, &:before { border: none; background: none; }
+		}
+	}
+	
+	/* File Conflict Resolution */
+	.v-slot-file-conflict-display {
+		border: 2px solid transparent;
+		border-radius: 5px;
+		padding-bottom: 10px;
+		
+		&:hover, &:focus { 
+			cursor: pointer;
+			border-color: $v-focus-color;
+		}
+		
+		.v-slot { 
+			padding: 5px; 
+			&.v-slot-small {
+				padding-top: 0;
+				padding-bottom: 0;
+			}
+		}
+		
+		.fa-file-o { padding: 0 15px; }
+	}
+}

@@ -1,0 +1,14 @@
+
+
+@mixin drives {
+	
+	/* Drive Manager View */
+	.drive-manager {
+		.drive-display {
+			.fa-hdd-o, .fa-stack { padding-bottom: 5px; }
+			.use-drive-button { margin-top: 15px; }
+			.fa-times { color: $error-color; }
+			.fa-exclamation { color: $warning-color; }
+		}
+	}
+}

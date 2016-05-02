@@ -1,0 +1,363 @@
+
+
+@mixin shares {
+	
+	.ext-share-view {
+		.v-icon, .fa {
+			color: $dark-grey;
+		}
+		
+		.v-treetable-treespacer {
+			margin-top: 5px;
+		}
+		
+		.v-table-cell-content .fa {
+			padding-left: 5px;
+		}
+		
+		/* Treetable padding fix hack */
+		.v-treetable .v-table-table .v-table-cell-wrapper {
+			padding: 9px 0px;
+		}
+	}
+	
+	.share-list-view {
+		.block-icon {
+			display: table;
+			.fa {
+				display: table-cell;
+				vertical-align: middle;
+			}
+		}
+		
+		.stats-label, .v-caption-stats-label {
+			width: 100%;
+			text-align: center;
+			padding-bottom: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			
+			.v-captiontext {
+				text-decoration: underline;
+			}
+		}
+		
+	}
+	
+	.share-block-info-panel {
+		position: relative;
+		z-index: 1;
+		
+		.v-label-block-icon {
+			text-align: center;
+		}
+		
+		.main-detail-layout {
+			color: $dark-grey;
+			position: relative;
+			width: 100%;
+			height: 100%;
+			
+			.v-verticallayout {
+				width: 100%;
+				overflow: hidden;
+			}
+			
+			textarea {
+				width: 100%;
+			}
+		}
+		
+		.v-slot-user-access-layout {
+			overflow-x: hidden;
+			overflow-y: auto;
+			
+			.v-spacing {
+				height: 2px;
+			}
+		}
+	}
+	
+	.share-list-view {
+		
+		.v-slot-section-header {
+			margin-bottom: 15px;
+			
+			.h1 {
+				padding-right: 10px;
+			}
+		}
+		
+		.v-spacing + .v-slot-section-header {
+			margin-top: 15px;
+		}
+		
+		.v-slot-share-list-layout {
+			margin-left: 15px;
+			display: inline-block;
+		}
+		
+		.share-list-layout {
+			
+			.v-slot-expanded {
+				display: block;
+				width: initial !important;
+				margin-left: initial !important;
+				
+				& + .v-spacing {
+					width: 0;
+				}
+			}
+			
+			.v-spacing + .v-slot-expanded {
+				
+			}
+			
+			.share-block-layout {
+				transition: all 500ms;
+				-webkit-transition: all 500ms; 
+				-ms-transition: all 500ms;
+				-o-transition: all 500ms;
+				-moz-transition: all 500ms;
+				
+				position: relative;
+				
+				&.expanded {
+					.expanded-layout {
+						opacity: 1;
+						visibility: visible;
+					}
+					.collapsed-layout {
+						opacity: 0;
+						visibility: hidden;
+					}
+				}
+				
+				&.collapsed {
+					.expanded-layout {
+						opacitiy: 0;
+						visibility: hidden;
+						
+					}
+					.collapsed-layout {
+						opacitiy: 1;
+						visibility: visible;
+					}
+					
+					&:hover {
+						cursor: pointer;
+					}
+					
+					&:hover, &:focus {
+						border-color: $v-focus-color;
+						box-shadow: 0 0 0 2px rgba($v-focus-color, .5);
+					}
+				}
+				
+				.expanded-layout, .collapsed-layout {
+					transition: visibility 500ms, opacity 500ms;
+					-webkit-transition: visibility 500ms, opacity 500ms;
+					-ms-transition: visibility 500ms, opacity 500ms;
+					-o-transition: visibility 500ms, opacity 500ms;
+					-moz-transition: visibility 500ms, opacity 500ms;
+					
+					position: absolute;
+					top: 0;
+					left: 0;
+				}
+				
+				.expanded-layout {
+				
+					div > .v-absolutelayout-margin {
+						overflow-x: auto;
+					}
+				
+					padding: 20px 15px;
+					/* border-top: 1px solid $dark-grey;
+					border-bottom: 1px solid $dark-grey; */
+					
+					.v-spacing { height: 5px; width: 10px; }
+					
+					.file-select-tree {
+						font-size: 14px;
+					
+						.v-tree-node .v-icon {
+							font-family: FontAwesome;
+							text-align: center;
+							font-size: 1.28571em;
+						}
+					
+						.v-tree-node-caption-checked, .v-tree-node-caption-disabled {
+						
+							& .v-icon::before {
+								content: "\f046"; // fa-check-square-o
+								padding-right: 8px;
+							}
+							& .v-icon::after {
+								content: "\f00c";
+								color: $v-focus-color;
+								position: absolute;
+								left: 27px;
+								top: -2px;
+							}
+						}
+						.v-tree-node-caption-disabled {
+							span { opacity: .6; }
+							/*
+							&:hover, div:hover, span:hover {
+								cursor: default;
+							}
+							
+							& .v-icon::before {
+								content: "\f046\00a0\00a0"; // fa-check-square-o space space
+							}*/
+						}
+						.v-tree-node-caption-indeterminate {
+						
+							& .v-icon::before {
+								content: "\f147"; // fa-minus-square-o
+								padding-right: 10px;
+							}
+						}
+						.v-tree-node-caption-unchecked {
+						
+							& .v-icon::before {
+								content: "\f096";  // fa-square-o
+								padding-right: 10px;
+							}
+						}
+					} /* END .file-select-tree */
+					
+					
+					.block-detail-layout {
+						/* need this for user access layout overflow */
+						position: absolute;
+						top: 0px;
+						bottom: 0px;
+						
+						.v-csslayout {
+							width: 100%;
+							padding: 2px;
+							
+							input, textarea, .v-datefield, .v-button, .v-filterselect {
+								float: right;
+							}
+							
+							.v-button:focus:after {
+								border: none;
+								box-shadow: none;
+							}
+						} /* END .v-csslayout */
+						
+						.ext-options-layout {
+							margin-left: 35px;
+						}
+						
+						.v-slot-user-access-layout { /* contains the user access layout list */
+							position: absolute;
+							top: 180px;
+							bottom: 0px;
+							left: 0px;
+							right: 0px;
+							
+							.v-slot-user-list-layout {
+								position: absolute;
+								top: 50px;
+								bottom: 0px;
+								left: 0px;
+								right: 0px;
+								overflow-x: hidden;
+								overflow-y: auto;
+								padding-right: 10px;
+							}
+						}
+						
+						.user-access-layout {
+							.v-csslayout { /* top row */
+								padding: 10px 15px;
+								border-bottom: 1px solid $dark-grey;
+								box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+								
+								.h3 {
+									vertical-align: middle;
+									display: inline;
+								}
+								
+								.v-button {
+									margin-left: 10px;
+								}
+							}
+							
+							.v-slot-user-layout {
+								margin: 5px 10px;
+								width: 100%;
+								
+								.user-layout {
+									
+									.fa-user { color: $v-focus-color; }
+									.fa-square-o { color: $dark-grey; }
+									.v-button .v-button-wrap .v-icon { color: $dark-grey; }
+									
+									.right-layout {
+										padding-left: 5px;
+										
+										.user-desc {
+											font-size: larger;
+											
+											.user-email {
+												font-weight: normal;
+												font-size: x-small;
+												
+											}
+										}
+									} /* END .right-layout */
+									
+									.v-horizontallayout .v-spacing {
+										width: 15px;
+									}
+								
+								} /* END .user-layout */
+								
+							} /* END .v-slot-user-layout */
+						
+						} /* END .user-access-layout */
+						
+					} /* END .block-detail-layout */
+					
+					.button-layout {
+						color: $dark-grey;
+					}
+					
+				} /* END .expanded-layout */
+				
+				.collapsed-layout {
+					.name-label {
+						white-space: nowrap;
+						overflow: hidden;
+						text-overflow: ellipsis;
+					}
+					
+					/* .block-icon {
+						display: table;
+						.fa {
+							display: table-cell;
+							vertical-align: middle;
+						}
+					} */
+					
+					/* .stats-label, .v-caption-stats-label {
+						width: 100%;
+						text-align: center;
+						padding-bottom: 0;
+						overflow: hidden;
+						text-overflow: ellipsis;
+					} */
+				
+				} /* END .collapsed-layout */
+				
+			} /* END .share-block-layout */
+			
+		} /* END .share-list-layout */
+		
+	} /* END .share-list-view */
+}

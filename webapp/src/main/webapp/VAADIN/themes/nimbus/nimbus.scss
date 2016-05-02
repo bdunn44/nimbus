@@ -1,0 +1,327 @@
+/* Custom app variables */
+$highlight-color: rgb(121, 199, 83); /*#419186;*/ /*#F7B42D;*/ /*#F9BC43;*/
+$success-color: rgb(121, 199, 83); /*#4DCA80;*/
+$error-color: rgb(221, 65, 50);/*#FE6541;*/
+$warning-color: rgb(250, 224, 60);/*#FEA541;*/
+$dark-grey: #666F6F;
+
+$v-app-loading-text: "Loading Nimbus...";
+$v-app-background-color: #F0F0F0;
+$v-relative-paths: true;
+$v-focus-color: $highlight-color;
+/*$v-loading-indicator-color: $primary-color;*/
+$v-font-family: "Open Sans", Lato, "Source Sans Pro",  sans-serif;
+$v-font-size: 16px;
+$v-unit-size: 32px;
+/* $v-layout-margin-top: 12px;
+$v-layout-margin-bottom: 24px;
+$v-layout-margin-left: 24px;
+$v-layout-margin-right: 24px; */
+
+/* Import the Valo theme */
+@import "../valo/_valo";
+
+/* Import Logical Sections */
+@import "theme";
+@import "header";
+@import "logo";
+@import "views/settings";
+@import "views/files";
+@import "views/editor";
+@import "views/shares";
+@import "components/controlbar";
+@import "components/taskbar";
+@import "components/file-select-tree";
+
+@font-face {
+	font-family: Playball;
+	src: url('fonts/playball-regular-webfont.eot');
+	src: url('fonts/playball-regular-webfont.eot?#iefix') format('embedded-opentype'),
+		url('fonts/playball-regular-webfont.woff') format('woff'),
+		url('fonts/playball-regular-webfont.tff') format('truetype'),
+		url('fonts/playball-regular-webfont.svg#webfont') format('svg');
+	font-weight: normal;
+	font-style: normal;
+} 
+
+/* Nimbus Theme */
+@mixin nimbus {
+	
+	@include valo;
+	@include valo-natural-page-scrolling; /* Makes BODY scrollable instead of v-ui */
+	
+	@include theme;
+	@include header;
+	@include settings;
+	@include files;
+	@include taskbar;
+	@include editor;
+	@include controlbar;
+	@include shares;
+	@include logo;
+	@include file-select-tree;
+	
+	/* Reconnect dialog in lower-right instead of upper-right */
+	.v-reconnect-dialog {
+		top: unset;
+		bottom: 11px;
+	}
+	
+	/* Hidde the "hidden" layout */
+	.hidden-layout {
+		display: none;
+		visibility: hidden;
+	}
+	
+	::selection {
+		background: #929292;
+		color: #f1f1f1;
+	}
+	
+	::-moz-selection {
+		background: #929292;
+		color: #f1f1f1;
+	}
+	
+	/* FIX FOR FLASHING MODAL WINDOWS (POPUPS) */
+	/* Just need to add 400ms delay for window animation and remove modality delay */
+	.v-window {
+		transition: width 200ms 400ms, height 200ms 400ms, top 200ms 400ms, left 200ms 400ms;
+		-webkit-transition: width 200ms 400ms, height 200ms 400ms, top 200ms 400ms, left 200ms 400ms;
+		-moz-transition: width 200ms 400ms, height 200ms 400ms, top 200ms 400ms, left 200ms 400ms;
+	}
+	
+	.v-window-modalitycurtain {
+		animation: valo-animate-in-fade 400ms;
+		-webkit-animation: valo-animate-in-fade 400ms;
+		-moz-animation: valo-animate-in-fade 400ms;
+	}
+	
+	/* Modal loading overlay */
+	.v-slot-v-app-loading {
+		position: fixed;
+		display: block;
+		z-index: 10000;
+		background: rgba(0, 0, 0, 0.2);
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		
+		&.v-slot-hidden {
+			display: none;
+		}
+		
+		.v-app-loading {
+			background: none;
+			
+			&:before {
+				margin-top: 0;
+			}
+			
+			&:after {
+				content: none; /* clear the loading message */
+			}
+		}
+	}
+	
+	/* tiny combobox popups */
+	.v-filterselect-suggestpopup-tiny {
+		font-size: 14px;
+	}
+	
+	/* Panels */
+	.v-panel {
+		/*background: #F8F8F8;*/
+	}
+	
+	.v-panel, .v-panel-well, .v-table {
+		box-shadow: 0 5px 8px rgba(0, 0, 0, 0.08);
+	}
+	
+	.h1, .h2, .h3, .h4 {
+		color: $dark-grey;
+	}
+	
+	/* Main content container */
+	.v-slot-nimbus-content {
+		position: fixed;
+		overflow: auto;
+		top: 76px;
+		left: 0px;
+		right: 0px;
+		bottom: 0px;
+	
+		.nimbus-content {
+			padding-top: 20px;
+			padding-bottom: 40px;
+		}
+	}
+	
+	/* label with icon inline */
+	.v-slot-label-inline-icon {
+		div { display: inline; vertical-align: middle }
+		.v-label { padding-left: 12px; }
+	}
+	
+	/* Trees */
+	.v-tree {
+		.v-icon {
+			color: $dark-grey;
+		}
+		
+		.v-tree-node-selected {
+			color: #FFFFFF;
+			
+			.v-icon {
+				color: #FFFFFF;
+			}
+		} 
+		
+		.v-tree-node-caption > div:before {
+			vertical-align: top;
+		}
+	}
+	
+	.v-tree-node-caption { 
+		overflow: visible; 
+		span { 
+			width: initial; 
+			cursor: default;
+		}
+	}
+	.v-tree div[role=tree] { overflow: auto; }
+	
+	/* Table */
+	.v-table {
+		
+		.v-table-table, .v-table-row, .v-table-row-odd {
+			cursor: default;
+		}
+		
+		.v-table-body-wrapper {
+			overflow-y: auto;
+			overflow-x: hidden;
+		}
+		
+		.v-table-cell-wrapper {
+			padding: 9px 14px;
+		}
+		
+		[class*="rowheader"] .v-table-cell-wrapper {
+			padding-left: 12px;
+			
+			.v-icon {
+				font-size: 150%;
+				color: $dark-grey;
+			}
+		}
+		
+		.v-selected {
+			color: #FFFFFF !important;
+			
+			.v-icon {
+				color: #FFFFFF !important;
+			}
+		}
+	}
+	
+	/* TreeTable column padding fix */
+	/* .v-treetable [class*="cell-content"] {
+		padding-left: 0px;
+		padding-right: 0px;
+	} */
+	
+	/* Context Menus */
+	.v-contextmenu .popupContent {
+		.gwt-MenuItem div, .gwt-MenuItem div .FontAwesome, .gwt-MenuItem div .FontAwesomeLabelAddon {
+			color: $dark-grey;
+		}
+		
+		.gwt-MenuItem-selected div {
+			color: #FFFFFF;
+		}
+	}
+	
+	/* Popup Windows */
+	.popup-window {
+		
+		.v-window-contents {
+			padding-left: 10px;
+			padding-right: 10px;
+			
+			.v-scrollable {
+				overflow: visible !important; /* overflow handled in .popup-content */
+			}
+		}
+		
+		.popup-content {
+			max-height: 500px;
+			max-width: 700px;
+			overflow: auto;
+			padding: 0 5px;
+		}
+	}
+	
+	/* media browser button - not worth another file */
+	.v-panel-content-media-group-select-panel {
+		text-align: center;
+	}
+	
+	/* disable selection on media browse tables */
+	.media-browser-panel .v-table .v-table-cell-wrapper {
+		-webkit-touch-callout: none;
+	    -webkit-user-select: none;
+	    -khtml-user-select: none;
+	    -moz-user-select: none;
+	    -ms-user-select: none;
+	    user-select: none;
+	}
+	
+	pre {
+		margin-top: 0;
+	}
+	
+	.v-label-failure {
+		border-color: $error-color !important;
+	}
+	
+	.v-label-tiny {
+		font-size: 12px !important;
+	}
+	
+	/* Video Player Panel -- ditto */
+	.video-player-panel {
+		padding: 10px 20px !important;
+		margin-bottom: 10px;
+	}
+	
+	/* MediaElement.js Players */
+	.n-mejs-player {
+		
+		.mejs-container.mejs-audio {
+			background: none;
+		}
+		
+		.mejs-container {
+			/*background: none;*/
+			
+			.mejs-overlay-loading { 
+				display: none;
+			}
+			
+			.mejs-time-loaded {
+				@include valo-gradient($v-focus-color, v-linear 30%, $v-focus-color);
+			}
+			
+			.mejs-inner .mejs-controls { 
+				border-radius: 3px; 
+				@include valo-gradient(#555, v-linear 15%, #555);
+				
+				.mejs-button button:focus {
+					outline: 1px solid $v-focus-color;
+				}
+			}
+		}
+	}
+}

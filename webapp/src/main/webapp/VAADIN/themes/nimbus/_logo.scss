@@ -1,0 +1,32 @@
+
+
+@mixin logo {
+	
+	/* Header Panel */
+	.nimbus-logo {
+	
+		&.size-lg {
+			.nimbus-cloud .fa-cloud { font-size: 66px }
+			.nimbus-text { font-size: 81px }
+		}
+		
+		& > .v-widget {
+			position: relative;
+			display: inline-block;
+			vertical-align: baseline;
+			width: auto !important;
+		}
+		
+		.nimbus-cloud {
+			.fa-cloud { font-size: 44px; }
+		}
+		
+		.nimbus-text {
+			font-family: 'Playball' !important;
+			font-size: 54px; 
+			font-weight: 500;
+			color: $dark-grey;
+			line-height: 100%;
+		}
+	}			
+}

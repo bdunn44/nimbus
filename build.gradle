@@ -1,0 +1,293 @@
+apply plugin: 'base'
+apply plugin: 'distribution'
+
+def vaadinVersion = '7.6.4'
+ext.vaadinVersion = vaadinVersion
+def jettyVersion = '9.2.15.v20160210'
+
+// ProGuard breaks push as of 0.6.1
+/*buildscript {
+	repositories {
+		flatDir dirs: '../proguard5.2.1/lib'
+	}
+	
+	dependencies {
+		classpath ':proguard'
+	}
+}*/
+
+allprojects {
+	apply plugin: 'java'
+	group = 'com.kbdunn.nimbus'
+	version = '0.6.1'
+	
+	javadoc {
+		enabled = false;
+	}
+}
+
+subprojects {
+	apply plugin: 'eclipse'
+	
+	
+	repositories {
+		mavenCentral()
+		mavenLocal()
+	}
+	
+	dependencies {
+		compile 'log4j:log4j:1.2.17'
+	    compile 'com.vaadin:vaadin-server:' + vaadinVersion
+	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
+	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
+	    
+		//  Java Mail 
+		compile 'com.sun.mail:javax.mail:1.5.5'
+	}
+	
+	eclipse {
+		jdt {
+			sourceCompatibility=1.8
+			targetCompatibility=1.8
+		}
+	}
+	
+	tasks.withType(Jar) {
+		baseName = rootProject.name
+		appendix = project.name
+		classifier = 'BETA'
+	}
+	
+	tasks.withType(Jar) {
+		task -> task.doFirst {
+			def buildNumber = readBuildNumber();
+			manifest.attributes 'Implementation-Title': 'Nimbus Personal Cloud',
+								'Implementation-Version': version + '.' + buildNumber + ' (' + new Date().format('MMM dd yyyy') + ')',
+								'Implementation-Vendor': 'Bryson Dunn'
+			
+			if (!configurations.runtime.isEmpty()) {
+				manifest.attributes('Class-Path': configurations.runtime.collect { it.getName() }.join(' '));
+			}
+		}
+	}
+	
+	// ProGuard breaks push as of 0.6.1
+	/*task proguard(type: proguard.gradle.ProGuardTask) {
+		configuration '../proguard/configuration.pro'
+		injars jar.archivePath.path
+		outjars jar.archivePath.getParentFile().path + '/proguard'
+		repackageclasses project.name
+		applymapping '../proguard/master-proguard.map'
+		printmapping '../proguard/' + project.name + '-proguard.map'
+	}
+	
+	proguard.doLast {
+		// Append each project's mapping to the master file
+		file('../proguard/master-proguard.map').text = 
+			file('../proguard/master-proguard.map').getText() + file('../proguard/' + project.name + '-proguard.map').getText()
+	}
+	
+	task proguardClean() {
+		delete(jar.archivePath.getParentFile().path + '/proguard')
+	}
+	
+	afterEvaluate {
+		proguard.doFirst {
+			libraryjars configurations.compile.resolve() \
+				<< "${System.getProperty('java.home')}/lib/rt.jar" \
+				<< "${System.getProperty('java.home')}/lib/jce.jar"
+		}
+	}*/
+	
+	//proguard.dependsOn(proguardClean)
+	//jar.finalizedBy(proguard)
+}
+
+project(':common') {
+	apply plugin: 'eclipse-wtp' // Needed because webapp depends on it and is a WTP project
+	
+	configurations {
+		jarFile
+	}
+	
+	dependencies {
+		compile 'com.vaadin:vaadin-server:' + vaadinVersion
+	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
+	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
+	    
+		//  Java Mail 
+		compile 'com.sun.mail:javax.mail:1.5.5'//'javax.mail:mail:1.5.5'
+		
+		// Output JAR
+		jarFile files(jar.archivePath)
+	}
+}
+
+project(':server') {
+	apply plugin: 'eclipse'
+
+	dependencies {
+	    compile fileTree(dir: 'lib', include: '*.jar')
+	    compile project(':common')
+	    compile project(':webapp')
+	    
+	    // Vaadin
+		compile 'com.vaadin:vaadin-server:' + vaadinVersion
+		compile 'com.vaadin:vaadin-push:' + vaadinVersion
+		
+		// Jetty 
+		compile 'org.eclipse.jetty:jetty-annotations:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-http:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-io:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-plus:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-security:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-server:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-servlet:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-servlets:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-util:' + jettyVersion
+		compile 'org.eclipse.jetty:jetty-webapp:' + jettyVersion
+		compile 'org.eclipse.jetty.websocket:websocket-server:' + jettyVersion
+		
+		//  Apache Commons IO 
+		compile 'commons-io:commons-io:2.4'
+		
+		//  Apache Commons Lang 
+		compile 'commons-lang:commons-lang:2.3'
+		
+		//  HSQLDB 
+		compile 'org.hsqldb:hsqldb:2.3.1'
+		
+		// Hikari connection pool
+		compile 'com.zaxxer:HikariCP:2.4.5'
+		
+		//  Java Mail 
+		compile 'com.sun.mail:javax.mail:1.5.5'//'javax.mail:mail:1.5.5'
+		
+		// Scribe Java
+	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
+		
+		// Gmail API
+		compile 'com.google.api-client:google-api-client:1.20.0'
+	    compile 'com.google.apis:google-api-services-gmail:v1-rev29-1.20.0'
+		
+		// SLF4J / Log4j / Bridges
+		compile 'org.slf4j:slf4j-api:1.7.10'
+		compile 'org.slf4j:slf4j-log4j12:1.7.10'
+		compile 'org.slf4j:jul-to-slf4j:1.7.10'
+		//compile 'org.slf4j:jcl-over-slf4j:1.7.10'
+		 
+		//  Jersey 
+		compile 'org.glassfish.jersey.core:jersey-server:2.22.1'
+		compile 'org.glassfish.jersey.containers:jersey-container-servlet-core:2.22.1' 
+		compile 'org.glassfish.jersey.containers:jersey-container-jetty-http:2.22.1' 
+		compile 'org.glassfish.jersey.media:jersey-media-json-jackson:2.22.1'
+		
+		// Joda Time 
+		compile 'joda-time:joda-time:2.3'
+	}
+	
+	jar.doFirst {
+		manifest.attributes 'Main-Class': 'com.kbdunn.nimbus.server.Launcher'
+	}
+	
+	task launch(type: JavaExec) {
+		classpath = sourceSets.main.runtimeClasspath
+		main = 'com.kbdunn.nimbus.server.Launcher'
+	}
+	
+	task cleanDatabase(type: JavaExec) {
+		classpath = sourceSets.main.runtimeClasspath
+		main = 'com.kbdunn.nimbus.server.util.DatabaseCleaner'
+	}
+	
+	assemble.dependsOn(cleanDatabase)
+}
+
+def readBuildNumber() {
+	def File buildPropsFile = new File(rootDir, 'build.properties')
+	def Properties buildProps = new Properties()
+	buildProps.load(new FileInputStream(buildPropsFile))
+	return buildProps['build.number'].toInteger()
+}
+
+def bumpBuildNumber() {
+	def File buildPropsFile = new File(rootDir, 'build.properties')
+	def Properties buildProps = new Properties()
+	buildProps.load(new FileInputStream(buildPropsFile))
+	def buildNumber = buildProps['build.number'].toInteger()
+	buildProps['build.number'] = buildNumber.toString()
+	buildProps.store(buildPropsFile.newWriter(), null)
+	return buildNumber
+}
+
+// ProGuard breaks push as of 0.6.1
+/*task prepProguard() {
+	// Clear master proguard mapping
+	def File mapFile = file('proguard/master-proguard.map')
+	if (mapFile.exists()) mapFile.delete()
+	mapFile.createNewFile()
+}*/
+
+task nimbusDistTar (type: Tar) {
+	includeEmptyDirs = true
+	compression = Compression.GZIP
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	version = rootProject.version
+	classifier = 'BETA'
+	extension = 'tar.gz'
+	baseName = rootProject.name
+	
+	from ('dist') {
+		exclude('*.sh')
+	}
+	from ('dist') {
+		include('*.sh')
+		fileMode 0755
+	}
+	into ('lib') {
+		from project(':common').configurations.runtime
+		from project(':webapp').configurations.runtime
+		from project(':server').configurations.runtime
+		from project(':server').jar.archivePath
+		// Will use obfuscated JARs
+		// ProGuard breaks push as of 0.6.1
+		//exclude project(':common').jar.archiveName
+		//exclude project(':webapp').jar.archiveName
+		//exclude project(':server').jar.archiveName
+		exclude ('*sources.jar')
+		exclude ('*javadoc.jar')
+	}
+	// ProGuard breaks push as of 0.6.1
+	/*into ('lib') {
+		from project(':common').jar.archivePath.getParentFile().path + "/proguard"
+		from project(':webapp').jar.archivePath.getParentFile().path + "/proguard"
+		from project(':server').jar.archivePath.getParentFile().path + "/proguard"
+		include ('*.jar')
+		//rename '(.*\\.jar)\\.proguard', '$1'
+	}*/
+	into ('data') {
+		from './server/src/main/resources/db'
+		exclude ('*.tmp')
+		exclude ('*.sql')
+		exclude ('*.lck')
+		exclude ('*.log')
+	}
+	into ('static') {
+		from './webapp/src/main/webapp'
+		exclude('VAADIN/themes/nimbus/util/')
+		exclude('VAADIN/gwt-unitCache/')
+		exclude('WEB-INF/')
+		exclude('META-INF/')
+		exclude('**/*.scss')
+	}
+}
+
+nimbusDistTar.doFirst {
+	bumpBuildNumber()
+}
+
+//assemble.dependsOn(prepProguard) // ProGuard breaks push as of 0.6.1
+nimbusDistTar.dependsOn ':common:assemble'
+nimbusDistTar.dependsOn ':webapp:assemble'
+nimbusDistTar.dependsOn ':server:assemble'
+assemble.finalizedBy(nimbusDistTar)

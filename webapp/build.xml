@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="android-build" name="Build Nimbus">
+    
+	<!-- Properties -->
+	<property name="android-lib-dir" value="C:/Users/kdunn/AndroidStudioProjects/Nimbus/app/libs"/>
+	<property name="nimbus-web-home" value="C:/Users/kdunn/Documents/STS/nimbus-web"/>
+	<property name="nimbus-api-home" value="C:/Users/kdunn/Documents/STS/nimbus-api"/>
+	<property name="nimbus-server-home" value="C:/Users/kdunn/Documents/STS/nimbus-server"/>
+	<property name="ivy-cache-home" value="C:/Users/kdunn/.ivy2/cache"/>
+	<property name="release" value="0.6.1-beta"/>
+	<buildnumber/>
+	<tstamp/>
+	
+	<!-- Development VM -->
+	<property name="serverTarget" value="bryson:n0di66ity!@192.168.232.128:/home/bryson/nimbus" />
+	
+	<!-- Dev RPi -->
+	<!--<property name="serverTarget" value="pi:n0di66ity!@192.168.0.195:/home/pi/nimbus" />-->
+	
+	<!-- Demo Server -->
+	<!--property name="serverTarget" value="nimbus:N0di66ity@192.168.0.193:/home/nimbus/nimbus" /-->
+	
+	<target name="build">
+		<!-- Create distribution directory -->
+		<!--mkdir dir="${nimbus-web-home}/dist/${release}"/-->
+		
+		<antcall target="build-api-jar"/>
+		<antcall target="build-server-jars"/>
+		<antcall target="scp-database-files"/>
+		<antcall target="scp-nimbus-jars"/>
+		<antcall target="scp-dependencies"/>
+	</target>
+	
+	<target name="android-build">
+		<antcall target="build-api-jar" />
+		<copy todir="${android-lib-dir}" file="${nimbus-api-home}/dist/nimbus-api-${release}.jar" />
+	</target>
+	
+	<target name="build-api-jar">
+		<!-- Nimbus API JAR -->
+		<jar destfile="${nimbus-api-home}/dist/nimbus-api-${release}.jar">
+            <manifest>
+				<attribute name="Implementation-Title" value="Nimbus Personal Cloud"/> 
+				<attribute name="Implementation-Version" value="${release} build ${build.number} (${TODAY})"/> 
+				<attribute name="Implementation-Vendor" value="Bryson Dunn"/>
+                <attribute name="Class-Path" value="./ 
+													vaadin-server-7.3.8.jar 
+													log4j-1.2.17.jar "/>
+            </manifest>
+            <fileset dir="${nimbus-api-home}/bin"/>
+        </jar>
+	</target>
+	
+    <target name="build-server-jars">
+		<!-- Compile Theme -->
+		<!--java classname="com.vaadin.sass.SassCompiler" failonerror="yes" fork="yes">
+			<classpath refid="webapp.lib.files"/>
+			<jvmarg value="-Djava.awt.headless=true"/>
+			<arg value="${theme.dir}/${theme.name}/styles.scss"/>
+			<arg value="${war.content}/VAADIN/themes/${theme.name}/styles.css"/>
+		</java-->
+		
+		<!-- Nimbus Web JAR -->
+		<jar destfile="${nimbus-web-home}/dist/nimbus-web-${release}.jar">
+            <manifest>
+				<attribute name="Implementation-Title" value="Nimbus Personal Cloud"/> 
+				<attribute name="Implementation-Version" value="${release} build ${build.number} (${TODAY})"/> 
+				<attribute name="Implementation-Vendor" value="Bryson Dunn"/>
+                <attribute name="Class-Path" value="./ 
+													aceeditor-0.8.12.jar 
+													atmosphere-runtime-2.1.2.vaadin6.jar 
+													commons-io-2.4.jar 
+													commons-lang-2.3.jar 
+													flute-1.3.0.gg2.jar 
+													font-awesome-label-1.2.0.jar 
+													guava-16.0.1.vaadin1.jar 
+													gwt-image-loader-1.1.4.jar 
+													imageviewer-0.5.1.v7.jar 
+													imgscalr-lib-4.2.jar 
+													javax.servlet-api-3.1.0.jar 
+													joda-time-2.3.jar 
+													json-0.0.20080701.jar 
+													jsoup-1.6.3.jar 
+													log4j-1.2.17.jar 
+													mejs-player-1.2.5.jar 
+													nimbus-api-${release}.jar 
+													sac-1.3.jar 
+													streamhtmlparser-jsilver-0.0.10.vaadin1.jar 
+													vaadin-client-7.3.8.jar 
+													vaadin-client-compiled-7.3.8.jar 
+													vaadin-lazyquerycontainer-7.4.0.1.jar 
+													vaadin-push-7.3.8.jar 
+													vaadin-server-7.3.8.jar 
+													vaadin-shared-7.3.8.jar 
+													vaadin-slf4j-jdk14-1.6.1.jar"/>
+            </manifest>
+            <fileset dir="${nimbus-web-home}/build/classes"/>
+            <!--fileset dir="${nimbus-core-home}/bin"/-->
+            <!--fileset dir="${nimbus-server-home}/bin"/-->
+			<fileset dir="${nimbus-web-home}/WebContent" includes="VAADIN/addons/**/*"/>
+			<fileset dir="${nimbus-web-home}/WebContent" includes="VAADIN/themes/nimbus/fonts/**/*"/>
+			<fileset dir="${nimbus-web-home}/WebContent" includes="VAADIN/themes/nimbus/favicon.ico"/>
+			<fileset dir="${nimbus-web-home}/WebContent" includes="VAADIN/themes/nimbus/styles.css"/>
+			<fileset dir="${nimbus-web-home}/WebContent" includes="VAADIN/themes/base/**/*"/>
+			<fileset dir="${nimbus-web-home}/WebContent" includes="VAADIN/themes/valo/**/*"/>
+			<fileset dir="${nimbus-web-home}/WebContent" includes="VAADIN/widgetsets/**/*"/>
+        </jar>
+		
+		<!-- Nimbus Server JAR -->
+        <jar destfile="${nimbus-server-home}/dist/nimbus-server-${release}.jar">
+            <manifest>
+				<attribute name="Implementation-Title" value="Nimbus Personal Cloud"/> 
+				<attribute name="Implementation-Version" value="${release} build ${build.number} (${TODAY})"/> 
+				<attribute name="Implementation-Vendor" value="Bryson Dunn"/>
+                <attribute name="Main-Class" value="com.kbdunn.nimbus.server.LaunchServer"/>
+                <attribute name="Class-Path" value="./ 
+													commons-io-2.4.jar 
+													javax.servlet-api-3.1.0.jar 
+													jetty-annotations-9.2.7.v20150116.jar 
+													jetty-http-9.2.7.v20150116.jar 
+													jetty-io-9.2.7.v20150116.jar 
+													jetty-security-9.2.7.v20150116.jar 
+													jetty-server-9.2.7.v20150116.jar 
+													jetty-servlet-9.2.7.v20150116.jar 
+													jetty-util-9.2.7.v20150116.jar 
+													jetty-webapp-9.2.7.v20150116.jar 
+													jetty-xml-9.2.7.v20150116.jar 
+													jul-to-slf4j-1.7.10.jar 
+													log4j-1.2.17.jar 
+													nimbus-api-${release}.jar 
+													nimbus-web-${release}.jar 
+													slf4j-api-1.7.10.jar 
+													slf4j-log4j12-1.7.10.jar
+													websocket-api-9.2.7.v20150116.jar 
+													websocket-common-9.2.7.v20150116.jar
+													websocket-server-9.2.7.v20150116.jar 
+													websocket-servlet-9.2.7.v20150116.jar"/>
+            </manifest>
+            <fileset dir="${nimbus-server-home}/build"/>
+        </jar>
+		
+    </target>
+	
+	 <target name="scp-database-files">
+		<scp todir="${serverTarget}/data" trust="true">
+			<fileset dir="${nimbus-core-home}/resources/db"/>
+		</scp>
+	</target>
+	
+	 <target name="scp-nimbus-jars">
+		<scp todir="${serverTarget}/lib" trust="true">
+			<fileset dir="${nimbus-web-home}/dist/${release}" includes="nimbus-core-${release}.jar"/>
+			<fileset dir="${nimbus-web-home}/dist/${release}" includes="nimbus-web-${release}.jar"/>
+			<fileset dir="${nimbus-web-home}/dist/${release}" includes="nimbus-server-${release}.jar"/>
+		</scp>
+	</target>
+	
+	<target name="scp-dependencies">
+		<scp todir="${serverTarget}/lib" trust="true">
+		
+			<!-- Vaadin -->
+			<fileset dir="${ivy-cache-home}/com.vaadin/vaadin-server/jars" includes="vaadin-server-7.3.8.jar"/>
+			<fileset dir="${ivy-cache-home}/com.vaadin/vaadin-shared/jars" includes="vaadin-shared-7.3.8.jar"/>
+            <fileset dir="${ivy-cache-home}/com.vaadin/vaadin-client-compiled/jars" includes="vaadin-client-compiled-7.3.8.jar"/>
+            <fileset dir="${ivy-cache-home}/com.vaadin/vaadin-client/jars" includes="vaadin-client-7.3.8.jar"/>
+            <fileset dir="${ivy-cache-home}/com.vaadin/vaadin-push/jars" includes="vaadin-push-7.3.8.jar"/>
+			<fileset dir="${ivy-cache-home}/com.vaadin.external.atmosphere/atmosphere-runtime/bundles" includes="atmosphere-runtime-2.1.2.vaadin6.jar"/>
+            <fileset dir="${ivy-cache-home}/com.vaadin.external.flute/flute/jars" includes="flute-1.3.0.gg2.jar"/>
+            <fileset dir="${ivy-cache-home}/com.vaadin.external.google/guava/jars" includes="guava-16.0.1.vaadin1.jar"/>
+            <fileset dir="${ivy-cache-home}/com.vaadin.external.json/json/jars" includes="json-0.0.20080701.jar"/>
+			<fileset dir="${ivy-cache-home}/com.vaadin.external.slf4j/vaadin-slf4j-jdk14/jars" includes="vaadin-slf4j-jdk14-1.6.1.jar"/>
+			<fileset dir="${ivy-cache-home}/com.vaadin.external.streamhtmlparser/streamhtmlparser-jsilver/jars" includes="streamhtmlparser-jsilver-0.0.10.vaadin1.jar"/>
+			
+			<!-- Vaadin Addons -->
+            <fileset dir="${nimbus-web-home}/WebContent/WEB-INF/lib" includes="aceeditor-0.8.12.jar"/>
+            <fileset dir="${nimbus-web-home}/WebContent/WEB-INF/lib" includes="font-awesome-label-1.2.0.jar"/>
+            <fileset dir="${nimbus-web-home}/WebContent/WEB-INF/lib" includes="gwt-image-loader-1.1.4.jar"/>
+            <fileset dir="${nimbus-web-home}/WebContent/WEB-INF/lib" includes="imageviewer-0.5.1.v7.jar"/>
+			<fileset dir="${nimbus-web-home}/WebContent/WEB-INF/lib" includes="mejs-player-1.2.5.jar"/>
+            <fileset dir="${nimbus-web-home}/WebContent/WEB-INF/lib" includes="imgscalr-lib-4.2.jar"/>
+            <fileset dir="${nimbus-web-home}/WebContent/WEB-INF/lib" includes="vaadin-lazyquerycontainer-7.4.0.1.jar"/>
+			
+			<!-- Jetty -->
+			<fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-annotations/jars" includes="jetty-annotations-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-http/jars" includes="jetty-http-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-io/jars" includes="jetty-io-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-security/jars" includes="jetty-security-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-server/jars" includes="jetty-server-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-servlet/jars" includes="jetty-servlet-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-util/jars" includes="jetty-util-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-webapp/jars" includes="jetty-webapp-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty/jetty-xml/jars" includes="jetty-xml-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty.websocket/websocket-server/jars" includes="websocket-server-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty.websocket/websocket-common/jars" includes="websocket-common-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty.websocket/websocket-api/jars" includes="websocket-api-9.2.7.v20150116.jar"/>
+            <fileset dir="${ivy-cache-home}/org.eclipse.jetty.websocket/websocket-servlet/jars" includes="websocket-servlet-9.2.7.v20150116.jar"/>
+			
+			<!-- Other Dependencies -->
+			<fileset dir="${ivy-cache-home}/commons-io/commons-io/jars" includes="commons-io-2.4.jar"/>
+			<fileset dir="${ivy-cache-home}/org.w3c.css/sac/jars" includes="sac-1.3.jar"/>
+            <!--fileset dir="${ivy-cache-home}/asm/asm-commons/jars" includes="asm-commons-5.0.1.jar"/>
+            <fileset dir="${ivy-cache-home}/asm/asm-tree/jars" includes="asm-tree-5.0.1.jar"/>
+            <fileset dir="${ivy-cache-home}/asm/asm/jars" includes="asm-5.0.1.jar"/-->
+            <fileset dir="${ivy-cache-home}/commons-lang/commons-lang/jars" includes="commons-lang-2.3.jar"/>
+            <fileset dir="${ivy-cache-home}/javax.mail/mail/jars" includes="mail-1.4.7.jar"/>
+            <fileset dir="${ivy-cache-home}/joda-time/joda-time/jars" includes="joda-time-2.3.jar"/>
+            <fileset dir="${ivy-cache-home}/org.hsqldb/hsqldb/jars" includes="hsqldb-2.3.1.jar"/>
+            <fileset dir="${ivy-cache-home}/org.jsoup/jsoup/jars" includes="jsoup-1.6.3.jar"/>
+            <fileset dir="${nimbus-core-home}/lib" includes="jaudiotagger-2.2.3.jar"/>
+			<!--fileset dir="${nimbus-core-home}/lib" includes="beaglebuddy_mp3.jar"/-->
+			<fileset dir="${ivy-cache-home}/javax.servlet/javax.servlet-api/jars" includes="javax.servlet-api-3.1.0.jar"/>
+            <fileset dir="${ivy-cache-home}/org.slf4j/slf4j-log4j12/jars" includes="slf4j-log4j12-1.7.10.jar"/>
+            <!--fileset dir="${ivy-cache-home}/org.slf4j/slf4j-simple/jars" includes="slf4j-simple-1.7.10.jar"/-->
+            <fileset dir="${ivy-cache-home}/log4j/log4j/bundles" includes="log4j-1.2.17.jar"/>
+			<!--fileset dir="${ivy-cache-home}/org.apache.logging.log4j/log4j-core/jars" includes="log4j-core-2.1.jar"/-->
+			<!--fileset dir="${ivy-cache-home}/org.apache.logging.log4j/log4j-api/jars" includes="log4j-api-2.1.jar"/-->
+			<fileset dir="${ivy-cache-home}/org.slf4j/slf4j-api/jars" includes="slf4j-api-1.7.10.jar"/>
+			<fileset dir="${ivy-cache-home}/org.slf4j/jul-to-slf4j/jars" includes="jul-to-slf4j-1.7.10.jar"/>
+			
+		</scp>
+	</target>
+</project>

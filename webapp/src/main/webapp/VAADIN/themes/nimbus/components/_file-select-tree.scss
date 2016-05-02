@@ -1,0 +1,60 @@
+
+
+@mixin file-select-tree {
+	
+	.file-select-tree {
+		font-size: 14px;
+		overflow: auto;
+		
+		div[role=tree] {
+			overflow: visible !important; /* containers must handle overflow */
+		}
+		
+		.v-tree-node .v-icon {
+			font-family: FontAwesome;
+			text-align: center;
+			font-size: 1.28571em;
+		}
+		
+		.v-tree-node-caption-checked, .v-tree-node-caption-disabled {
+			
+			& .v-icon::before {
+				content: "\f046"; // fa-check-square-o
+				padding-right: 8px;
+			}
+			& .v-icon::after {
+				content: "\f00c";
+				color: $v-focus-color;
+				position: absolute;
+				/*left: 27px;*/
+				left: 1px;
+				top: -2px;
+			}
+		}
+		.v-tree-node-caption-disabled {
+			span { opacity: .6; }
+			/*
+			&:hover, div:hover, span:hover {
+				cursor: default;
+			}
+			
+			& .v-icon::before {
+				content: "\f046\00a0\00a0"; // fa-check-square-o space space
+			}*/
+		}
+		.v-tree-node-caption-indeterminate {
+			
+			& .v-icon::before {
+				content: "\f147"; // fa-minus-square-o
+				padding-right: 10px;
+			}
+		}
+		.v-tree-node-caption-unchecked {
+			
+			& .v-icon::before {
+				content: "\f096";  // fa-square-o
+				padding-right: 10px;
+			}
+		}
+	} 
+}

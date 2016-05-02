@@ -1,0 +1,39 @@
+@mixin settings {
+	
+	/* Settings View */
+	.settings-view {
+	
+		/* User Management Tab */
+		.user-settings-tab {
+			.nimbus-user-layout {
+			
+				.username-label {
+					overflow: hidden;
+					white-space: nowrap;
+					text-overflow: ellipsis;
+				
+					.name { 
+						font-size: 20px;
+					}
+					.desc { 
+						font-size: 12px; 
+						padding-left: 6px;
+					}
+				}
+			}
+			
+		} /* END User Management Tab */
+		
+	
+		/* Drive Manager Tab */
+		.drive-manager {
+			.drive-display {
+				.fa-hdd-o, .fa-stack { padding-bottom: 5px; }
+				.use-drive-button { margin-top: 15px; }
+				.fa-times { color: $error-color; }
+				.fa-exclamation { color: $warning-color; }
+			}
+		} /* END Drive Manager Tab */
+		
+	} /* END Settings View */
+}

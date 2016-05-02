@@ -1,0 +1,38 @@
+
+
+@mixin controlbar {
+	
+	/* Button Control Bar */
+	.controlbar {
+		
+		& > .v-slot:first-child {
+			margin-bottom: 11px !important;
+		}
+		
+		.v-slot-control-group-panel {
+			/* margin-bottom: 14px !important; */
+		}
+		
+		.control-group-panel {
+			.v-panel-caption {
+				line-height: 20px;
+				font-size: 11px;
+				background: none;
+			}
+		}
+		
+		.control-button {
+			color: $dark-grey;
+			
+			&:hover, &:focus {
+				color: $v-focus-color;
+			}
+			
+			&:focus:after {
+				border: none;
+				box-shadow: none;
+			}
+		}
+	}
+	
+}

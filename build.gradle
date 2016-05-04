@@ -204,14 +204,10 @@ project(':server') {
 }
 
 project(':desktop-win') {
-
-	repositories {
-		maven{ url 'http://tomp2p.net/dev/mvn/' }
-	}
 	
 	dependencies {
-	    compile('org.hive2hive:org.hive2hive.core:1.2.3-SNAPSHOT') { exclude group: 'ch.qos.logback' exclude group: 'org.slf4j' }
-	    compile('org.hive2hive:org.hive2hive.client:1.2.3-SNAPSHOT') { exclude group: 'ch.qos.logback' exclude group: 'org.slf4j' }
+		compile 'org.atmosphere:atmosphere-runtime:2.4.3'
+		compile 'org.atmosphere:atmosphere-jersey:2.4.3'
 		compile 'org.slf4j:slf4j-api:1.7.10'
 		compile 'org.slf4j:slf4j-log4j12:1.7.10'
 		compile 'commons-io:commons-io:2.4'

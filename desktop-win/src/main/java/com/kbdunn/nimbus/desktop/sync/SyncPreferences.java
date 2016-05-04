@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.desktop.client.sync;
+package com.kbdunn.nimbus.desktop.sync;
 
 import java.io.File;
 import java.util.Map;

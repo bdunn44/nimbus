@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.desktop.client.sync;
+package com.kbdunn.nimbus.desktop.sync;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,9 +24,9 @@ import com.kbdunn.nimbus.common.sync.model.FileNode;
 import com.kbdunn.nimbus.common.util.FileUtil;
 import com.kbdunn.nimbus.desktop.Application;
 
-public class FileSyncArbiter {
+public class BatchFileSyncArbiter {
 
-	private static final Logger log = LoggerFactory.getLogger(FileSyncArbiter.class);
+	private static final Logger log = LoggerFactory.getLogger(BatchFileSyncArbiter.class);
 	
 	// Map<file-path, file-hash>
 	private final Map<String, byte[]> before;
@@ -40,12 +40,12 @@ public class FileSyncArbiter {
 	 * @param userProfile the current user profile
 	 * @param before represents the file state at the last logout, before H2H was shutdown. The key of the map
 	 *            is the path, the byte[] is the hash of the file content.
-	 *            {@link FileSyncArbiter#getCurrentSyncState(File)} can be used to generate this map.
+	 *            {@link BatchFileSyncArbiter#getCurrentSyncState(File)} can be used to generate this map.
 	 * @param now represents the current file state. The key of the map is the path, the byte[] is the hash of
-	 *            the file content. {@link FileSyncArbiter#getCurrentSyncState(File)} can be used to generate this
+	 *            the file content. {@link BatchFileSyncArbiter#getCurrentSyncState(File)} can be used to generate this
 	 *            map.
 	 */
-	public FileSyncArbiter(FileNode rootNode, Map<String, byte[]> before, Map<String, byte[]> now) {
+	public BatchFileSyncArbiter(FileNode rootNode, Map<String, byte[]> before, Map<String, byte[]> now) {
 		this.networkFiles = new HashMap<>();
 		this.before = before;
 		this.now = now;
@@ -53,7 +53,7 @@ public class FileSyncArbiter {
 		addFileNodesRecursively(rootNode, networkFiles);
 	}
 	
-	public FileSyncArbiter(FileNode rootNode) throws IOException, ClassNotFoundException {
+	public BatchFileSyncArbiter(FileNode rootNode) throws IOException, ClassNotFoundException {
 		this.networkFiles = new HashMap<>();
 		this.before = getPersistedSyncState();
 		this.now = getCurrentSyncState(Application.getSyncRootDirectory());
@@ -103,6 +103,7 @@ public class FileSyncArbiter {
 					// File is on the network
 					if (node.isFolder()) {
 						deletedLocally.add(node.getFile());
+						log.debug("Folder '{}' has been deleted locally during absence.", path);
 					} else {
 						// Check file hash, don't delete a file that has been modified remotely
 						if (HashUtil.compare(node.getMd5(), before.get(path))) {

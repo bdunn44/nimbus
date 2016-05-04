@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.desktop.client.sync.process;
+package com.kbdunn.nimbus.desktop.sync.process;
 
 import java.io.File;
 import java.util.List;
@@ -6,8 +6,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kbdunn.nimbus.desktop.client.sync.FileSyncArbiter;
-import com.kbdunn.nimbus.desktop.client.sync.SyncEventHandler;
+import com.kbdunn.nimbus.desktop.sync.BatchFileSyncArbiter;
+import com.kbdunn.nimbus.desktop.sync.SyncEventHandler;
 
 public class BatchSynchronizeProcess {
 	
@@ -23,7 +23,7 @@ public class BatchSynchronizeProcess {
 	private final List<File> toUpdateRemote;
 	private final List<File> remoteVersionConflicts;
 	
-	public BatchSynchronizeProcess(FileSyncArbiter syncArbiter, SyncEventHandler syncHandler) {
+	public BatchSynchronizeProcess(BatchFileSyncArbiter syncArbiter, SyncEventHandler syncHandler) {
 		this.syncHandler = syncHandler;
 		
 		this.toDeleteLocal = syncArbiter.getFilesToDeleteLocally();

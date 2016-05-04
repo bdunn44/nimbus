@@ -12,7 +12,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.client.sync.SyncPreferences;
+import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
 import com.kbdunn.nimbus.desktop.ui.ApplicationResources;
 import com.kbdunn.nimbus.desktop.ui.fontawesome.FontAwesome;
 

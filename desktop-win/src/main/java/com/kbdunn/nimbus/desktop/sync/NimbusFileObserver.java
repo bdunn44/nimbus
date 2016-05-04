@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.desktop.client.sync;
+package com.kbdunn.nimbus.desktop.sync;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -45,12 +45,8 @@ public class NimbusFileObserver {
 	}
 	
 	public void stop() throws Exception {
-		stop(0);
-	}
-	
-	public void stop(long ms) throws Exception {
 		if (isRunning) {
-			monitor.stop(ms);
+			monitor.stop();
 			isRunning = false;
 		}
 	}

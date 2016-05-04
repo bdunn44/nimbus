@@ -1,24 +1,20 @@
-package com.kbdunn.nimbus.desktop.client.sync;
+package com.kbdunn.nimbus.desktop.sync;
 
 import java.io.IOException;
-import java.net.InetAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-import org.hive2hive.core.api.H2HNode;
-import org.hive2hive.core.api.configs.NetworkConfiguration;
-import org.hive2hive.core.api.interfaces.IH2HNode;
-import org.hive2hive.core.api.interfaces.INetworkConfiguration;
-import org.hive2hive.core.processes.files.list.FileNode;
-import org.hive2hive.processframework.exceptions.InvalidProcessStateException;
-import org.hive2hive.processframework.exceptions.ProcessExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kbdunn.nimbus.common.sync.model.FileNode;
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.client.sync.listener.LocalFileEventListener;
-import com.kbdunn.nimbus.desktop.client.sync.listener.RemoteFileEventListener;
-import com.kbdunn.nimbus.desktop.client.sync.process.BatchSynchronizeProcess;
-import com.kbdunn.nimbus.desktop.client.sync.process.GetFileListprocess;
+import com.kbdunn.nimbus.desktop.client.NimbusWAsyncConnection;
 import com.kbdunn.nimbus.desktop.model.SyncCredentials;
+import com.kbdunn.nimbus.desktop.sync.listener.LocalFileEventListener;
+import com.kbdunn.nimbus.desktop.sync.listener.RemoteFileEventListener;
+import com.kbdunn.nimbus.desktop.sync.process.BatchSynchronizeProcess;
 
 public class SyncManager {
 
@@ -56,37 +52,40 @@ public class SyncManager {
 	}
 	
 	private static final Logger log = LoggerFactory.getLogger(SyncManager.class);
+	private static final int WORKER_THREAD_COUNT = 4;
 	
 	private Status status;
-	private IH2HNode node;
+	private NimbusWAsyncConnection connection;
 	private SyncEventHandler syncEventHandler;
 	private NimbusFileObserver fileObserver;
+	private ExecutorService executor;
 	
 	public SyncManager() {
 		status = Status.DISCONNECTED;
+		connection = new NimbusWAsyncConnection();
 	}
 	
 	public Status getSyncStatus() {
 		return status;
 	}
 	
+	public ExecutorService getExecutor() {
+		return executor;
+	}
+	
 	public boolean connect() {
 		log.info("Connecting to DHT...");
 		try {
 			SyncCredentials creds = SyncPreferences.getCredentials();
-			// TODO Authenticate
-			/*if (!authenticate()) {
+			// Authenticate
+			if (!connection.authenticate(creds)) {
 				throw new Exception("User '" + creds.getUsername() + "' is not registered in the peer network");
 			}
-			if (user.isLoggedIn()) {
-				status = Status.CONNECTED;
-				log.info("Connected");
-			} else {
-				throw new Exception("User authentication failed");
-			}*/
+			status = Status.CONNECTED;
+			log.info("Connected");
 			
-			// TODO: Subscribe to network change events
-			//syncEventHandler = new SyncEventHandler(node.getFileManager(), this);
+			// Subscribe to network change events
+			syncEventHandler = new SyncEventHandler(connection.getFileManager(), this);
 			
 			// Listen to local change events (not started until resume())
 			fileObserver = new NimbusFileObserver(Application.getSyncRootDirectory());
@@ -101,10 +100,10 @@ public class SyncManager {
 	}
 	
 	public void disconnect() {
-		// TODO: Check that we're connected, if so, disconnect
-		if (true) {
+		// Check that we're connected, if so, disconnect
+		if (connection.isConnected()) {
 			log.info("Disconnecting from DHT...");
-			if (node.disconnect()) {
+			if (connection.disconnect()) { 
 				log.info("Disconnected");
 				status = Status.DISCONNECTED;
 			} else {
@@ -126,16 +125,31 @@ public class SyncManager {
 			return;
 		}
 		log.info("Pausing file synchronization");
+		// Shutdown executor
 		try {
-			FileSyncArbiter.persistCurrentSyncState();
-		} catch (IOException e) {
-			log.error("Unable to persist current sync state!", e);
+			executor.shutdown();
+			executor.awaitTermination(5, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			log.warn("Sync tasks interrupted");
+		} finally {
+			if (!executor.isTerminated()) {
+				log.warn("Sync tasks cancelled");
+			}
+			executor.shutdownNow();
 		}
+		// Stop observing file events
 		try {
 			fileObserver.stop();
 		} catch (Exception e) {
 			log.error("Unable to stop file observer", e);
 		}
+		// Save current file state
+		try {
+			BatchFileSyncArbiter.persistCurrentSyncState();
+		} catch (IOException e) {
+			log.error("Unable to persist current sync state!", e);
+		}
+		
 		status = Status.PAUSED;
 		Application.updateSyncStatus();
 	}
@@ -145,23 +159,31 @@ public class SyncManager {
 			return;
 		}
 		log.info("Resuming file synchronization");
-		status = Status.SYNCING;
-		Application.updateSyncStatus();
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				batchSynchronize();
-				// If status is still "Syncing", update
-				if (status == Status.SYNCING) {
-					status = Status.SYNCED;
-					Application.updateSyncStatus();
-				}
-				node.getFileManager().subscribeFileEvents(new RemoteFileEventListener(syncEventHandler));
-				try {
-					fileObserver.start();
-				} catch (Exception e) {
-					log.error("Unable to start file observer", e);
-				}
+		// Initialize executor
+		if (executor == null || executor.isTerminated()) {
+			executor = Executors.newFixedThreadPool(WORKER_THREAD_COUNT);
+		}
+		// Run batch synchronize in a standalone thread
+		new Thread(() -> {
+			status = Status.SYNCING;
+			Application.updateSyncStatus();
+			
+			if (!batchSynchronize()) {
+				log.error("Failed to batch synchronize!");
+				status = Status.CONNECTION_ERROR;
+				Application.updateSyncStatus();
+				return;
+			}  
+			// If status is still "Syncing", update
+			if (status == Status.SYNCING) {
+				status = Status.SYNCED;
+				Application.updateSyncStatus();
+			}
+			connection.getFileManager().subscribeFileEvents(new RemoteFileEventListener(syncEventHandler));
+			try {
+				fileObserver.start();
+			} catch (Exception e) {
+				log.error("Unable to start file observer", e);
 			}
 		}).start();
 	}
@@ -169,12 +191,12 @@ public class SyncManager {
 	private synchronized boolean batchSynchronize() {
 		FileNode rootNode = null;
 		try {
-			long start = System.currentTimeMillis();
-			// TODO: Get network state
-			rootNode = new GetFileListprocess(node.getFileManager()).start();
-			long end = System.currentTimeMillis();
-			log.debug("Took {}ms to fetch network file list.", end-start);
-		} catch (InvalidProcessStateException | ProcessExecutionException e) {
+			long start = System.nanoTime();
+			// Get network state synchronously
+			rootNode = executor.submit(connection.getFileManager().createFileListProcess()).get();
+			long end = System.nanoTime();
+			log.debug("Took {}ms to fetch network file list.", TimeUnit.NANOSECONDS.toMillis(end-start));
+		} catch (Exception e) {
 			log.error("Error fetching network file list.", e);
 			return false;
 		}
@@ -184,15 +206,15 @@ public class SyncManager {
 		} 
 		
 		try {
-			long start = System.currentTimeMillis();
-			FileSyncArbiter arbiter = new FileSyncArbiter(rootNode);
+			long start = System.nanoTime();
+			BatchFileSyncArbiter arbiter = new BatchFileSyncArbiter(rootNode);
 			BatchSynchronizeProcess batchSync = new BatchSynchronizeProcess(arbiter, syncEventHandler);
 			boolean success = batchSync.start();
-			long end = System.currentTimeMillis();
-			log.debug("Took {}ms to process batch synchronization.", end-start);
+			long end = System.nanoTime();
+			log.debug("Took {}ms to process batch synchronization.", TimeUnit.NANOSECONDS.toMillis(end-start));
 			if (success) {
 				// Batch sync succeeded
-				FileSyncArbiter.persistSyncState(arbiter.getCurrentSyncState());
+				BatchFileSyncArbiter.persistSyncState(arbiter.getCurrentSyncState());
 				return true;
 			}
 		} catch (Exception e) {

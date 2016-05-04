@@ -1,33 +1,29 @@
 package com.kbdunn.nimbus.desktop.model;
 
-import org.hive2hive.core.security.UserCredentials;
-
 public class SyncCredentials {
 	
-	private UserCredentials credentials;
+	private final String username, password, token;
 	
-	public SyncCredentials(String username, String password, String pin) {
-		credentials = new UserCredentials(username, password, pin);
-	}
-	
-	public UserCredentials getUserCredentials() {
-		return credentials;
+	public SyncCredentials(String username, String password, String token) {
+		this.username = username;
+		this.password = password;
+		this.token = token;
 	}
 	
 	public String getUsername() {
-		return credentials.getUserId();
+		return username;
 	}
 	
 	public String getPassword() {
-		return credentials.getPassword();
+		return password;
 	}
 	
-	public String getPin() {
-		return credentials.getPin();
+	public String getToken() {
+		return token;
 	}
 	
 	public String getCompositeString() {
-		return getUsername() + ":" + getPassword() + ":" + getPin();
+		return getUsername() + ":" + getPassword() + ":" + getToken();
 	}
 	
 	public static SyncCredentials fromCompositeString(String composite) throws IllegalArgumentException {

@@ -1,19 +1,20 @@
-package com.kbdunn.nimbus.desktop.client.sync;
+package com.kbdunn.nimbus.desktop.sync;
 
 import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
-import org.hive2hive.core.file.IFileAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WindowsFileAgent implements IFileAgent {
+import com.kbdunn.nimbus.common.sync.interfaces.SyncFileAgent;
+
+public class WindowsFileAgent implements SyncFileAgent {
 
 	private static final Logger log = LoggerFactory.getLogger(WindowsFileAgent.class);
 	
 	@Override
-	public File getRoot() {
+	public File getSyncRoot() {
 		String dirname = SyncPreferences.getSyncDirectory();
 		File dir = new File(dirname);
 		if (dir.isFile()) {

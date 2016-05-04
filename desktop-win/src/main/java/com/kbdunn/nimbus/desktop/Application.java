@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.desktop.sync.SyncManager;
+import com.kbdunn.nimbus.desktop.ui.ApplicationResources;
+import com.kbdunn.nimbus.desktop.ui.TrayMenu;
 
 public class Application {
 	
@@ -29,7 +31,7 @@ public class Application {
 		}
 	}
 	
-	protected static void exit() {
+	public static void exit() {
 		if (instance == null) return;
 		instance.trayMenu.dispose();
 	}
@@ -68,7 +70,7 @@ public class Application {
 		// Cleanup
 		trayMenu.dispose();
 		display.dispose();
-		NimbusResources.dispose();
+		ApplicationResources.dispose();
 		log.info("Application closed");
 		System.exit(0);
 	}

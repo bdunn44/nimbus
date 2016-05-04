@@ -18,8 +18,8 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.client.sync.SyncPreferences;
 import com.kbdunn.nimbus.desktop.model.SyncCredentials;
+import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
 import com.kbdunn.nimbus.desktop.ui.fontawesome.FontAwesome;
 
 public class ConnectForm extends Composite implements SelectionListener, KeyListener {
@@ -106,7 +106,7 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 		endpoint.setText(SyncPreferences.getEndpoint());
 		username.setText(creds.getUsername());
 		password.setText(creds.getPassword());
-		pin.setText(creds.getPin());
+		pin.setText(creds.getToken());
 		nodeName.setText(SyncPreferences.getNodeName());
 		keyReleased(null);
 	}

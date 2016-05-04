@@ -1,11 +1,11 @@
-package com.kbdunn.nimbus.desktop.client.sync.listener;
+package com.kbdunn.nimbus.desktop.sync.listener;
 
 import java.io.File;
 
 import org.apache.commons.io.monitor.FileAlterationListener;
 import org.apache.commons.io.monitor.FileAlterationObserver;
 
-import com.kbdunn.nimbus.desktop.client.sync.SyncEventHandler;
+import com.kbdunn.nimbus.desktop.sync.SyncEventHandler;
 
 public class LocalFileEventListener implements FileAlterationListener {
 	

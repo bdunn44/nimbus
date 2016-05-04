@@ -19,8 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.client.sync.SyncManager;
-import com.kbdunn.nimbus.desktop.client.sync.SyncPreferences;
+import com.kbdunn.nimbus.desktop.sync.SyncManager;
+import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
 import com.kbdunn.nimbus.desktop.ui.composite.SettingsWindow;
 
 public class TrayMenu {

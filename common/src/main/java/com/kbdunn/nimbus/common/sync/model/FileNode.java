@@ -2,13 +2,12 @@ package com.kbdunn.nimbus.common.sync.model;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class FileNode {
 
-	// can be null in case of the root
 	private final FileNode parent;
-	// holds all children
 	private final List<FileNode> children;
 	private final String path;
 	private final File file;
@@ -31,6 +30,14 @@ public class FileNode {
 			return null;
 		}
 		return children;
+	}
+	
+	public void addChild(FileNode child) {
+		children.add(child);
+	}
+	
+	public void addChildren(List<FileNode> children) {
+		this.children.addAll(children);
 	}
 
 	public String getName() {
@@ -67,34 +74,38 @@ public class FileNode {
 				isFile() ? String.format("(MD5: %s)", byteToHex(getMd5())) : "");
 	}
 
+	public List<FileNode> toFlatNodeList(boolean addFiles, boolean addFolders) {
+		return FileNode.getFlatNodeList(this, addFiles, addFolders);
+	}
+	
 	/**
 	 * Returns a list of all nodes in preorder. One can specify whether only files, folders or both is desired
 	 */
-	public static List<FileNode> getNodeList(FileNode root, boolean addFiles, boolean addFolders) {
+	public static List<FileNode> getFlatNodeList(FileNode root, boolean addFiles, boolean addFolders) {
 		if (!addFiles && !addFolders) {
 			throw new IllegalArgumentException("Must visit either files, folders or both");
 		}
-		List<FileNode> list = new ArrayList<FileNode>();
-		preorder(root, list, addFiles, addFolders);
-		return list;
+		List<FileNode> set = new LinkedList<>();
+		flattenNode(root, set, addFiles, addFolders);
+		return set;
 	}
-
-	private static void preorder(FileNode current, List<FileNode> list, boolean addFiles, boolean addFolders) {
+	
+	private static void flattenNode(FileNode current, List<FileNode> list, boolean addFiles, boolean addFolders) {
 		if (current == null) {
 			return;
 		}
-
+		
 		if (current.isFile() && addFiles || current.isFolder() && addFolders) {
 			list.add(current);
 		}
-
+		
 		if (current.isFolder()) {
 			for (FileNode child : current.getChildren()) {
-				preorder(child, list, addFiles, addFolders);
+				flattenNode(child, list, addFiles, addFolders);
 			}
 		}
 	}
-	
+
 	private static String byteToHex(byte[] data) {
 		StringBuilder sb = new StringBuilder();
 		for (byte b : data) {

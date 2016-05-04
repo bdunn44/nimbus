@@ -1,6 +1,9 @@
 package com.kbdunn.nimbus.common.util;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class FileUtil {
 
@@ -21,5 +24,14 @@ public class FileUtil {
 	
 	public static File relativize(File base, File child) {
 		return new File(base.toURI().relativize(child.toURI()).getPath());
+	}
+	
+	public static void sortPreorder(List<File> unsortedFiles) {
+		Collections.sort(unsortedFiles, new Comparator<File>() {
+			@Override
+			public int compare(File o1, File o2) {
+				return o1.getAbsolutePath().compareTo(o2.getAbsolutePath());
+			}
+		});
 	}
 }

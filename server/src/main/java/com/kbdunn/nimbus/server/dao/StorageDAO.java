@@ -913,7 +913,7 @@ public abstract class StorageDAO {
 			Date created = columns.contains("CREATE_DATE") ? row.getTimestamp("CREATE_DATE") : null;
 			Date updated = columns.contains("LAST_UPDATE_DATE") ? row.getTimestamp("LAST_UPDATE_DATE") : null;
 			
-			if (type.equals(FilesystemLocation.TYPE)) {
+			if (type != null && type.equals(FilesystemLocation.TYPE)) {
 				return new FilesystemLocation(id, name, path, reconciled, autonomous, created, updated);
 			} else {
 				return new HardDrive(id, name, path, devicePath, label, uuid, type, connected, mounted, reconciled, autonomous, size, used, created, updated);

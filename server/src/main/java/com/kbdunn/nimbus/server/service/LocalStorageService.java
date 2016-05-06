@@ -280,7 +280,7 @@ public class LocalStorageService implements StorageService {
 		// Get all connected devices
 		List<HardDrive> connected = new ArrayList<HardDrive>();
 		for (LinuxBlock b : new BlockFinder().scan())  {
-			if (b.getPath() != null && b.getPath().startsWith("/dev/sd") && !b.getType().equals("swap")) {
+			if (b.getPath() != null && b.getPath().startsWith("/dev/sd") && (b.getType() == null || !b.getType().equals("swap"))) {
 				log.debug("blkid found device: " 
 						+ b.getPath() + " - " 
 						+ b.getLabel() + " (" 

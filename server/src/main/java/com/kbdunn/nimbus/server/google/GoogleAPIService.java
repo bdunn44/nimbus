@@ -126,6 +126,8 @@ public class GoogleAPIService extends OAuth20API implements EmailTransport {
 
 	@Override
 	public String getEmailAddress() throws NimbusException {
+		super.refreshAccessTokenIfNeeded();
+		
         final OAuth20Service service = (OAuth20Service) OAuthUtil.getScribeOAuthService(this);
         final OAuthRequest request = new OAuthRequest(Verb.GET, GMAIL_PROFILE_ENDPOINT, service);
         OAuthUtil.signOAuthRequest(request, this);

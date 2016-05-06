@@ -196,12 +196,12 @@ public class ProfileController implements SettingsTabController {
 		boolean succeeded = false;
 		try {
 			succeeded = api != null && api.getEmailTransport().testConnection();
-			if (!succeeded) {
-				deleteOAuthCredential(type);
-				tab.getEmailForm().refresh();
-			}
 		} catch (NimbusException ne) {
 			log.error(ne, ne);
+		}
+		if (!succeeded) {
+			deleteOAuthCredential(type);
+			tab.getEmailForm().refresh();
 		}
 		return succeeded;
 	}

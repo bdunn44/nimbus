@@ -107,6 +107,7 @@ public class LocalOAuthService implements OAuthService {
 		if (api.getOAuthCredential() == null || api.getOAuthCredential().getRefreshToken() == null) 
 			throw new IllegalArgumentException("OAuth refresh token cannot be null");
 		
+		log.debug("Refreshing access " + api.getType() + " access token for user ID " + api.getOAuthCredential().getUserId());
 		final com.github.scribejava.core.oauth.OAuthService scribeService = OAuthUtil.getScribeOAuthService(api);
 		final OAuth2AccessToken token = ((OAuth20Service) scribeService)
 				.refreshAccessToken(api.getOAuthCredential().getRefreshToken());

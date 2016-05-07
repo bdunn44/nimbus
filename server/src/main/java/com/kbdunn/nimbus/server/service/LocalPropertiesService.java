@@ -51,6 +51,7 @@ public class LocalPropertiesService implements PropertiesService {
 			}
 			System.setProperty("nimbus.home", nimbusHome); // DEV Mode - set to Eclipse project home dir
 			DEV_MODE = true;
+			DEMO_MODE = false;
 		} else {
 			DEV_MODE = false;
 			DEMO_MODE = new File(new File(nimbusHome), "conf/demomode.ind").exists();

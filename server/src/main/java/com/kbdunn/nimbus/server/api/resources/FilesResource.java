@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.server.api;
+package com.kbdunn.nimbus.server.api.resources;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;

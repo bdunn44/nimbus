@@ -9,7 +9,7 @@ public class NimbusWAsyncConnection {
 	private FileManager fileManager;
 	
 	public NimbusWAsyncConnection() {
-		
+		fileManager = new DesktopFileManager();
 	}
 	
 	public boolean authenticate(SyncCredentials creds) {

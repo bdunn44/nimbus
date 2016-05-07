@@ -46,7 +46,6 @@ public class LocalPropertiesService implements PropertiesService {
 		if (nimbusHome == null) {
 			nimbusHome = System.getProperty("user.dir");
 			if (!nimbusHome.endsWith("nimbus")) {
-				System.out.println(nimbusHome);
 				nimbusHome = nimbusHome.substring(0, nimbusHome.lastIndexOf(File.separator));
 			}
 			System.setProperty("nimbus.home", nimbusHome); // DEV Mode - set to Eclipse project home dir

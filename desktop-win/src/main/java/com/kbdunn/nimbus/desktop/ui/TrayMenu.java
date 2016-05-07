@@ -45,7 +45,6 @@ public class TrayMenu {
 		this.shell = new Shell(display);
 		createTrayItem(display);
 		createMenu();
-		createConfigShell(display);
 	}
 	
 	private void createTrayItem(Display display) {
@@ -122,10 +121,6 @@ public class TrayMenu {
 			public void handleEvent(Event event) { onExitClick(event); }
 		});
 	}
-	
-	private void createConfigShell(Display display) {
-		configShell = new SettingsWindow(display);
-	}
 
 	public void setStatus(SyncManager.Status status) {
 		statusItem.setText(status.toString());
@@ -163,7 +158,11 @@ public class TrayMenu {
 	}
 	
 	private void onSyncControlClick(Event event) {
-		Application.setSyncPaused(syncControlItem.getText().equals(PAUSE_SYNC_TEXT));
+		if (syncControlItem.getText().equals(PAUSE_SYNC_TEXT)) {
+			Application.pause();
+		} else {
+			Application.resume();
+		}
 	}
 	
 	private void onOpenSyncFolderClick(Event event) {
@@ -191,6 +190,7 @@ public class TrayMenu {
 	}
 	
 	private void onOpenSettingsClick(Event event) {
+		configShell = new SettingsWindow(shell.getDisplay());
 		configShell.open();
 	}
 	

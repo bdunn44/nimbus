@@ -1,6 +1,5 @@
 package com.kbdunn.nimbus.desktop.sync.buffer;
 
-import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -14,17 +13,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.common.sync.interfaces.FileManager;
-import com.kbdunn.nimbus.common.sync.model.FileNode;
+import com.kbdunn.nimbus.common.sync.model.SyncFile;
 
 public class LocalFileEventBuffer {
 
 	private static final Logger log = LoggerFactory.getLogger(LocalFileEventBuffer.class);
 	private static final long MAX_REMOTE_STATE_WAIT_MS = TimeUnit.SECONDS.toMillis(10);
 	
-	private List<File> uploadBuffer;
-	private List<File> deleteBuffer;
+	private List<SyncFile> uploadBuffer;
+	private List<SyncFile> deleteBuffer;
 	private ExecutorService executor;
-	private List<FileNode> remoteFiles;
+	private List<SyncFile> remoteFiles;
 	private CountDownLatch bufferReadyLatch;
 	
 	public LocalFileEventBuffer() {
@@ -34,30 +33,30 @@ public class LocalFileEventBuffer {
 		bufferReadyLatch = new CountDownLatch(1);
 	}
 	
-	public List<File> getUploadFileBuffer() {
+	public List<SyncFile> getUploadFileBuffer() {
 		return uploadBuffer;
 	}
 	
-	public List<File> getDeleteFileBuffer() {
+	public List<SyncFile> getDeleteFileBuffer() {
 		return deleteBuffer;
 	}
 	
-	public List<FileNode> getRemoteFiles() {
+	public List<SyncFile> getRemoteFiles() {
 		return remoteFiles;
 	}
 	
-	public void addFileToUpload(File file) {
+	public void addFileToUpload(SyncFile file) {
 		deleteBuffer.remove(file); // Remove from delete buffer if it exists
 		uploadBuffer.add(file);
 	}
 	
-	public void addFileToDelete(File file) {
+	public void addFileToDelete(SyncFile file) {
 		// Remove from upload buffer if it exists
 		uploadBuffer.remove(file); 
 		// Remove children as well
 		if (file.isDirectory()) {
 			uploadBuffer.removeIf((ufile) -> {
-				return ufile.getAbsolutePath().startsWith(file.getAbsolutePath());
+				return ufile.getPath().startsWith(file.getPath());
 			});
 		}
 		deleteBuffer.add(file);
@@ -80,9 +79,9 @@ public class LocalFileEventBuffer {
 	}
 	
 	public void startFileListProcess(FileManager fileManager) {
-		Future<FileNode> future = executor.submit(fileManager.createFileListProcess());
+		Future<List<SyncFile>> future = executor.submit(fileManager.createFileListProcess());
 		try {
-			remoteFiles = future.get().toFlatNodeList(true, true);
+			remoteFiles = future.get();
 			setReady();
 		} catch (InterruptedException|ExecutionException e) {
 			log.error("Error retrieving remote sync state!", e);

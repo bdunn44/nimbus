@@ -1,10 +1,9 @@
 package com.kbdunn.nimbus.common.sync.interfaces;
 
-import java.io.File;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import com.kbdunn.nimbus.common.sync.model.FileNode;
+import com.kbdunn.nimbus.common.sync.model.SyncFile;
 
 public interface FileManager {
 	
@@ -19,9 +18,9 @@ public interface FileManager {
 	 * @throws NoSessionException If no user has logged in.
 	 * @throws IllegalArgumentException If the provided parameters are incorrect.
 	 */
-	Callable<Void> createAddProcess(File file) throws IllegalArgumentException;
+	Callable<Void> createAddProcess(SyncFile file) throws IllegalArgumentException;
 	
-	Callable<Void> createFolderAddProcess(List<File> folders) throws IllegalArgumentException;
+	Callable<Void> createFolderAddProcess(List<SyncFile> folders) throws IllegalArgumentException;
 	
 	/**
 	 * Delete a file / folder and all versions of that file from the network. This operation deletes also the
@@ -34,7 +33,7 @@ public interface FileManager {
 	 * @throws NoSessionException If no user has logged in.
 	 * @throws IllegalArgumentException If the provided parameters are incorrect.
 	 */
-	Callable<Void> createDeleteProcess(File file) throws IllegalArgumentException;
+	Callable<Void> createDeleteProcess(SyncFile file) throws IllegalArgumentException;
 
 	/**
 	 * Update a file and create a new version. Folders cannot be updated.<br>
@@ -45,7 +44,7 @@ public interface FileManager {
 	 * @throws NoSessionException If no user has logged in.
 	 * @throws IllegalArgumentException If the provided parameters are incorrect.
 	 */
-	Callable<Void> createUpdateProcess(File file) throws IllegalArgumentException;
+	Callable<Void> createUpdateProcess(SyncFile file) throws IllegalArgumentException;
 
 	/**
 	 * Download a file that exists in the network and store it on the disk. If the file is a folder, a folder
@@ -58,7 +57,7 @@ public interface FileManager {
 	 * @throws NoSessionException If no user has logged in.
 	 * @throws IllegalArgumentException If the provided parameters are incorrect.
 	 */
-	Callable<Void> createDownloadProcess(File file) throws IllegalArgumentException;
+	Callable<Void> createDownloadProcess(SyncFile file) throws IllegalArgumentException;
 
 	/**
 	 * Move a file / folder from a given source to a given destination. This operation can also be used to
@@ -72,7 +71,7 @@ public interface FileManager {
 	 * @throws NoSessionException If no user has logged in.
 	 * @throws IllegalArgumentException If the provided parameters are incorrect.
 	 */
-	Callable<Void> createMoveProcess(File source, File destination) throws IllegalArgumentException;
+	Callable<Void> createMoveProcess(SyncFile source, SyncFile destination) throws IllegalArgumentException;
 
 	/**
 	 * Get a tree of all files in the DHT of the currently logged in user. This must not necessary match
@@ -82,7 +81,7 @@ public interface FileManager {
 	 * @throws NoPeerConnectionException If the peer is not connected to the network.
 	 * @throws NoSessionException If no user has logged in.
 	 */
-	Callable<FileNode> createFileListProcess();
+	Callable<List<SyncFile>> createFileListProcess();
 
 	/**
 	 * Subscribe all file event handlers of the given listener instance.

@@ -26,13 +26,14 @@ public class Application {
 			instance = new Application();
 			instance.launch();
 		} catch (Exception e) {
-			log.error("", e);
+			log.error("Uncaught error!", e);
 			System.exit(1);
 		}
 	}
 	
 	public static void exit() {
 		if (instance == null) return;
+		Application.pause();
 		instance.trayMenu.dispose();
 	}
 
@@ -58,7 +59,12 @@ public class Application {
 		// Create system tray item and menu
 		syncManager = new SyncManager();
 		trayMenu = new TrayMenu(display);
-		updateSyncStatus();
+		try {
+			Application.connect();
+		} catch (UnknownHostException e) {
+			log.error("Unable to connect", e);
+		}
+		//updateSyncStatus();
 		
 		// Event Loop
 		while (!trayMenu.isDisposed()) {
@@ -79,18 +85,6 @@ public class Application {
 		return instance.syncManager;
 	}
 	
-	public static void setSyncPaused(boolean paused) {
-		synchronized(instance) {
-			if (paused) {
-				instance.syncManager.pause();
-				instance.trayMenu.showNotification("File synchronization paused");
-			} else {
-				instance.syncManager.resume();
-				instance.trayMenu.showNotification("File synchronization resumed");
-			}
-		}
-	}
-	
 	public static SyncManager.Status getSyncStatus() {
 		synchronized(instance) {
 			return instance.syncManager.getSyncStatus();
@@ -104,11 +98,34 @@ public class Application {
 	}
 	
 	public static boolean connect() throws UnknownHostException {
-		return instance.syncManager.connect();
+		if (instance.syncManager.connect()) {
+			resume();
+			return true;
+		}
+		return false;
 	}
 	
 	public static void disconnect() {
+		instance.syncManager.pause();
 		instance.syncManager.disconnect();
+	}
+	
+	public static void pause() {
+		synchronized(instance) {
+			instance.syncManager.pause();
+			instance.trayMenu.showNotification("File synchronization paused");
+		}
+	}
+	
+	public static void resume() {
+		synchronized(instance) {
+			instance.syncManager.resume();
+			instance.trayMenu.showNotification("File synchronization resumed");
+		}
+	}
+	
+	public static Display getDisplay() {
+		return instance.display;
 	}
 	
 	public static File getInstallationDirectory() {

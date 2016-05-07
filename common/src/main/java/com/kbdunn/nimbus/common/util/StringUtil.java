@@ -7,6 +7,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.regex.Pattern;
 
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
+
 public abstract class StringUtil {
 
 	public static String toDateString(Date date) {
@@ -125,5 +127,19 @@ public abstract class StringUtil {
 			}
 		}
 		return false;
+	}
+	
+	public static byte[] hexToBytes(String hex) {
+		return new HexBinaryAdapter().unmarshal(hex);
+	}
+	
+	public static String bytesToHex(byte[] data) {
+		return new HexBinaryAdapter().marshal(data);
+		/*
+		StringBuilder sb = new StringBuilder();
+		for (byte b : data) {
+			sb.append(String.format("%02X", b));
+		}
+		return sb.toString();*/
 	}
 }

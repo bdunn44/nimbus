@@ -28,6 +28,10 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.webapp.WebAppContext;
+import org.glassfish.jersey.message.GZipEncoder;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.filter.EncodingFilter;
+import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import com.kbdunn.nimbus.common.model.StorageDevice;
@@ -294,11 +298,11 @@ public class Launcher {
 		vaadinResourceHandler.setResourceBase(System.getProperty("nimbus.home") + "/src/main/webapp");*/
 		
 		// Setup Jersey servlet
-		/*final ResourceConfig resourceConfig = new ResourceConfig().packages("com.kbdunn.nimbus.server.api");
+		final ResourceConfig resourceConfig = new ResourceConfig().packages("com.kbdunn.nimbus.server.api");
 		EncodingFilter.enableFor(resourceConfig, GZipEncoder.class);
 		ServletHolder jerseyServletHolder = new ServletHolder(new ServletContainer(resourceConfig));
 		jerseyServletHolder.setInitOrder(2);
-		context.addServlet(jerseyServletHolder, "/api/*");*/
+		webAppContext.addServlet(jerseyServletHolder, "/request/*");
 		
 		// Set server handlers
 		

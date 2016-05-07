@@ -1,9 +1,7 @@
 package com.kbdunn.nimbus.common.sync.interfaces;
 
-import java.io.File;
+import com.kbdunn.nimbus.common.sync.model.SyncFile;
 
 public interface FileEvent {
-	File getFile();
-	boolean isFile();
-	boolean isFolder();
+	SyncFile getFile();;
 }

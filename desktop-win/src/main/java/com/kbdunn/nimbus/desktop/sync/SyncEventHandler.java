@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.common.sync.HashUtil;
 import com.kbdunn.nimbus.common.sync.interfaces.FileManager;
-import com.kbdunn.nimbus.common.sync.model.FileNode;
+import com.kbdunn.nimbus.common.sync.model.SyncFile;
 import com.kbdunn.nimbus.common.util.FileUtil;
 import com.kbdunn.nimbus.desktop.Application;
 import com.kbdunn.nimbus.desktop.sync.buffer.LocalFileEventBuffer;
@@ -41,80 +41,85 @@ public class SyncEventHandler {
 		bufferProcessorExecutor = Executors.newSingleThreadExecutor();
 	}
 	
-	public void handleLocalFileAdd(File file) {
+	public void handleLocalFileAdd(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "created locally");
 		checkBuffer();
 		currentBuffer.addFileToUpload(file);
 	}
 	
-	public void handleRemoteFileAdd(File file) {
+	public void handleRemoteFileAdd(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "created remotely");
 		try {
 			Callable<Void> downloadProcess = fileManager.createDownloadProcess(file);
 			syncManager.getExecutor().submit(downloadProcess);
 		} catch (Exception e) {
-			log.error("Cannot download the new file {}", file.getAbsolutePath());
+			log.error("Cannot download the new file {}", file);
 		}
 	}
 	
-	public void handleLocalFileUpdate(File file) {
+	public void handleLocalFileUpdate(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "modified locally");
 		checkBuffer();
 		currentBuffer.addFileToUpload(file);
 	}
 	
-	public void handleRemoteFileUpdate(File file) {
+	public void handleRemoteFileUpdate(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "modified remotely");
 		try {
 			Callable<Void> downloadProcess = fileManager.createDownloadProcess(file);
 			syncManager.getExecutor().submit(downloadProcess);
 		} catch (Exception e) {
-			log.error("Cannot download the updated file {}", file.getAbsolutePath());
+			log.error("Cannot download the updated file {}", file);
 		}
 	}
 	
-	public void handleLocalFileDelete(File file) {
+	public void handleLocalFileDelete(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "deleted locally");
 		checkBuffer();
 		currentBuffer.addFileToDelete(file);
 	}
 	
-	public void handleRemoteFileDelete(File file) {
+	public void handleRemoteFileDelete(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "deleted remotely");
-		if (file.delete()) {
+		if (new File(file.getPath()).delete()) {
 			log.error("Deleted file " + file);
 		} else {
-			log.error("Could not delete file {}", file.getAbsolutePath());
+			log.error("Could not delete file {}", file);
 		}
 	}
 	
-	public void handleRemoteFileMove(File src, File dest) {
+	public void handleRemoteFileMove(SyncFile src, SyncFile dest) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(src, "moved remotely");
 		try {
-			if (src.isFile()) {
-				FileUtils.moveFile(src, dest);
+			final File srcfile = new File(src.getPath());
+			final File destFile = new File(dest.getPath());
+			if (srcfile.isFile()) {
+				FileUtils.moveFile(srcfile, destFile);
 			} else {
-				FileUtils.moveDirectory(src, dest);
+				FileUtils.moveDirectory(srcfile, destFile);
 			}
 		} catch (IOException e) {
-			log.error("Error moving {} {} to {}", src.isDirectory() ? "folder" : "file", src.getAbsolutePath(), dest.getAbsolutePath());
+			log.error("Error moving {} {} to {}", src.isDirectory() ? "folder" : "file", src, dest);
 		}
 	}
 	
-	public void handleRemoteVersionConfict(File file) {
+	public void handleRemoteVersionConfict(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "has a remote version conflict");
 		try {
 			// Rename the local file
 			File local = new File(Application.getSyncRootDirectory(), file.getPath());
-			String rename = local.getName() + "-" + SyncPreferences.getNodeName();
+			String localName = local.getName();
+			String rename = localName.substring(0, localName.lastIndexOf(".")) 
+					+ " - " + SyncPreferences.getNodeName()
+					+ localName.substring(localName.lastIndexOf("."));
 			log.info("Renaming local file {} to {}", local.getAbsolutePath(), rename);
 			if (!local.renameTo(new File(Application.getSyncRootDirectory(), rename))) {
 				log.warn("Unable to rename file {}", local.getAbsolutePath());
@@ -126,12 +131,16 @@ public class SyncEventHandler {
 			Callable<Void> downloadProcess = fileManager.createDownloadProcess(file);
 			syncManager.getExecutor().submit(downloadProcess);
 		} catch (Exception e) {
-			log.error("Cannot download the remote file {}", file.getAbsolutePath());
+			log.error("Cannot download the remote file {}", file);
 		}
 	}
 	
-	private void logChangeEvent(File file, String event) {
-		log.info("{} {}: {}", file.isDirectory() ? "Directory" : "File", event, file.getAbsolutePath());
+	private void logChangeEvent(SyncFile file, String event) {
+		log.info("{} {}: {}", 
+				file.isDirectory() ? "Directory" : "File", 
+				event, 
+				file
+			);
 	}
 	
 	private void checkBuffer() {
@@ -163,20 +172,20 @@ public class SyncEventHandler {
 	}
 	
 	private void processBuffer(final LocalFileEventBuffer buffer) {
-		final List<File> toUpload = filterUploadBuffer(buffer.getUploadFileBuffer(), buffer.getRemoteFiles());
-		final List<File> toDelete = filterDeleteBuffer(buffer.getDeleteFileBuffer(), buffer.getRemoteFiles());
-		final List<File> newFolders = new ArrayList<>();
+		final List<SyncFile> toUpload = filterUploadBuffer(buffer.getUploadFileBuffer(), buffer.getRemoteFiles());
+		final List<SyncFile> toDelete = filterDeleteBuffer(buffer.getDeleteFileBuffer(), buffer.getRemoteFiles());
+		final List<SyncFile> newFolders = new ArrayList<>();
 		final List<Callable<Void>> asyncProcesses = new ArrayList<>();
 		
 		FileUtil.sortPreorder(toUpload);
-		for (File ufile : toUpload) {
+		for (SyncFile ufile : toUpload) {
 			if (ufile.isDirectory()) {
 				newFolders.add(ufile);
 			} else {
 				asyncProcesses.add(fileManager.createAddProcess(ufile));
 			}
 		}
-		for (File dfile : toDelete) {
+		for (SyncFile dfile : toDelete) {
 			asyncProcesses.add(fileManager.createDeleteProcess(dfile));
 		}
 		log.debug("Processing local event buffer. {} new folder(s), {} async add/delete process(es).", newFolders.size(), asyncProcesses.size());
@@ -192,8 +201,8 @@ public class SyncEventHandler {
 		} 
 	}
 	
-	private List<File> filterUploadBuffer(List<File> toUpload, List<FileNode> remoteFiles) {
-		List<File> filtered = new ArrayList<>(toUpload);
+	private List<SyncFile> filterUploadBuffer(List<SyncFile> toUpload, List<SyncFile> remoteFiles) {
+		List<SyncFile> filtered = new ArrayList<>(toUpload);
 
 		// Remove the files from the buffer which are already on the server
 		filtered.removeIf((localFile) -> {
@@ -203,9 +212,9 @@ public class SyncEventHandler {
 			} catch (IOException e) {
 				log.error("Unable to hash file!", e);
 			}
-			for (FileNode remoteFile : remoteFiles) {
-				if (remoteFile.getFile().equals(localFile) &&
-						((localFile.isDirectory() && remoteFile.isFolder())
+			for (SyncFile remoteFile : remoteFiles) {
+				if (remoteFile.getPath().equals(localFile.getPath()) &&
+						((localFile.isDirectory() && remoteFile.isDirectory())
 								|| (localMd5 != null && HashUtil.compare(remoteFile.getMd5(), localMd5)))) {
 					return true;
 				}
@@ -216,12 +225,12 @@ public class SyncEventHandler {
 		return filtered;
 	}
 	
-	private List<File> filterDeleteBuffer(List<File> toDelete, List<FileNode> remoteFiles) {
-		List<File> filtered = new ArrayList<>(toDelete);
+	private List<SyncFile> filterDeleteBuffer(List<SyncFile> toDelete, List<SyncFile> remoteFiles) {
+		List<SyncFile> filtered = new ArrayList<>(toDelete);
 		
 		// Remove children
 		filtered.removeIf((localFile) -> {
-			for (File possibleParent : toDelete) {
+			for (SyncFile possibleParent : toDelete) {
 				if (localFile.getPath().startsWith(possibleParent.getPath())) {
 					return true;
 				}
@@ -231,8 +240,8 @@ public class SyncEventHandler {
 		
 		// Remove the files from the buffer which aren't on the server
 		filtered.removeIf((localFile) -> {
-			for (FileNode remoteFile : remoteFiles) {
-				if (remoteFile.getFile().equals(localFile)) {
+			for (SyncFile remoteFile : remoteFiles) {
+				if (remoteFile.getPath().equals(localFile.getPath())) {
 					return false;
 				}
 			}

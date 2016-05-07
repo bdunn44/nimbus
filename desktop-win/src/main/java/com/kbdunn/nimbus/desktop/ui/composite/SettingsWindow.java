@@ -96,7 +96,7 @@ public class SettingsWindow extends AbstractWindow {
 		});
 	}
 	
-	public void refresh() {
+	private void refresh() {
 		connectForm.refresh();
 		statusPane.refresh();
 		stackLayout.topControl = (Application.getSyncStatus().isConnected()) ? statusPane : connectForm;

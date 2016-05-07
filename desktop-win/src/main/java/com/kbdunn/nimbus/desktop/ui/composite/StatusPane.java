@@ -87,12 +87,17 @@ public class StatusPane extends Composite implements SelectionListener {
 	
 	@Override
 	public void widgetSelected(SelectionEvent arg0) {
-		if (action.getText().equals(DISCONNECT_ACTION)) {
-			Application.disconnect();
-			refresh();
-		} else {
-			onLoginClick.widgetSelected(arg0);
-		}
+		// Disable action button while processing
+		action.setEnabled(false);
+		getDisplay().asyncExec(() -> {
+			if (action.getText().equals(DISCONNECT_ACTION)) {
+				Application.disconnect();
+				refresh();
+			} else {
+				onLoginClick.widgetSelected(arg0);
+			}
+			action.setEnabled(true);
+		});
 	}
 	
 	@Override

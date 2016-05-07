@@ -1,8 +1,8 @@
 package com.kbdunn.nimbus.common.sync.interfaces;
 
-import java.io.File;
+import com.kbdunn.nimbus.common.sync.model.SyncFile;
 
 public interface FileMoveEvent extends FileEvent {
-	File getSrcFile();
-	File getDstFile();
+	SyncFile getSrcFile();
+	SyncFile getDstFile();
 }

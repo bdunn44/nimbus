@@ -1,11 +1,12 @@
 package com.kbdunn.nimbus.desktop.sync.process;
 
-import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kbdunn.nimbus.common.sync.model.SyncFile;
 import com.kbdunn.nimbus.desktop.sync.BatchFileSyncArbiter;
 import com.kbdunn.nimbus.desktop.sync.SyncEventHandler;
 
@@ -14,17 +15,19 @@ public class BatchSynchronizeProcess {
 	private static final Logger log = LoggerFactory.getLogger(BatchSynchronizeProcess.class);
 	
 	private final SyncEventHandler syncHandler;
+	//private final BatchFileSyncArbiter syncArbiter;
 	
-	private final List<File> toDeleteLocal;
-	private final List<File> toDeleteRemote;
-	private final List<File> toAddLocal;
-	private final List<File> toAddRemote;
-	private final List<File> toUpdateLocal;
-	private final List<File> toUpdateRemote;
-	private final List<File> remoteVersionConflicts;
+	private final List<SyncFile> toDeleteLocal;
+	private final List<SyncFile> toDeleteRemote;
+	private final List<SyncFile> toAddLocal;
+	private final List<SyncFile> toAddRemote;
+	private final List<SyncFile> toUpdateLocal;
+	private final List<SyncFile> toUpdateRemote;
+	private final List<SyncFile> remoteVersionConflicts;
 	
 	public BatchSynchronizeProcess(BatchFileSyncArbiter syncArbiter, SyncEventHandler syncHandler) {
 		this.syncHandler = syncHandler;
+		//this.syncArbiter = syncArbiter;
 		
 		this.toDeleteLocal = syncArbiter.getFilesToDeleteLocally();
 		this.toDeleteRemote = syncArbiter.getFilesToDeleteRemotely();
@@ -35,34 +38,39 @@ public class BatchSynchronizeProcess {
 		this.remoteVersionConflicts = syncArbiter.getRemoteVersionConflicts();
 	}
 	
+	public void persistSyncState() throws IOException {
+		BatchFileSyncArbiter.persistCurrentSyncState();
+	}
+	
 	public Boolean start() {
 		try {
 			// Delete local files
-			for (File file : toDeleteLocal) {
+			for (SyncFile file : toDeleteLocal) {
 				syncHandler.handleLocalFileDelete(file);
 			}
 			// Delete remote files
-			for (File file : toDeleteRemote) {
+			for (SyncFile file : toDeleteRemote) {
 				syncHandler.handleRemoteFileDelete(file);
 			}
 			// Add remote files
-			for (File file : toAddRemote) {
+			for (SyncFile file : toAddRemote) {
+				log.debug("DEBUG! " + file);
 				syncHandler.handleRemoteFileAdd(file);
 			}
 			// Update remote files 
-			for (File file : toUpdateRemote) {
+			for (SyncFile file : toUpdateRemote) {
 				syncHandler.handleRemoteFileUpdate(file);
 			}
 			// Add local files
-			for (File file : toAddLocal) {
+			for (SyncFile file : toAddLocal) {
 				syncHandler.handleLocalFileAdd(file);
 			}
 			// Update local files
-			for (File file : toUpdateLocal) {
+			for (SyncFile file : toUpdateLocal) {
 				syncHandler.handleLocalFileUpdate(file);
 			}
 			// Handle sync conflicts
-			for (File file : remoteVersionConflicts) {
+			for (SyncFile file : remoteVersionConflicts) {
 				syncHandler.handleRemoteVersionConfict(file);
 			}
 			return true;

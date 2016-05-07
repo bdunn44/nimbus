@@ -14,9 +14,11 @@ public class ApplicationResources {
 	
 	private ApplicationResources(Display display) { 
 		icon = new Image(display, 
-				"C:\\Users\\kdunn\\Documents\\STS\\nimbus\\webapp\\src\\main\\webapp\\VAADIN\\themes\\nimbus\\favicon.ico");
+				ApplicationResources.class.getResourceAsStream("/favicon-96x96.png"));
+				//"C:\\Users\\kdunn\\Documents\\STS\\nimbus\\webapp\\src\\main\\webapp\\VAADIN\\themes\\nimbus\\favicon.ico");
 		logo = new Image(display, 
-				"C:\\Users\\kdunn\\Documents\\Nimbus\\nlogo.png");
+				ApplicationResources.class.getResourceAsStream("/logo.png"));
+				//"C:\\Users\\kdunn\\Documents\\Nimbus\\nlogo.png");
 		grey = display.getSystemColor(SWT.COLOR_DARK_GRAY);
 	}
 	

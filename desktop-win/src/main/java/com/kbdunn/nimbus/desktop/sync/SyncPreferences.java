@@ -23,7 +23,7 @@ public class SyncPreferences {
 	}
 	
 	private static String getPreference(Key key) {
-		return prefs.get(key.toString().toLowerCase(), null);
+		return prefs.get(key.toString().toLowerCase(), "");
 	}
 	
 	private static void setPreference(Key key, String value) {

@@ -13,6 +13,8 @@ import java.util.Arrays;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.kbdunn.nimbus.common.sync.model.SyncFile;
+
 public class HashUtil {
 
 	private static final Logger log = LogManager.getLogger(HashUtil.class);
@@ -37,6 +39,10 @@ public class HashUtil {
 			log.error("Invalid hash algorithm " + HASH_ALGORITHM, e);
 			return new byte[0];
 		}
+	}
+	
+	public static byte[] hash(SyncFile file) throws IOException {
+		return hash(new File(file.getPath()));
 	}
 
 	/**

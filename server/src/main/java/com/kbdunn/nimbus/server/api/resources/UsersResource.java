@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.server.api;
+package com.kbdunn.nimbus.server.api.resources;
 
 import java.util.Date;
 import java.util.Iterator;

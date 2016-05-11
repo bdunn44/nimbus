@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.common.rest;
+package com.kbdunn.nimbus.api.network;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,44 +9,25 @@ import java.util.TreeMap;
 
 public class NimbusHttpHeaders {
 	
-	public enum Key {
-		REQUESTOR("requestor"),
-		SIGNATURE("signature"),
-		TIMESTAMP("timestamp");
-		
-		public static final String PREFIX = "x-nmb-";
-		
-		private String keyString;
-		
-		private Key(String postfix) {
-			this.keyString = PREFIX + postfix;
-		}
-		
-		public static Key fromString(String string) {
-			for (Key vk : Key.values()) {
-				if (vk.toString().equalsIgnoreCase(string)) return vk;
-			}
-			return null;
-		}
-		
-		@Override
-		public String toString() {
-			return keyString;
-		}
+	public interface Key {
+		String PREFIX = "x-nmb-";
+		String REQUESTOR = PREFIX + "requestor";
+		String SIGNATURE = PREFIX + "signature";
+		String TIMESTAMP = PREFIX + "timestamp";
 	}
 		
-	private Map<Key, String> headers;
+	private Map<String, String> headers;
 	
 	public NimbusHttpHeaders() {
 		headers = new TreeMap<>();
 	}
 	
-	public void put(Key key, String value) {
+	public void put(String key, String value) {
 		if (value == null) return;
 		headers.put(key, value);
 	}
 	
-	public String get(Key key) {
+	public String get(String key) {
 		return headers.get(key);
 	}
 	
@@ -54,13 +35,13 @@ public class NimbusHttpHeaders {
 		return headers.containsKey(key);
 	}
 	
-	public Map<Key, String> getMap() {
+	public Map<String, String> getMap() {
 		return Collections.unmodifiableMap(headers);
 	}
 	
 	public Map<String, String> getStringMap() {
 		Map<String, String> sm = new HashMap<>();
-		for (Entry<Key, String> e : headers.entrySet()) {
+		for (Entry<String, String> e : headers.entrySet()) {
 			sm.put(e.getKey().toString(), e.getValue());
 		}
 		return Collections.unmodifiableMap(sm);
@@ -84,7 +65,7 @@ public class NimbusHttpHeaders {
 	}
 	
 	public NimbusHttpHeaders coalesce(Map<String, String> secondary) {
-		for (Entry<Key, String> e : NimbusHttpHeaders.fromMap(secondary).getMap().entrySet()) {
+		for (Entry<String, String> e : NimbusHttpHeaders.fromMap(secondary).getMap().entrySet()) {
 			if (!headers.containsKey(e.getKey())) {
 				headers.put(e.getKey(), e.getValue());
 			}
@@ -108,11 +89,9 @@ public class NimbusHttpHeaders {
 	// Case-insensitive keys
 	public static NimbusHttpHeaders fromMap(Map<String, String> map) {
 		NimbusHttpHeaders customHeaders = new NimbusHttpHeaders();
-		Key k = null;
 		for (Entry<String, String> e : map.entrySet()) {
-			k = Key.fromString(e.getKey());
-			if (k != null && e.getValue() != null && !e.getValue().isEmpty()) {
-				customHeaders.put(k, e.getValue());
+			if (e.getKey().startsWith(Key.PREFIX) && e.getValue() != null && !e.getValue().isEmpty()) {
+				customHeaders.put(e.getKey(), e.getValue());
 			}
 		}
 		return customHeaders;

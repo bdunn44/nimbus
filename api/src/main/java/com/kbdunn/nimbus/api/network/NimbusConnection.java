@@ -1,11 +1,11 @@
-package com.kbdunn.nimbus.common.client;
+package com.kbdunn.nimbus.api.network;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 
 public class NimbusConnection {
 
-	public static final String API_PATH = "/api";
+	public static final String API_PATH = "/request";
 	
 	private URL url;
 	private String apiToken;
@@ -16,25 +16,32 @@ public class NimbusConnection {
 		this.apiToken = apiToken;
 		this.hmacKey = hmacKey;
 	}
+	
 	public URL getUrl() {
 		return url;
 	}
+	
 	public void setUrl(URL url) {
 		this.url = url;
 	}
+	
 	public String getApiEndpoint() {
 		if (url == null) return null;
 		return url.getProtocol() + "://" + url.getHost() + (url.getPort() == -1 ? "" : ":" + url.getPort()) + API_PATH;
 	}
+	
 	public String getApiToken() {
 		return apiToken;
 	}
+	
 	public void setApiToken(String apiKey) {
 		this.apiToken = apiKey;
 	}
+	
 	public String getHmacKey() {
 		return hmacKey;
 	}
+	
 	public void setHmacKey(String hmacKey) {
 		this.hmacKey = hmacKey;
 	}

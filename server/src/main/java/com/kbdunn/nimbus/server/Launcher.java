@@ -7,10 +7,15 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 
+import javax.ws.rs.core.MediaType;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.atmosphere.container.Jetty9AsyncSupportWithWebSocket;
+import org.atmosphere.cpr.ApplicationConfig;
+import org.atmosphere.cpr.AtmosphereServlet;
 import org.atmosphere.cpr.SessionSupport;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.security.ConstraintMapping;
@@ -23,7 +28,7 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -250,7 +255,7 @@ public class Launcher {
 		webAppContext.setDefaultsDescriptor(null); // Disable JSP Support (slows down startup)
 		webAppContext.setContextPath("/");
 		webAppContext.setParentLoaderPriority(true);
-		final ContextHandler contextHandler = webAppContext.getServletContext().getContextHandler();
+		final ServletContextHandler contextHandler = (ServletContextHandler) webAppContext.getServletContext().getContextHandler();
 		contextHandler.setMaxFormKeys(Integer.MAX_VALUE);
 		contextHandler.setMaxFormContentSize(Integer.MAX_VALUE);
 		
@@ -277,7 +282,6 @@ public class Launcher {
 			webAppContext.setResourceBase(System.getProperty("nimbus.home") + "/static");
 		}
 		webAppContext.addEventListener(new SessionSupport()); // Needed for Atmosphere (Vaadin push)
-		server.setHandler(webAppContext);
 		
 		// Configure MIME types
 		/*MimeTypes mimeTypes = webAppContext.getMimeTypes();
@@ -292,25 +296,41 @@ public class Launcher {
 		webAppContext.setMimeTypes(mimeTypes);
 		contextHandler.setMimeTypes(mimeTypes);*/
 		
-		// Setup VAADIN resource handler
+		// Setup VAADIN resource handler 
 		/*final ResourceHandler vaadinResourceHandler = new ResourceHandler();
 		vaadinResourceHandler.setDirectoriesListed(true);
 		vaadinResourceHandler.setResourceBase(System.getProperty("nimbus.home") + "/src/main/webapp");*/
 		
 		// Setup Jersey servlet
-		final ResourceConfig resourceConfig = new ResourceConfig().packages("com.kbdunn.nimbus.server.api");
+		final ResourceConfig resourceConfig = new ResourceConfig()
+				.packages("com.kbdunn.nimbus.server.api")
+				.packages("com.kbdunn.nimbus.server.api.resources");
 		EncodingFilter.enableFor(resourceConfig, GZipEncoder.class);
-		ServletHolder jerseyServletHolder = new ServletHolder(new ServletContainer(resourceConfig));
+		final ServletHolder jerseyServletHolder = new ServletHolder(new ServletContainer(resourceConfig));
 		jerseyServletHolder.setInitOrder(2);
-		webAppContext.addServlet(jerseyServletHolder, "/request/*");
+		contextHandler.addServlet(jerseyServletHolder, "/request/*");
+		
+		// Setup Atmosphere servlet
+		final ServletHolder atmosphereServletHolder = new ServletHolder(AtmosphereServlet.class);
+		atmosphereServletHolder.setInitParameter(ApplicationConfig.ANNOTATION_PACKAGE, "com.kbdunn.nimbus.server.api.async");
+		atmosphereServletHolder.setInitParameter(ApplicationConfig.WEBSOCKET_CONTENT_TYPE, "application/json");
+		atmosphereServletHolder.setInitParameter(ApplicationConfig.DEFAULT_CONTENT_TYPE, "application/json");
+		atmosphereServletHolder.setInitParameter(ApplicationConfig.SCAN_CLASSPATH, "false");
+		atmosphereServletHolder.setInitParameter(ApplicationConfig.ANNOTATION_PACKAGE, Jetty9AsyncSupportWithWebSocket.class.getName());
+		atmosphereServletHolder.setAsyncSupported(true);
+		contextHandler.addServlet(atmosphereServletHolder, "/async/*");
 		
 		// Set server handlers
+		server.setHandler(contextHandler);//webAppContext);
 		
 		try {
 			runDataPrimers();
 			server.start();
 			server.join();
 			log.info("Server started. Application available at: " + "http://localhost:" + port);
+			// Make AtmosphereFramework available in NimbusContext
+			final AtmosphereServlet atmosphereServlet = (AtmosphereServlet) atmosphereServletHolder.getServlet();
+			NimbusContext.instance().setAtmosphereFramework(atmosphereServlet.framework());
 		} finally {
 			server.stop();
 			HikariConnectionPool.destroy();

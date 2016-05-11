@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.common.rest.entity;
+package com.kbdunn.nimbus.api.model;
 
 import java.util.Date;
 

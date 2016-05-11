@@ -8,33 +8,25 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kbdunn.nimbus.common.rest.HMAC;
-import com.kbdunn.nimbus.common.rest.NimbusHttpHeaders;
+import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
+import com.kbdunn.nimbus.api.network.jersey.ObjectMapperSingleton;
+import com.kbdunn.nimbus.api.network.util.HmacUtil;
 import com.kbdunn.nimbus.server.NimbusContext;
 
 @Provider
 @Priority(1) // Execute last
-public class HmacResponseFilter implements ContainerResponseFilter {
+public class HmacContainerResponseFilter implements ContainerResponseFilter {
 
-	private static final Logger log = LogManager.getLogger(HmacResponseFilter.class.getName());
+	private static final Logger log = LogManager.getLogger(HmacContainerResponseFilter.class.getName());
 	
-	// @Context // wasn't working
-	private ContextResolver<ObjectMapper> mapperResolver;
-	
-	public HmacResponseFilter() {
+	public HmacContainerResponseFilter() {
 		super();
-		try {
-			mapperResolver = new JacksonContextResolver();
-		} catch (Exception e) {
-			log.error(e, e);
-		}
 	}
 	
 	@Override
@@ -47,13 +39,13 @@ public class HmacResponseFilter implements ContainerResponseFilter {
 		}
 		
 		NimbusHttpHeaders responseHeaders = new NimbusHttpHeaders();
-		ObjectMapper mapper = mapperResolver.getContext(responseContext.getEntityClass());
+		ObjectMapper mapper = ObjectMapperSingleton.getMapper();
 		responseHeaders.put(NimbusHttpHeaders.Key.TIMESTAMP, mapper.writeValueAsString(new Date()).replace("\"", "")); // unquote
-		responseHeaders.put(NimbusHttpHeaders.Key.REQUESTOR, (String) requestContext.getProperty(HmacRequestFilter.REQUEST_API_TOKEN));
+		responseHeaders.put(NimbusHttpHeaders.Key.REQUESTOR, (String) requestContext.getProperty(HmacContainerRequestFilter.REQUEST_API_TOKEN));
 		String mac = null;
 		
 		try {
-			mac = new HMAC().hmacDigestResponse(
+			mac = HmacUtil.hmacDigestResponse(
 					NimbusContext.instance().getUserService().getUserByApiToken(responseHeaders.get(NimbusHttpHeaders.Key.REQUESTOR)).getHmacKey(), 
 					String.valueOf(responseContext.getStatus()),
 					mapper.writeValueAsString(responseContext.getEntity()),

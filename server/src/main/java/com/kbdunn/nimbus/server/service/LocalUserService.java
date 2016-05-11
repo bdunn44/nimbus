@@ -9,6 +9,7 @@ import java.util.List;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.kbdunn.nimbus.api.network.util.HmacUtil;
 import com.kbdunn.nimbus.common.async.EmailTransport;
 import com.kbdunn.nimbus.common.exception.EmailConflictException;
 import com.kbdunn.nimbus.common.exception.FileConflictException;
@@ -17,7 +18,6 @@ import com.kbdunn.nimbus.common.model.NimbusFile;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.common.model.SMTPSettings;
 import com.kbdunn.nimbus.common.model.StorageDevice;
-import com.kbdunn.nimbus.common.rest.HMAC;
 import com.kbdunn.nimbus.common.security.OAuthAPIService;
 import com.kbdunn.nimbus.common.server.UserService;
 import com.kbdunn.nimbus.common.util.StringUtil;
@@ -204,8 +204,8 @@ public class LocalUserService implements UserService {
 		if (hasDuplicateName(user)) throw new UsernameConflictException(user.getName());
 		else if (hasDuplicateEmail(user)) throw new EmailConflictException(user.getEmail());
 		
-		if (user.getHmacKey() == null) user.setHmacKey(new HMAC().generateSecretKey());
-		if (user.getApiToken() == null) user.setApiToken(new HMAC().generateSecretKey());
+		if (user.getHmacKey() == null) user.setHmacKey(HmacUtil.generateSecretKey());
+		if (user.getApiToken() == null) user.setApiToken(HmacUtil.generateSecretKey());
 		
 		if (user.getId() == null)  return insert(user);
 		return update(user);

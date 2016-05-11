@@ -20,17 +20,17 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.kbdunn.nimbus.api.model.NimbusUserStorageDevice;
+import com.kbdunn.nimbus.api.model.PostResponse;
+import com.kbdunn.nimbus.api.model.PutResponse;
+import com.kbdunn.nimbus.api.model.StorageDeviceList;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.common.model.StorageDevice;
-import com.kbdunn.nimbus.common.rest.entity.NimbusUserStorageDevice;
-import com.kbdunn.nimbus.common.rest.entity.PostResponse;
-import com.kbdunn.nimbus.common.rest.entity.PutResponse;
-import com.kbdunn.nimbus.common.rest.entity.StorageDeviceList;
 import com.kbdunn.nimbus.common.server.FileService;
 import com.kbdunn.nimbus.common.server.StorageService;
 import com.kbdunn.nimbus.common.server.UserService;
 
-@Path("/users")
+@Path("/user")
 @Produces(MediaType.APPLICATION_JSON)
 public class UsersResource {
 	

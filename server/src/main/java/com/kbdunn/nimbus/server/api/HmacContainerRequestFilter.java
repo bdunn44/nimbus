@@ -23,21 +23,19 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
+import com.kbdunn.nimbus.api.network.util.HmacUtil;
 import com.kbdunn.nimbus.common.model.NimbusUser;
-import com.kbdunn.nimbus.common.rest.HMAC;
-import com.kbdunn.nimbus.common.rest.NimbusHttpHeaders;
 import com.kbdunn.nimbus.common.util.DateUtil;
 import com.kbdunn.nimbus.server.NimbusContext;
 
 @Provider
 @Priority(1) // Execute first
-public class HmacRequestFilter implements ContainerRequestFilter {
+public class HmacContainerRequestFilter implements ContainerRequestFilter {
 
-	private static final Logger log = LogManager.getLogger(HmacRequestFilter.class.getName());
+	private static final Logger log = LogManager.getLogger(HmacContainerRequestFilter.class.getName());
 	
 	public static final String REQUEST_API_TOKEN = "apiToken";
-	
-	private final HMAC hmacUtil = new HMAC();
 	
 	@Override
 	public void filter(ContainerRequestContext requestContext) throws IOException {
@@ -50,7 +48,7 @@ public class HmacRequestFilter implements ContainerRequestFilter {
 		// Remove custom headers from query parameters (if present)
 		Map<String, String> nonHeaderParameters = new HashMap<>();
 		for (Entry<String, String> e : parameters.entrySet()) {
-			if (NimbusHttpHeaders.Key.fromString(e.getKey()) == null) {
+			if (!e.getKey().startsWith(NimbusHttpHeaders.Key.PREFIX)) {
 				nonHeaderParameters.put(e.getKey(), e.getValue());
 				log.debug("Adding non-header parameter " + e.getKey() + "=" + e.getValue());
 			}
@@ -61,7 +59,7 @@ public class HmacRequestFilter implements ContainerRequestFilter {
 		String content = null;
 		String contentType = null;
 		
-		if (resource.equalsIgnoreCase("/api/application.wadl")) {
+		if (resource.toLowerCase().endsWith("/application.wadl")) {
 			if (!NimbusContext.instance().getPropertiesService().isDevMode()) {
 				requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST).build());
 			} else {
@@ -122,7 +120,7 @@ public class HmacRequestFilter implements ContainerRequestFilter {
 			}
 			
 			// Check mac hash
-			String serverMac = hmacUtil.hmacDigestRequest(requestor.getHmacKey(), verb, resource, content, contentType, 
+			String serverMac = HmacUtil.hmacDigestRequest(requestor.getHmacKey(), verb, resource, content, contentType, 
 					nmbHeaders, nonHeaderParameters);
 			if (!serverMac.equals(nmbHeaders.get(NimbusHttpHeaders.Key.SIGNATURE))) {
 				if (NimbusContext.instance().getPropertiesService().isDevMode()) log.debug("Valid signature is '" + serverMac + "'");
@@ -130,7 +128,7 @@ public class HmacRequestFilter implements ContainerRequestFilter {
 			}
 			
 		} catch (Exception e) {
-			log.error("Aborting API reqeust with HTTP 400", e);
+			log.error("Aborting API request with HTTP 400", e);
 			requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST).build());
 		}
 	}

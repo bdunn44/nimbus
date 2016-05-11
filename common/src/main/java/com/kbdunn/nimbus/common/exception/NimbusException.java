@@ -11,4 +11,8 @@ public class NimbusException extends Exception {
 	public NimbusException(Throwable cause) {
 		super(cause);
 	}
+	
+	public NimbusException(String message, Throwable cause) {
+		super(message, cause);
+	}
 }

@@ -1,5 +1,9 @@
 package com.kbdunn.nimbus.server;
 
+import org.atmosphere.cpr.AtmosphereFramework;
+import org.atmosphere.cpr.AtmosphereResourceFactory;
+import org.atmosphere.cpr.BroadcasterFactory;
+
 import com.kbdunn.nimbus.server.service.LocalAsyncService;
 import com.kbdunn.nimbus.server.service.LocalFileService;
 import com.kbdunn.nimbus.server.service.LocalFileShareService;
@@ -23,6 +27,9 @@ public class NimbusContext {
 	private final LocalPropertiesService propertiesService;
 	private final LocalAsyncService asyncService;
 	private final LocalOAuthService oAuthService;
+	
+	// Atmosphere
+	private AtmosphereFramework atmosphereFramework;
 
 	private NimbusContext() {
 		userService = new LocalUserService();
@@ -80,5 +87,23 @@ public class NimbusContext {
 
 	public LocalOAuthService getOAuthService() {
 		return oAuthService;
+	}
+	
+	public AtmosphereFramework getAtmosphereFramework() {
+		return atmosphereFramework;
+	}
+	
+	public void setAtmosphereFramework(AtmosphereFramework atmosphereFramework) {
+		this.atmosphereFramework = atmosphereFramework;
+	}
+	
+	public BroadcasterFactory getAtmosphereBroadcasterFactory() {
+		if (atmosphereFramework != null) return atmosphereFramework.getBroadcasterFactory();
+		return null;
+	}
+	
+	public AtmosphereResourceFactory getAtmosphereResourceFactory() {
+		if (atmosphereFramework != null) return atmosphereFramework.atmosphereFactory();
+		return null;
 	}
 }

@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.common.rest.entity;
+package com.kbdunn.nimbus.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.kbdunn.nimbus.common.model.NimbusFile;

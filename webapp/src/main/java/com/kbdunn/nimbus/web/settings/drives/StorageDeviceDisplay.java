@@ -109,7 +109,7 @@ public class StorageDeviceDisplay extends VerticalLayout implements ClickListene
 			}
 			
 			if (name.getValue() == null) name.setValue("No drive label");
-			path.setValue(hd.getDevicePath() + " (" + hd.getType().toUpperCase() + ")");
+			path.setValue(hd.getDevicePath() + (hd.getType() != null ? " (" + hd.getType().toUpperCase() + ")" : ""));
 			path.setDescription("Mounted to '" + hd.getPath() + "'");
 			size.setValue(
 					StringUtil.toHumanSizeString(hd.getUsed())

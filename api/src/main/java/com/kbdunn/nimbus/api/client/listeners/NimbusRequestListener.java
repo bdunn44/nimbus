@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.api.network;
+package com.kbdunn.nimbus.api.client.listeners;
 
 import com.kbdunn.nimbus.common.exception.NimbusException;
 

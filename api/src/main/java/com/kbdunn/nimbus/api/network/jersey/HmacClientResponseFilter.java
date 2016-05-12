@@ -19,8 +19,8 @@ import org.glassfish.jersey.message.internal.ReaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kbdunn.nimbus.api.model.NimbusApiCredentials;
-import com.kbdunn.nimbus.api.model.NimbusError;
+import com.kbdunn.nimbus.api.client.model.NimbusApiCredentials;
+import com.kbdunn.nimbus.api.client.model.NimbusError;
 import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
 import com.kbdunn.nimbus.api.network.NimbusRequest;
 import com.kbdunn.nimbus.api.network.util.HmacUtil;

@@ -1,16 +1,16 @@
-package com.kbdunn.nimbus.api.model;
+package com.kbdunn.nimbus.api.client.model;
 
 import java.util.Date;
 
-public class PutResponse {
+public class PostResponse {
 	private Long id;
 	private Date created;
 	private Date updated;
 	private String[] uris;
 	
-	public PutResponse() { }
+	public PostResponse() { }
 	
-	public PutResponse(Long id, Date created, Date updated, String... uris) {
+	public PostResponse(Long id, Date created, Date updated, String... uris) {
 		this.id = id;
 		this.created = created;
 		this.updated = updated;

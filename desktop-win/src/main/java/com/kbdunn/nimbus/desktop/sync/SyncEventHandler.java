@@ -16,11 +16,11 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kbdunn.nimbus.api.client.model.SyncFile;
+import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.common.sync.HashUtil;
-import com.kbdunn.nimbus.common.sync.interfaces.FileManager;
-import com.kbdunn.nimbus.common.sync.model.SyncFile;
-import com.kbdunn.nimbus.common.util.FileUtil;
 import com.kbdunn.nimbus.desktop.Application;
+import com.kbdunn.nimbus.desktop.client.FileManager;
 import com.kbdunn.nimbus.desktop.sync.buffer.LocalFileEventBuffer;
 
 public class SyncEventHandler {
@@ -177,7 +177,7 @@ public class SyncEventHandler {
 		final List<SyncFile> newFolders = new ArrayList<>();
 		final List<Callable<Void>> asyncProcesses = new ArrayList<>();
 		
-		FileUtil.sortPreorder(toUpload);
+		SyncFileUtil.sortPreorder(toUpload);
 		for (SyncFile ufile : toUpload) {
 			if (ufile.isDirectory()) {
 				newFolders.add(ufile);
@@ -208,7 +208,7 @@ public class SyncEventHandler {
 		filtered.removeIf((localFile) -> {
 			byte[] localMd5 = null;
 			try {
-				localMd5 = HashUtil.hash(localFile);
+				localMd5 = HashUtil.hash(new File(localFile.getPath()));
 			} catch (IOException e) {
 				log.error("Unable to hash file!", e);
 			}

@@ -6,7 +6,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kbdunn.nimbus.common.sync.model.SyncFile;
+import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.desktop.sync.BatchFileSyncArbiter;
 import com.kbdunn.nimbus.desktop.sync.SyncEventHandler;
 

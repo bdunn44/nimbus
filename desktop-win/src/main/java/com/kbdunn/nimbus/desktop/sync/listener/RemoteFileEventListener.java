@@ -1,10 +1,10 @@
 package com.kbdunn.nimbus.desktop.sync.listener;
 
-import com.kbdunn.nimbus.common.sync.interfaces.FileAddEvent;
-import com.kbdunn.nimbus.common.sync.interfaces.FileDeleteEvent;
-import com.kbdunn.nimbus.common.sync.interfaces.FileEventListener;
-import com.kbdunn.nimbus.common.sync.interfaces.FileMoveEvent;
-import com.kbdunn.nimbus.common.sync.interfaces.FileUpdateEvent;
+import com.kbdunn.nimbus.api.client.listeners.FileEventListener;
+import com.kbdunn.nimbus.api.client.model.FileAddEvent;
+import com.kbdunn.nimbus.api.client.model.FileDeleteEvent;
+import com.kbdunn.nimbus.api.client.model.FileMoveEvent;
+import com.kbdunn.nimbus.api.client.model.FileUpdateEvent;
 import com.kbdunn.nimbus.desktop.sync.SyncEventHandler;
 
 public class RemoteFileEventListener implements FileEventListener {

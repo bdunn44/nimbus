@@ -1,6 +1,5 @@
 package com.kbdunn.nimbus.common.sync;
 
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -13,7 +12,7 @@ import java.util.Arrays;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.kbdunn.nimbus.common.sync.model.SyncFile;
+import com.kbdunn.nimbus.common.model.NimbusFile;
 
 public class HashUtil {
 
@@ -41,7 +40,7 @@ public class HashUtil {
 		}
 	}
 	
-	public static byte[] hash(SyncFile file) throws IOException {
+	public static byte[] hash(NimbusFile file) throws IOException {
 		return hash(new File(file.getPath()));
 	}
 

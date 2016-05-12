@@ -8,7 +8,7 @@ import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.core.Response;
 
-import com.kbdunn.nimbus.api.model.NimbusUserDecorator;
+import com.kbdunn.nimbus.api.client.model.NimbusUserDecorator;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 
 //@Provider

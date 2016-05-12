@@ -8,7 +8,7 @@ import org.apache.commons.io.monitor.FileAlterationObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kbdunn.nimbus.common.util.FileUtil;
+import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.desktop.Application;
 import com.kbdunn.nimbus.desktop.sync.SyncEventHandler;
 
@@ -29,7 +29,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	@Override
 	public void onDirectoryCreate(File directory) {
 		try {
-			handler.handleLocalFileAdd(FileUtil.toSyncFile(Application.getSyncRootDirectory(), directory, true));
+			handler.handleLocalFileAdd(SyncFileUtil.toSyncFile(Application.getSyncRootDirectory(), directory, true));
 		} catch (IOException e) {
 			log.error("Error handling directory create event!", e);
 		}
@@ -43,7 +43,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	@Override
 	public void onDirectoryDelete(File directory) {
 		try {
-			handler.handleLocalFileDelete(FileUtil.toSyncFile(Application.getSyncRootDirectory(), directory, true));
+			handler.handleLocalFileDelete(SyncFileUtil.toSyncFile(Application.getSyncRootDirectory(), directory, true));
 		} catch (IOException e) {
 			log.error("Error handling directory delete event!", e);
 		}
@@ -52,7 +52,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	@Override
 	public void onFileCreate(File file) {
 		try {
-			handler.handleLocalFileAdd(FileUtil.toSyncFile(Application.getSyncRootDirectory(), file, false));
+			handler.handleLocalFileAdd(SyncFileUtil.toSyncFile(Application.getSyncRootDirectory(), file, false));
 		} catch (IOException e) {
 			log.error("Error handling file create event!", e);
 		}
@@ -61,7 +61,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	@Override
 	public void onFileChange(File file) {
 		try {
-			handler.handleLocalFileUpdate(FileUtil.toSyncFile(Application.getSyncRootDirectory(), file, false));
+			handler.handleLocalFileUpdate(SyncFileUtil.toSyncFile(Application.getSyncRootDirectory(), file, false));
 		} catch (IOException e) {
 			log.error("Error handling file change event!", e);
 		}
@@ -70,7 +70,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	@Override
 	public void onFileDelete(File file) {
 		try {
-			handler.handleLocalFileDelete(FileUtil.toSyncFile(Application.getSyncRootDirectory(), file, false));
+			handler.handleLocalFileDelete(SyncFileUtil.toSyncFile(Application.getSyncRootDirectory(), file, false));
 		} catch (IOException e) {
 			log.error("Error handling file delete event!", e);
 		}

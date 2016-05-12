@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kbdunn.nimbus.common.sync.model.SyncFile;
+import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.desktop.Application;
 import com.kbdunn.nimbus.desktop.client.NimbusWAsyncConnection;
 import com.kbdunn.nimbus.desktop.model.SyncCredentials;

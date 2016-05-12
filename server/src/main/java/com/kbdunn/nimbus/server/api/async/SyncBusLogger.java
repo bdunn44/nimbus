@@ -1,86 +1,43 @@
 package com.kbdunn.nimbus.server.api.async;
 
-import org.atmosphere.cpr.AtmosphereResourceEvent;
-import org.atmosphere.websocket.WebSocketEventListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.atmosphere.cpr.AtmosphereResource;
+import org.atmosphere.cpr.Broadcaster;
+import org.atmosphere.cpr.BroadcasterListener;
+import org.atmosphere.cpr.Deliver;
 
-@SuppressWarnings("rawtypes")
-public class SyncBusLogger implements WebSocketEventListener {
+public class SyncBusLogger implements BroadcasterListener {
 
-	private static final Logger log = LoggerFactory.getLogger(SyncEventBus.class);
-	
-	@Override
-    public void onPreSuspend(AtmosphereResourceEvent event) {
-		
-    }
+	private static final Logger log = LogManager.getLogger(SyncBusLogger.class);
 
 	@Override
-    public void onSuspend(final AtmosphereResourceEvent event) {
-        log.info("onSuspend(): {}:{}", event.getResource().getRequest().getRemoteAddr(),
-                event.getResource().getRequest().getRemotePort());
-    }
+	public void onPostCreate(Broadcaster b) {
+		log.info("onPostCreate() " + b.getID());
+	}
 
 	@Override
-    public void onResume(AtmosphereResourceEvent event) {
-        log.info("onResume(): {}:{}", event.getResource().getRequest().getRemoteAddr(),
-                event.getResource().getRequest().getRemotePort());
-    }
+	public void onComplete(Broadcaster b) {
+		log.info("onComplete() " + b.getID());
+	}
 
 	@Override
-    public void onDisconnect(AtmosphereResourceEvent event) {
-        log.info("onDisconnect(): {}:{}", event.getResource().getRequest().getRemoteAddr(),
-                event.getResource().getRequest().getRemotePort());
-    }
+	public void onPreDestroy(Broadcaster b) {
+		log.info("onPreDestroy() " + b.getID());
+	}
 
 	@Override
-    public void onBroadcast(AtmosphereResourceEvent event) {
-        log.info("onBroadcast(): {}", event.getMessage());
-    }
+	public void onAddAtmosphereResource(Broadcaster b, AtmosphereResource r) {
+		log.info("onAddAtmosphereResource() " + r.uuid());
+	}
 
 	@Override
-    public void onHeartbeat(AtmosphereResourceEvent event) {
-        log.info("onHeartbeat(): {}", event.getMessage());
-    }
+	public void onRemoveAtmosphereResource(Broadcaster b, AtmosphereResource r) {
+		log.info("onRemoveAtmosphereResource() " + r.uuid());
+	}
 
 	@Override
-    public void onThrowable(AtmosphereResourceEvent event) {
-        log.warn("onThrowable(): {}", event);
-    }
-
-    @Override
-    public void onClose(AtmosphereResourceEvent event) {
-        log.info("onClose(): {}", event.getMessage());
-
-    }
-
-	@Override
-    public void onHandshake(WebSocketEvent event) {
-        log.info("onHandshake(): {}", event);
-    }
-
-	@Override
-    public void onMessage(WebSocketEvent event) {
-        log.info("onMessage(): {}", event);
-    }
-
-	@Override
-    public void onClose(WebSocketEvent event) {
-        log.info("onClose(): {}", event);
-    }
-
-	@Override
-    public void onControl(WebSocketEvent event) {
-        log.info("onControl(): {}", event);
-    }
-
-	@Override
-    public void onDisconnect(WebSocketEvent event) {
-        log.info("onDisconnect(): {}", event);
-    }
-
-	@Override
-	public void onConnect(WebSocketEvent event) {
-        log.info("onConnect(): {}", event);
+	public void onMessage(Broadcaster b, Deliver deliver) {
+		log.info("onMessage() " + deliver.getMessage());
 	}
 }

@@ -7,16 +7,14 @@ import java.util.concurrent.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kbdunn.nimbus.common.sync.interfaces.FileEventListener;
-import com.kbdunn.nimbus.common.sync.interfaces.FileManager;
-import com.kbdunn.nimbus.common.sync.model.SyncFile;
+import com.kbdunn.nimbus.api.client.listeners.FileEventListener;
+import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.common.util.StringUtil;
 
-public class DesktopFileManager implements FileManager {
+public class FileManager {
 
-	private static final Logger log = LoggerFactory.getLogger(DesktopFileManager.class);
+	private static final Logger log = LoggerFactory.getLogger(FileManager.class);
 	
-	@Override
 	public Callable<Void> createAddProcess(SyncFile file) throws IllegalArgumentException {
 		return new Callable<Void>() {
 
@@ -27,7 +25,6 @@ public class DesktopFileManager implements FileManager {
 		}};
 	}
 
-	@Override
 	public Callable<Void> createFolderAddProcess(List<SyncFile> folders) throws IllegalArgumentException {
 		return new Callable<Void>() {
 
@@ -38,7 +35,6 @@ public class DesktopFileManager implements FileManager {
 		}};
 	}
 
-	@Override
 	public Callable<Void> createDeleteProcess(SyncFile file) throws IllegalArgumentException {
 		return new Callable<Void>() {
 
@@ -49,7 +45,6 @@ public class DesktopFileManager implements FileManager {
 		}};
 	}
 
-	@Override
 	public Callable<Void> createUpdateProcess(SyncFile file) throws IllegalArgumentException {
 		return new Callable<Void>() {
 
@@ -60,7 +55,6 @@ public class DesktopFileManager implements FileManager {
 		}};
 	}
 
-	@Override
 	public Callable<Void> createDownloadProcess(SyncFile file) throws IllegalArgumentException {
 		return new Callable<Void>() {
 
@@ -71,7 +65,6 @@ public class DesktopFileManager implements FileManager {
 		}};
 	}
 
-	@Override
 	public Callable<Void> createMoveProcess(SyncFile source, SyncFile destination) throws IllegalArgumentException {
 		return new Callable<Void>() {
 
@@ -82,7 +75,6 @@ public class DesktopFileManager implements FileManager {
 		}};
 	}
 
-	@Override
 	public Callable<List<SyncFile>> createFileListProcess() {
 		return new Callable<List<SyncFile>>() {
 
@@ -95,7 +87,6 @@ public class DesktopFileManager implements FileManager {
 		}};
 	}
 
-	@Override
 	public void subscribeFileEvents(FileEventListener listener) {
 		log.debug("Subscribe to file events called");
 	}

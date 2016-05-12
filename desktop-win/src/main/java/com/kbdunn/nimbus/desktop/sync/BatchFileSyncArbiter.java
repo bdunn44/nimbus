@@ -15,9 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gwt.thirdparty.guava.common.collect.Lists;
+import com.kbdunn.nimbus.api.client.model.SyncFile;
+import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.common.sync.HashUtil;
-import com.kbdunn.nimbus.common.sync.model.SyncFile;
-import com.kbdunn.nimbus.common.util.FileUtil;
 import com.kbdunn.nimbus.common.util.StringUtil;
 import com.kbdunn.nimbus.desktop.Application;
 
@@ -117,7 +117,7 @@ public class BatchFileSyncArbiter {
 		}
 		
 		// Delete from behind
-		FileUtil.sortPreorder(toDeleteRemotely);
+		SyncFileUtil.sortPreorder(toDeleteRemotely);
 		Collections.reverseOrder();
 		
 		log.info("Found {} files/folders to delete remotely.", toDeleteRemotely.size());
@@ -171,7 +171,7 @@ public class BatchFileSyncArbiter {
 			}
 		}
 		
-		FileUtil.sortPreorder(toAddRemotely);
+		SyncFileUtil.sortPreorder(toAddRemotely);
 		log.info("Found {} files/folders to add remotely.", toAddRemotely.size());
 		return toAddRemotely;
 	}
@@ -202,7 +202,7 @@ public class BatchFileSyncArbiter {
 			}
 		}
 		
-		FileUtil.sortPreorder(toAddLocally);
+		SyncFileUtil.sortPreorder(toAddLocally);
 		log.info("Found {} files/folders to add locally.", toAddLocally.size());
 		return toAddLocally;
 	}
@@ -242,7 +242,7 @@ public class BatchFileSyncArbiter {
 			}
 		}
 		
-		FileUtil.sortPreorder(toUpdateRemotely);
+		SyncFileUtil.sortPreorder(toUpdateRemotely);
 		log.info("Found {} files/folders to update remotely.", toUpdateRemotely.size());
 		return toUpdateRemotely;
 	}

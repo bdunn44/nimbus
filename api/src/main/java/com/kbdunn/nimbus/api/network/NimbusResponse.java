@@ -1,6 +1,6 @@
 package com.kbdunn.nimbus.api.network;
 
-import com.kbdunn.nimbus.api.model.NimbusError;
+import com.kbdunn.nimbus.api.client.model.NimbusError;
 
 public class NimbusResponse<T> {
 	

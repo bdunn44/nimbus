@@ -15,11 +15,11 @@ import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kbdunn.nimbus.api.client.model.NimbusApiCredentials;
 import com.kbdunn.nimbus.api.exception.TransportException;
-import com.kbdunn.nimbus.api.model.NimbusApiCredentials;
 import com.kbdunn.nimbus.api.network.NimbusRequest;
 import com.kbdunn.nimbus.api.network.NimbusResponse;
-import com.kbdunn.nimbus.api.network.NimbusTransport;
+import com.kbdunn.nimbus.api.network.Transport;
 import com.kbdunn.nimbus.api.network.jersey.JerseyTransport;
 import com.kbdunn.nimbus.common.exception.NimbusException;
 
@@ -35,7 +35,7 @@ public class NimbusClient {
 	
 	private final URL url;
 	private final NimbusApiCredentials credentials;
-	private final NimbusTransport transport;
+	private final Transport transport;
 	
 	private boolean isConnected = false;
 	

@@ -5,7 +5,8 @@ import java.util.Map;
 
 import javax.ws.rs.core.GenericType;
 
-import com.kbdunn.nimbus.api.model.NimbusApiCredentials;
+import com.kbdunn.nimbus.api.client.listeners.NimbusRequestListener;
+import com.kbdunn.nimbus.api.client.model.NimbusApiCredentials;
 
 public class NimbusRequest<T> {
 

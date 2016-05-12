@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kbdunn.nimbus.common.sync.interfaces.FileManager;
-import com.kbdunn.nimbus.common.sync.model.SyncFile;
+import com.kbdunn.nimbus.api.client.model.SyncFile;
+import com.kbdunn.nimbus.desktop.client.FileManager;
 
 public class LocalFileEventBuffer {
 

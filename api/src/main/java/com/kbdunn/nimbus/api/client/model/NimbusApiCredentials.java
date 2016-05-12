@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.api.model;
+package com.kbdunn.nimbus.api.client.model;
 
 public class NimbusApiCredentials {
 

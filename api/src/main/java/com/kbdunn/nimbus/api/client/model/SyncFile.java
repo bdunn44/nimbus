@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.common.sync.model;
+package com.kbdunn.nimbus.api.client.model;
 
 import java.io.File;
 
@@ -6,11 +6,13 @@ import com.kbdunn.nimbus.common.util.StringUtil;
 
 public class SyncFile {
 
-	private final String path;
-	private final File file;
-	private final byte[] md5;
-	private final boolean isDirectory;
+	private String path;
+	private File file;
+	private byte[] md5;
+	private boolean isDirectory;
 
+	public SyncFile() {  }
+	
 	public SyncFile(String path, byte[] md5, boolean isDirectory) {
 		this.path = path;
 		this.file = new File(path);

@@ -1,6 +1,5 @@
 package com.kbdunn.nimbus.desktop.client;
 
-import com.kbdunn.nimbus.common.sync.interfaces.FileManager;
 import com.kbdunn.nimbus.desktop.model.SyncCredentials;
 
 public class NimbusWAsyncConnection {
@@ -9,7 +8,7 @@ public class NimbusWAsyncConnection {
 	private FileManager fileManager;
 	
 	public NimbusWAsyncConnection() {
-		fileManager = new DesktopFileManager();
+		fileManager = new FileManager();
 	}
 	
 	public boolean authenticate(SyncCredentials creds) {

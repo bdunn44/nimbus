@@ -15,15 +15,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
+import com.kbdunn.nimbus.api.client.model.NimbusError;
 import com.kbdunn.nimbus.api.exception.InvalidRequestException;
 import com.kbdunn.nimbus.api.exception.InvalidResponseException;
 import com.kbdunn.nimbus.api.exception.TransportException;
-import com.kbdunn.nimbus.api.model.NimbusError;
 import com.kbdunn.nimbus.api.network.NimbusRequest;
 import com.kbdunn.nimbus.api.network.NimbusResponse;
-import com.kbdunn.nimbus.api.network.NimbusTransport;
+import com.kbdunn.nimbus.api.network.Transport;
 
-public class JerseyTransport implements NimbusTransport {
+public class JerseyTransport implements Transport {
 
 	public static final String JERSEY_MEDIA_TYPE = MediaType.APPLICATION_JSON;
 	private static final Logger log = LoggerFactory.getLogger(JerseyTransport.class);

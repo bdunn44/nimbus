@@ -36,7 +36,6 @@ subprojects {
 	
 	dependencies {
 		compile 'log4j:log4j:1.2.17'
-	    compile 'com.vaadin:vaadin-server:' + vaadinVersion
 	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
 	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
 	    
@@ -139,10 +138,12 @@ project(':server') {
 	    
 	    // Vaadin
 		compile 'com.vaadin:vaadin-server:' + vaadinVersion
-		//compile 'com.vaadin:vaadin-push:' + vaadinVersion
+		compile('com.vaadin:vaadin-push:' + vaadinVersion) //{
+		//	exclude group: 'com.vaadin.external.atmosphere'
+		//}
 		
 		// Atmosphere - Jersey
-		compile 'org.atmosphere:atmosphere-runtime:2.4.3'
+		//compile 'org.atmosphere:atmosphere-runtime:2.2.9' // 2.2.9 is compatible with Vaadin 7
 		//compile 'org.atmosphere:atmosphere-jersey:2.4.3'
 		// Use the same Atmosphere version as Vaadin
 		//compile('org.atmosphere:atmosphere-jersey:2.2.7') {
@@ -197,7 +198,7 @@ project(':server') {
 		compile 'org.glassfish.jersey.media:jersey-media-json-jackson:2.22.1'
 		
 		// Joda Time 
-		//compile 'joda-time:joda-time:2.3'
+		compile 'joda-time:joda-time:2.3'
 	}
 	
 	jar.doFirst {

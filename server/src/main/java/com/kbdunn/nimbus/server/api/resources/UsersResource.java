@@ -20,10 +20,10 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.kbdunn.nimbus.api.model.NimbusUserStorageDevice;
-import com.kbdunn.nimbus.api.model.PostResponse;
-import com.kbdunn.nimbus.api.model.PutResponse;
-import com.kbdunn.nimbus.api.model.StorageDeviceList;
+import com.kbdunn.nimbus.api.client.model.NimbusUserStorageDevice;
+import com.kbdunn.nimbus.api.client.model.PostResponse;
+import com.kbdunn.nimbus.api.client.model.PutResponse;
+import com.kbdunn.nimbus.api.client.model.StorageDeviceList;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.common.model.StorageDevice;
 import com.kbdunn.nimbus.common.server.FileService;

@@ -1,6 +1,8 @@
 apply plugin: 'base'
 apply plugin: 'distribution'
 
+import org.apache.tools.ant.filters.FixCrLfFilter
+
 def vaadinVersion = '7.6.4'
 ext.vaadinVersion = vaadinVersion
 def jettyVersion = '9.2.15.v20160210'
@@ -301,8 +303,16 @@ task nimbusDistTar (type: Tar) {
 		exclude('*.sh')
 	}
 	from ('dist') {
+		// Scripts
 		include('*.sh')
+		// Make them executable
 		fileMode 0755
+		// Ensure Unix line endings, remove EOF characters
+		filter(FixCrLfFilter,
+			eol: FixCrLfFilter.CrLf.newInstance('lf'),
+			tab: FixCrLfFilter.AddAsisRemove.newInstance('asis'),
+			eof: FixCrLfFilter.AddAsisRemove.newInstance('remove'),
+			fixlast: true)
 	}
 	into ('lib') {
 		from project(':common').configurations.runtime

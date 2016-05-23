@@ -281,7 +281,7 @@ public class LocalStorageService implements StorageService {
 		List<HardDrive> connected = new ArrayList<HardDrive>();
 		for (LinuxBlock b : new BlockFinder().scan())  {
 			if (b.getPath() != null && b.getPath().startsWith("/dev/sd") && (b.getType() == null || !b.getType().equals("swap"))) {
-				log.debug("blkid found device: " 
+				log.debug("Device scanner found device: " 
 						+ b.getPath() + " - " 
 						+ b.getLabel() + " (" 
 						+ b.getType() + " " 
@@ -291,13 +291,12 @@ public class LocalStorageService implements StorageService {
 				connected.add(d);
 			}
 		}
-		log.info("Found " + connected.size() + " connected drives");
+		log.info("Found " + connected.size() + " connected drive(s)");
 		
 		// Unmount unconnected devices
 		log.info("Finding mounted drives which are no longer connected...");
 		for (Filesystem f : CmdDf.execute()) {
 			if (f.getMountedPath().startsWith("/media/nimbus-")) {
-				log.debug("Finding filesystem " + f.getDevicePath() + " in list of connected drives");
 				boolean c = false;
 				for (HardDrive d : connected) {
 					if (d.getDevicePath().equals(f.getDevicePath())) {
@@ -318,12 +317,15 @@ public class LocalStorageService implements StorageService {
 		log.info("Attempting to mount all un-mounted drives...");
 		for (HardDrive d : connected) {
 			if (!d.isMounted()) {
-				CmdPmount.mount(d);
+				log.debug("Mounting " + d.getDevicePath());
+				if (!CmdPmount.mount(d)) {
+					log.warn("Detected error while mounting " + d.getDevicePath());
+				}
 				d.setReconciled(false);
 			}
 		}
 		
-		// Get drive stats
+		// Get drive stats and verify everything is mounted
 		List<Filesystem> filesystems = CmdDf.execute();
 		for (HardDrive d : connected) {
 			Filesystem f = null;
@@ -335,14 +337,15 @@ public class LocalStorageService implements StorageService {
 			}
 			
 			if (f == null) {
-				log.warn("Drive " + d.getPath() + " failed to mount");
+				log.error("Drive " + d.getPath() + " failed to mount");
 				d.setMounted(false);
 			} else {
 				d.setMounted(true);
 				d.setPath(f.getMountedPath());
 				d.setSize(f.getSize());
 				d.setUsed(f.getUsed());
-				log.debug("Drive " + d.getDevicePath() + " mounted successfully");
+				d.setType(f.getFilesystemType());
+				log.info("Drive " + d.getDevicePath() + " is mounted");
 				log.debug("Drive's mounted path is: " + d.getPath());
 			}
 		}

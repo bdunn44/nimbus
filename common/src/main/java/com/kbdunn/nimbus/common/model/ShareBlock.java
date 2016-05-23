@@ -8,8 +8,8 @@ public class ShareBlock implements NimbusRecord, FileContainer, Comparable<Share
 	
 	private Long id;
 	private Long userId;
-	private Boolean isExternal;
-	private Boolean isExternalUploadAllowed;
+	private Boolean external;
+	private Boolean externalUploadAllowed;
 	private String token;
 	private String name;
 	private String message;
@@ -20,27 +20,27 @@ public class ShareBlock implements NimbusRecord, FileContainer, Comparable<Share
 	private Date updated;
 	
 	public ShareBlock() { 
-		this.isExternal = false;
-		this.isExternalUploadAllowed = false;
+		this.external = false;
+		this.externalUploadAllowed = false;
 		this.visitCount = 0;
 	}
 	
 	public ShareBlock(NimbusUser user) {
 		this.userId = user.getId();
-		this.isExternal = false;
-		this.isExternalUploadAllowed = false;
+		this.external = false;
+		this.externalUploadAllowed = false;
 		this.visitCount = 0;
 	}
 	
-	public ShareBlock(Long id, Long userId, Boolean isExternal,
-			Boolean isExternalUploadAllowed, String token, String name,
+	public ShareBlock(Long id, Long userId, Boolean external,
+			Boolean externalUploadAllowed, String token, String name,
 			String message, Integer visitCount, Date expirationDate,
 			String passwordDigest, Date createDate, Date lastUpdateDate) {
 		super();
 		this.id = id;
 		this.userId = userId;
-		this.isExternal = isExternal;
-		this.isExternalUploadAllowed = isExternalUploadAllowed;
+		this.external = external;
+		this.externalUploadAllowed = externalUploadAllowed;
 		this.token = token;
 		this.name = name;
 		this.message = message;
@@ -70,19 +70,19 @@ public class ShareBlock implements NimbusRecord, FileContainer, Comparable<Share
 	}
 	
 	public boolean isExternal() {
-		return isExternal != null && isExternal;
+		return external != null && external;
 	}
 	
 	public void setExternal(Boolean isExternal) {
-		this.isExternal = isExternal;
+		this.external = isExternal;
 	}
 	
 	public boolean isExternalUploadAllowed() {
-		return isExternalUploadAllowed != null && isExternalUploadAllowed;
+		return externalUploadAllowed != null && externalUploadAllowed;
 	}
 	
 	public void setExternalUploadAllowed(Boolean isExternalUploadAllowed) {
-		this.isExternalUploadAllowed = isExternalUploadAllowed;
+		this.externalUploadAllowed = isExternalUploadAllowed;
 	}
 	
 	public String getToken() {
@@ -164,8 +164,8 @@ public class ShareBlock implements NimbusRecord, FileContainer, Comparable<Share
 		int result = 1;
 		result = prime * result + ((expirationDate == null) ? 0 : expirationDate.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((isExternal == null) ? 0 : isExternal.hashCode());
-		result = prime * result + ((isExternalUploadAllowed == null) ? 0 : isExternalUploadAllowed.hashCode());
+		result = prime * result + ((external == null) ? 0 : external.hashCode());
+		result = prime * result + ((externalUploadAllowed == null) ? 0 : externalUploadAllowed.hashCode());
 		result = prime * result + ((message == null) ? 0 : message.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((passwordDigest == null) ? 0 : passwordDigest.hashCode());
@@ -193,15 +193,15 @@ public class ShareBlock implements NimbusRecord, FileContainer, Comparable<Share
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (isExternal == null) {
-			if (other.isExternal != null)
+		if (external == null) {
+			if (other.external != null)
 				return false;
-		} else if (!isExternal.equals(other.isExternal))
+		} else if (!external.equals(other.external))
 			return false;
-		if (isExternalUploadAllowed == null) {
-			if (other.isExternalUploadAllowed != null)
+		if (externalUploadAllowed == null) {
+			if (other.externalUploadAllowed != null)
 				return false;
-		} else if (!isExternalUploadAllowed.equals(other.isExternalUploadAllowed))
+		} else if (!externalUploadAllowed.equals(other.externalUploadAllowed))
 			return false;
 		if (message == null) {
 			if (other.message != null)
@@ -234,8 +234,8 @@ public class ShareBlock implements NimbusRecord, FileContainer, Comparable<Share
 	@Override
 	public String toString() {
 		return "ShareBlock [id=" + id + ", userId=" + userId + ", isExternal="
-				+ isExternal + ", isExternalUploadAllowed="
-				+ isExternalUploadAllowed + ", token=" + token + ", name="
+				+ external + ", isExternalUploadAllowed="
+				+ externalUploadAllowed + ", token=" + token + ", name="
 				+ name + ", message=" + message + ", visitCount=" + visitCount
 				+ ", expirationDate=" + expirationDate + ", passwordDigest="
 				+ passwordDigest + "]";

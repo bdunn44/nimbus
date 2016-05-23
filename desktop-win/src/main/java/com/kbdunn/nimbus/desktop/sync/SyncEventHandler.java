@@ -4,12 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
@@ -20,25 +16,24 @@ import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.common.sync.HashUtil;
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.client.FileManager;
+import com.kbdunn.nimbus.desktop.client.RemoteFileManager;
 import com.kbdunn.nimbus.desktop.sync.buffer.LocalFileEventBuffer;
+import com.kbdunn.nimbus.desktop.sync.util.DesktopSyncFileUtil;
 
 public class SyncEventHandler {
 
 	private static final Logger log = LoggerFactory.getLogger(SyncEventHandler.class);
 	private static final long BUFFER_WAIT_TIME_MS = TimeUnit.SECONDS.toMillis(5);
 	
-	private final FileManager fileManager;
-	private final SyncManager syncManager;
+	private final RemoteFileManager fileManager;
+	private final DesktopSyncManager syncManager;
 	
 	// Buffer to capture local change events
 	private LocalFileEventBuffer currentBuffer;
-	private ExecutorService bufferProcessorExecutor;
 	
-	public SyncEventHandler(FileManager fileManager, SyncManager syncManager) {
-		this.fileManager = fileManager;
+	public SyncEventHandler(RemoteFileManager fileManager, DesktopSyncManager syncManager) {
+		this.fileManager = fileManager;;
 		this.syncManager = syncManager;
-		bufferProcessorExecutor = Executors.newSingleThreadExecutor();
 	}
 	
 	public void handleLocalFileAdd(SyncFile file) {
@@ -52,15 +47,21 @@ public class SyncEventHandler {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "created remotely");
 		try {
-			Callable<Void> downloadProcess = fileManager.createDownloadProcess(file);
-			syncManager.getExecutor().submit(downloadProcess);
+			if (file.isDirectory()) {
+				// Create the directory locally
+				FileUtils.forceMkdir(DesktopSyncFileUtil.toFile(file));
+			} else {
+				Callable<Void> downloadProcess = fileManager.createDownloadProcess(file);
+				syncManager.getExecutor().submit(downloadProcess);
+			}
 		} catch (Exception e) {
-			log.error("Cannot download the new file {}", file);
+			log.error("Cannot download the remotely added file {}", file);
 		}
 	}
 	
 	public void handleLocalFileUpdate(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
+		if (file.isDirectory()) return;
 		logChangeEvent(file, "modified locally");
 		checkBuffer();
 		currentBuffer.addFileToUpload(file);
@@ -110,18 +111,34 @@ public class SyncEventHandler {
 		}
 	}
 	
+	public void hadleRemoteFileCopy(SyncFile src, SyncFile dest) {
+		if (!syncManager.isSyncActive()) return;
+		logChangeEvent(src, "copied remotely");
+		try {
+			final File srcfile = new File(src.getPath());
+			final File destFile = new File(dest.getPath());
+			if (srcfile.isFile()) {
+				FileUtils.copyFile(srcfile, destFile);
+			} else {
+				FileUtils.copyDirectory(srcfile, destFile);
+			}
+		} catch (IOException e) {
+			log.error("Error moving {} {} to {}", src.isDirectory() ? "folder" : "file", src, dest);
+		}
+	}
+	
 	public void handleRemoteVersionConfict(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		logChangeEvent(file, "has a remote version conflict");
 		try {
 			// Rename the local file
-			File local = new File(Application.getSyncRootDirectory(), file.getPath());
+			File local = new File(SyncPreferences.getSyncDirectory(), file.getPath());
 			String localName = local.getName();
 			String rename = localName.substring(0, localName.lastIndexOf(".")) 
 					+ " - " + SyncPreferences.getNodeName()
 					+ localName.substring(localName.lastIndexOf("."));
 			log.info("Renaming local file {} to {}", local.getAbsolutePath(), rename);
-			if (!local.renameTo(new File(Application.getSyncRootDirectory(), rename))) {
+			if (!local.renameTo(new File(SyncPreferences.getSyncDirectory(), rename))) {
 				log.warn("Unable to rename file {}", local.getAbsolutePath());
 				// TODO sync error icon on file
 				return;
@@ -152,21 +169,18 @@ public class SyncEventHandler {
 	
 	private void startBuffering(final LocalFileEventBuffer buffer) {
 		log.debug("Start buffering for {} ms.", BUFFER_WAIT_TIME_MS);
-		new Timer().schedule(new TimerTask() {
-			@Override
-			public void run() {
-				currentBuffer = null;
-				log.debug("Finished buffering. {} file(s) added/modified, {} file(s) deleted.", 
-						buffer.getUploadFileBuffer().size(),
-						buffer.getDeleteFileBuffer().size());
-				
-				// Queue the buffer to be processed sequentially
-				bufferProcessorExecutor.submit(() -> {
-					buffer.awaitReady();
-					processBuffer(buffer);
-				});
-			}
-		}, BUFFER_WAIT_TIME_MS);
+		Application.asyncExec(() -> {
+			currentBuffer = null;
+			log.debug("Finished buffering. {} file(s) added/modified, {} file(s) deleted.", 
+					buffer.getUploadFileBuffer().size(),
+					buffer.getDeleteFileBuffer().size());
+			
+			// Process the buffer in the sync task worker thread pool
+			Application.getSyncManager().getExecutor().submit(() -> {
+				buffer.awaitReady();
+				processBuffer(buffer);
+			});
+		}, BUFFER_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 		// Start retrieving network state while buffering
 		currentBuffer.startFileListProcess(fileManager);
 	}
@@ -215,7 +229,7 @@ public class SyncEventHandler {
 			for (SyncFile remoteFile : remoteFiles) {
 				if (remoteFile.getPath().equals(localFile.getPath()) &&
 						((localFile.isDirectory() && remoteFile.isDirectory())
-								|| (localMd5 != null && HashUtil.compare(remoteFile.getMd5(), localMd5)))) {
+								|| (localMd5 != null && remoteFile.getMd5().equals(localMd5)))) {
 					return true;
 				}
 			}

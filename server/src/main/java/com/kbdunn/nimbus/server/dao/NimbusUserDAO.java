@@ -488,7 +488,7 @@ public abstract class NimbusUserDAO {
 					+ "WHERE ID = ?;");
 			ps.setString(1, smtpSettings.getSmtpServer());
 			ps.setString(2, smtpSettings.getSmtpPort());
-			ps.setBoolean(3, smtpSettings.isSSLEnabled());
+			ps.setBoolean(3, smtpSettings.isSslEnabled());
 			ps.setString(4, smtpSettings.getSslPort());
 			ps.setString(5, smtpSettings.getUsername());
 			ps.setString(6, smtpSettings.getPassword());

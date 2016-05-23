@@ -19,23 +19,24 @@ import org.atmosphere.wasync.impl.DefaultOptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kbdunn.nimbus.api.client.listeners.AsyncTransportEventListener;
+import com.kbdunn.nimbus.api.client.listeners.PushEventListener;
 import com.kbdunn.nimbus.api.client.model.FileEvent;
 import com.kbdunn.nimbus.api.exception.InvalidRequestException;
 import com.kbdunn.nimbus.api.exception.InvalidResponseException;
 import com.kbdunn.nimbus.api.exception.TransportException;
+import com.kbdunn.nimbus.api.network.PushTransport;
 import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
-import com.kbdunn.nimbus.api.network.AsyncTransport;
 import com.kbdunn.nimbus.api.network.NimbusRequest;
 
-public class AtmosphereTransport implements AsyncTransport {
+public class AtmosphereTransport implements PushTransport {
 
 	private static final Logger log = LoggerFactory.getLogger(AtmosphereTransport.class);
 
 	private final Client<DefaultOptions, DefaultOptionsBuilder, AtmosphereRequestBuilder> client;
-	private final List<AsyncTransportEventListener> listeners;
+	private final List<PushEventListener> listeners;
 	private Socket socket;
 	private boolean isConnected = false;
+	
 	private String transport;
 	
 	public AtmosphereTransport() {
@@ -44,7 +45,7 @@ public class AtmosphereTransport implements AsyncTransport {
 	}
 	
 	@Override
-	public <T> void connect(NimbusRequest<T> request) throws InvalidRequestException, InvalidResponseException, TransportException {
+	public <U, T> void connect(NimbusRequest<U, T> request) throws InvalidRequestException, InvalidResponseException, TransportException {
 		final RequestBuilder<AtmosphereRequestBuilder> builder = client.newRequestBuilder()
 				.method(Request.METHOD.GET)
 				.header("Content-Type", "application/json")
@@ -65,7 +66,7 @@ public class AtmosphereTransport implements AsyncTransport {
 				@Override
 				public void on(FileEvent event) {
 					log.info("File event recieved: {}", event);
-					for (AsyncTransportEventListener listener : listeners) {
+					for (PushEventListener listener : listeners) {
 						listener.onFileEvent(AtmosphereTransport.this, event);
 					}
 				}
@@ -74,7 +75,7 @@ public class AtmosphereTransport implements AsyncTransport {
 				public void on(Throwable t) {
 					log.error("Unexpected error encountered during async communication", t);
 					checkConnection();
-					for (AsyncTransportEventListener listener : listeners) {
+					for (PushEventListener listener : listeners) {
 						listener.onError(AtmosphereTransport.this, t);
 					}
 				}
@@ -104,7 +105,7 @@ public class AtmosphereTransport implements AsyncTransport {
 				public void on(String t) {
 					log.info("Socket error: {}", t);
 					checkConnection();
-					for (AsyncTransportEventListener listener : listeners) {
+					for (PushEventListener listener : listeners) {
 						listener.onError(AtmosphereTransport.this, new TransportException(t));
 					}
 				}
@@ -135,12 +136,12 @@ public class AtmosphereTransport implements AsyncTransport {
 	}
 	
 	@Override
-	public void addAsyncEventListener(AsyncTransportEventListener listener) {
+	public void addPushEventListener(PushEventListener listener) {
 		listeners.add(listener);
 	}
 
 	@Override
-	public void removeAsyncEventListener(AsyncTransportEventListener listener) {
+	public void removePushEventListener(PushEventListener listener) {
 		listeners.remove(listener);
 	}
 	
@@ -154,11 +155,13 @@ public class AtmosphereTransport implements AsyncTransport {
 		if (this.isConnected != isConnected) {
 			this.isConnected = isConnected;
 			if (isConnected) {
-				for (AsyncTransportEventListener listener : listeners) 
+				for (PushEventListener listener : listeners) {
 					listener.onConnect(this);
+				}
 			} else {
-				for (AsyncTransportEventListener listener : listeners) 
+				for (PushEventListener listener : listeners) {
 					listener.onClose(this);
+				}
 			}
 		}
 	}

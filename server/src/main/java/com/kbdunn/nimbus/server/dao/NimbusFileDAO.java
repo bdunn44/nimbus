@@ -407,11 +407,6 @@ public abstract class NimbusFileDAO {
 	}
 	
 	public static boolean insert(NimbusFile nf) {
-		//NimbusFile workingFile = nf; // Don't lose the pointer to the original file if isSong or isVideo
-		// The instantiation of the actual NimbusFile object by the Service should take care of this
-		//if (workingFile.isSong() && !(workingFile instanceof Song)) workingFile = new Song(workingFile);
-		//if (workingFile.isVideo() && !(workingFile instanceof Video)) workingFile = new Video(workingFile);
-		
 		log.debug("Creating file " + nf + " in database" 
 				+ (nf.isSong() ? " (Song)" : nf.isVideo() ? " (Video)" : ""));
 		
@@ -423,10 +418,10 @@ public abstract class NimbusFileDAO {
 			con = HikariConnectionPool.getConnection();
 			ps = con.prepareStatement(
 					"INSERT INTO FILE "
-					+ "(USER_STORAGE_ID, PATH, SIZE, IS_DIRECTORY, IS_RECONCILED, LAST_RECONCILED, IS_SONG, IS_VIDEO, IS_IMAGE, IS_LIBRARY_REMOVED, "
-					+ "TITLE, SEC_LENGTH, TRACK_NO, ARTIST, ALBUM, ALBUM_YEAR, CREATE_DATE, LAST_UPDATE_DATE) "
+					+ "(USER_STORAGE_ID, PATH, SIZE, IS_DIRECTORY, IS_RECONCILED, LAST_RECONCILED, IS_SONG, IS_VIDEO, IS_IMAGE, IS_LIBRARY_REMOVED, MD5, "
+					+ "LAST_HASHED, TITLE, SEC_LENGTH, TRACK_NO, ARTIST, ALBUM, ALBUM_YEAR, CREATE_DATE, LAST_UPDATE_DATE) "
 					+ "VALUES "
-					+ "((SELECT ID FROM USER_STORAGE WHERE USER_ID=? AND STORAGE_ID=?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE);");
+					+ "((SELECT ID FROM USER_STORAGE WHERE USER_ID=? AND STORAGE_ID=?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE);");
 			int i = 0;
 			ps.setLong(++i, nf.getUserId());
 			ps.setLong(++i, nf.getStorageDeviceId());
@@ -439,6 +434,8 @@ public abstract class NimbusFileDAO {
 			ps.setBoolean(++i, nf.isVideo());
 			ps.setBoolean(++i, nf.isImage());
 			ps.setBoolean(++i, nf.isLibraryRemoved()); 
+			ps.setString(++i, nf.getMd5());
+			ps.setLong(++i, nf.getLastHashed() == null ? 0 : nf.getLastHashed());
 			
 			if (nf instanceof Song) {
 				Song ns = (Song) nf;
@@ -516,7 +513,7 @@ public abstract class NimbusFileDAO {
 		//if (nf.isSong() && !(nf instanceof Song)) nf = new Song(nf);
 		//if (nf.isVideo() && !(nf instanceof Video)) nf = new Video(nf);
 		
-		log.debug("Updating file " + nf + " in database");
+		log.debug("Updating " + nf + " in database");
 		
 		Connection con = null;
 		PreparedStatement ps = null;
@@ -535,6 +532,8 @@ public abstract class NimbusFileDAO {
 					+ "IS_VIDEO = ?, "
 					+ "IS_IMAGE = ?, "
 					+ "IS_LIBRARY_REMOVED = ?, "
+					+ "MD5 = ?, "
+					+ "LAST_HASHED = ?, "
 					+ "TITLE = ?, "
 					+ "SEC_LENGTH = ?, "
 					+ "TRACK_NO = ?, "
@@ -555,6 +554,8 @@ public abstract class NimbusFileDAO {
 			ps.setBoolean(++i, nf.isVideo());
 			ps.setBoolean(++i, nf.isImage());
 			ps.setBoolean(++i, nf.isLibraryRemoved());
+			ps.setString(++i, nf.getMd5());
+			ps.setLong(++i, nf.getLastHashed() == null ? 0 : nf.getLastHashed());
 			
 			if (nf instanceof Song) {
 				Song ns = (Song) nf;
@@ -608,6 +609,43 @@ public abstract class NimbusFileDAO {
 				ps.setString(++i, null); // Album
 				ps.setString(++i, null); // Album Year
 			}
+			ps.setLong(++i, nf.getId());
+			
+			if (ps.executeUpdate() != 1) throw new SQLException("Update of FILE record failed");
+		} catch (SQLException e) {
+			log.error(e, e);
+			return false;
+		} finally {
+			try {
+				if (con != null) con.close();
+				if (ps != null) ps.close();
+			} catch (SQLException e) {
+				log.error(e, e);
+			}
+		}
+		
+		return true;
+	}
+	
+	// Update the MD5 hash of a file
+	public static boolean updateMd5(NimbusFile nf) {
+		if (nf.getId() == null) throw new IllegalArgumentException("Cannot update FILE record - ID is null");
+		if (nf.getMd5() == null) throw new IllegalArgumentException("MD5 hash is null");
+		if (nf.getSize() == null) throw new IllegalArgumentException("File size is null");
+		if (nf.getLastHashed() == null) throw new IllegalArgumentException("Last hashed timestamp is null");
+		log.debug("Updating MD5 hash of " + nf + " in database");
+		
+		Connection con = null;
+		PreparedStatement ps = null;
+		
+		try {
+			con = HikariConnectionPool.getConnection();
+			ps = con.prepareStatement(
+					"UPDATE FILE SET MD5 = ?, LAST_HASHED = ?, SIZE = ? WHERE ID = ?;");
+			int i = 0;
+			ps.setString(++i, nf.getMd5());
+			ps.setLong(++i, nf.getLastHashed()); // Should never be null here
+			ps.setLong(++i, nf.getSize()); // Should never be null here
 			ps.setLong(++i, nf.getId());
 			
 			if (ps.executeUpdate() != 1) throw new SQLException("Update of FILE record failed");
@@ -693,18 +731,20 @@ public abstract class NimbusFileDAO {
 			Boolean isReconciled = rsColumns.contains("IS_RECONCILED") ? rs.getBoolean("IS_RECONCILED") : null;
 			Long lastReconciled = rsColumns.contains("LAST_RECONCILED") ? rs.getLong("LAST_RECONCILED") : null;
 			Boolean isLibraryRemoved = rsColumns.contains("IS_LIBRARY_REMOVED") ? rs.getBoolean("IS_LIBRARY_REMOVED") : null;
+			String md5 = rsColumns.contains("MD5") ? rs.getString("MD5") : null;
+			Long lastHashed = rsColumns.contains("LAST_HASHED") ? rs.getLong("LAST_HASHED") : null;
 			Date createDate = rsColumns.contains("CREATE_DATE") ? rs.getTimestamp("CREATE_DATE") : null;
 			Date updateDate = rsColumns.contains("LAST_UPDATE_DATE") ? rs.getTimestamp("LAST_UPDATE_DATE") : null;
 			
 			if (isSong != null && isSong) {
 				return new Song(id, userId, driveId, path, isDir, size, isSong, 
-						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, createDate, updateDate, title, length, trackNo, artist, album, year);
+						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, createDate, updateDate, title, length, trackNo, artist, album, year);
 			} else if (isVideo != null && isVideo) {
 				return new Video(id, userId, driveId, path, isDir, size, isSong, 
-						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, createDate, updateDate, title, length);
+						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed,  createDate, updateDate, title, length);
 			} else {
 				return new NimbusFile(id, userId, driveId, path, isDir, size, isSong, 
-						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, createDate, updateDate);
+						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed,  createDate, updateDate);
 			}
 		} catch (SQLException e) {
 			log.error(e, e);

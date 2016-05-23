@@ -8,7 +8,7 @@ public class SMTPSettings {
 	private String sslPort;
 	private String username;
 	private String password;
-	private Boolean isSSLEnabled;
+	private Boolean sslEnabled;
 	
 	public SMTPSettings(Long userId) { 
 		this.userId = userId;
@@ -16,7 +16,7 @@ public class SMTPSettings {
 	
 	public SMTPSettings(Long userId, String smtpServer, String smtpPort,
 			String sslPort, String username, String password,
-			Boolean isSslEnabled) {
+			Boolean sslEnabled) {
 		super();
 		this.userId = userId;
 		this.smtpServer = smtpServer;
@@ -24,7 +24,7 @@ public class SMTPSettings {
 		this.sslPort = sslPort;
 		this.username = username;
 		this.password = password;
-		this.isSSLEnabled = isSslEnabled;
+		this.sslEnabled = sslEnabled;
 	}
 
 	public Long getUserId() {
@@ -75,18 +75,18 @@ public class SMTPSettings {
 		this.password = password;
 	}
 	
-	public boolean isSSLEnabled() {
-		return isSSLEnabled != null && isSSLEnabled;
+	public boolean isSslEnabled() {
+		return sslEnabled != null && sslEnabled;
 	}
 	
 	public void setSslEnabled(Boolean isSslEnabled) {
-		this.isSSLEnabled = isSslEnabled;
+		this.sslEnabled = isSslEnabled;
 	}
 	
 	// True if no attributes (other than username) are set
 	public boolean noAttributesSet() {
 		return smtpServer == null && smtpPort == null &&
-				(isSSLEnabled == null || !isSSLEnabled) && sslPort == null && password == null;
+				(sslEnabled == null || !sslEnabled) && sslPort == null && password == null;
 	}
 
 	@Override
@@ -94,7 +94,7 @@ public class SMTPSettings {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((isSSLEnabled == null) ? 0 : isSSLEnabled.hashCode());
+				+ ((sslEnabled == null) ? 0 : sslEnabled.hashCode());
 		result = prime * result
 				+ ((password == null) ? 0 : password.hashCode());
 		result = prime * result
@@ -117,10 +117,10 @@ public class SMTPSettings {
 		if (!(obj instanceof SMTPSettings))
 			return false;
 		SMTPSettings other = (SMTPSettings) obj;
-		if (isSSLEnabled == null) {
-			if (other.isSSLEnabled != null)
+		if (sslEnabled == null) {
+			if (other.sslEnabled != null)
 				return false;
-		} else if (!isSSLEnabled.equals(other.isSSLEnabled))
+		} else if (!sslEnabled.equals(other.sslEnabled))
 			return false;
 		if (password == null) {
 			if (other.password != null)
@@ -160,6 +160,6 @@ public class SMTPSettings {
 		return "SmtpSettings [userId=" + userId + ", smtpServer=" + smtpServer
 				+ ", smtpPort=" + smtpPort + ", sslPort=" + sslPort
 				+ ", username=" + username + ", password=" + password
-				+ ", isSslEnabled=" + isSSLEnabled + "]";
+				+ ", isSslEnabled=" + sslEnabled + "]";
 	}
 }

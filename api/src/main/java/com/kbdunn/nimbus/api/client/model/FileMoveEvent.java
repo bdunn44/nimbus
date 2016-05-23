@@ -21,6 +21,6 @@ public class FileMoveEvent extends FileEvent {
 
 	@Override
 	public String toString() {
-		return "FileMoveEvent [srcFile=" + getFile() + ", dstFile=" + dstFile + "]";
+		return "FileMoveEvent [source=" + getFile() + ", target=" + dstFile + "]";
 	}
 }

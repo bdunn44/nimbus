@@ -15,31 +15,35 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 	private Long storageDeviceId;
 	private String path;
 	private Long size;
-	private Boolean isSong;
-	private Boolean isVideo;
-	private Boolean isImage;
-	private Boolean isDirectory;
-	private Boolean isReconciled;
+	private Boolean song;
+	private Boolean video;
+	private Boolean image;
+	private Boolean directory;
+	private Boolean reconciled;
 	private Long lastReconciled;
-	private Boolean isLibraryRemoved;
+	private Boolean libraryRemoved;
+	private String md5;
+	private Long lastHashed;
 	private Date created;
 	private Date updated;
 	
 	/* DAO constructor to instantiate a persisted NimbusFile */
-	public NimbusFile(Long id, Long userId, Long storageDeviceId, String path, Boolean isDirectory, Long size, Boolean isSong, Boolean isVideo, Boolean isImage, 
-			Boolean isReconciled, Long lastReconciled, Boolean isLibraryRemoved, Date createDate, Date lastUpdateDate) {
+	public NimbusFile(Long id, Long userId, Long storageDeviceId, String path, Boolean directory, Long size, Boolean song, Boolean video, Boolean image, 
+			Boolean reconciled, Long lastReconciled, Boolean libraryRemoved, String md5, Long lastHashed, Date createDate, Date lastUpdateDate) {
 		this.id = id;
 		this.userId = userId;
 		this.storageDeviceId = storageDeviceId;
 		this.path = path;
-		this.isDirectory = isDirectory;
+		this.directory = directory;
 		this.size = size;
-		this.isSong = isSong;
-		this.isVideo = isVideo;
-		this.isImage = isImage;
-		this.isReconciled = isReconciled;
+		this.song = song;
+		this.video = video;
+		this.image = image;
+		this.reconciled = reconciled;
 		this.lastReconciled = lastReconciled;
-		this.isLibraryRemoved = isLibraryRemoved;
+		this.libraryRemoved = libraryRemoved;
+		this.md5 = md5;
+		this.lastHashed = lastHashed;
 		this.created = createDate;
 		this.updated = lastUpdateDate;
 	}
@@ -50,14 +54,16 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 		this.userId = copy.getUserId();
 		this.storageDeviceId = copy.getStorageDeviceId();
 		this.path = copy.getPath();
-		this.isDirectory = copy.isDirectory();
+		this.directory = copy.isDirectory();
 		this.size = copy.getSize();
-		this.isSong = copy.isSong();
-		this.isVideo = copy.isVideo();
-		this.isImage = copy.isImage();
-		this.isReconciled = copy.isReconciled();
+		this.song = copy.isSong();
+		this.video = copy.isVideo();
+		this.image = copy.isImage();
+		this.reconciled = copy.isReconciled();
 		this.lastReconciled = copy.getLastReconciled();
-		this.isLibraryRemoved = copy.isLibraryRemoved();
+		this.libraryRemoved = copy.isLibraryRemoved();
+		this.md5 = copy.getMd5();
+		this.lastHashed = copy.getLastHashed();
 		this.created = copy.getCreated();
 		this.updated = copy.getUpdated();
 	}
@@ -109,19 +115,19 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 	}
 	
 	public boolean isDirectory() {
-		return isDirectory != null && isDirectory;
+		return directory != null && directory;
 	}
 	
 	public void setDirectory(Boolean isDirectory) {
-		this.isDirectory = isDirectory;
+		this.directory = isDirectory;
 	}
 	
 	public boolean isReconciled() {
-		return isReconciled != null && isReconciled;
+		return reconciled != null && reconciled;
 	}
 	
 	public void setReconciled(Boolean isReconciled) {
-		this.isReconciled = isReconciled;
+		this.reconciled = isReconciled;
 	}
 	
 	public Long getLastReconciled() {
@@ -133,35 +139,51 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 	}
 	
 	public boolean isSong() {
-		return isSong != null && isSong;
+		return song != null && song;
 	}
 	
 	public void setSong(Boolean isSong) {
-		this.isSong = isSong;
+		this.song = isSong;
 	}
 	
 	public boolean isVideo() {
-		return isVideo != null && isVideo;
+		return video != null && video;
 	}
 	
 	public void setVideo(Boolean isVideo) {
-		this.isVideo = isVideo;
+		this.video = isVideo;
 	}
 	
 	public boolean isImage() {
-		return isImage != null && isImage;
+		return image != null && image;
 	}
 	
 	public void setImage(Boolean isImage) {
-		this.isImage = isImage;
+		this.image = isImage;
 	}
 	
 	public boolean isLibraryRemoved() {
-		return isLibraryRemoved != null && isLibraryRemoved;
+		return libraryRemoved != null && libraryRemoved;
 	}
 	
 	public void setIsLibraryRemoved(Boolean isLibraryRemoved) {
-		this.isLibraryRemoved = isLibraryRemoved;
+		this.libraryRemoved = isLibraryRemoved;
+	}
+	
+	public String getMd5() {
+		return md5;
+	}
+	
+	public void setMd5(String md5) {
+		this.md5 = md5;
+	}
+	
+	public Long getLastHashed() {
+		return lastHashed;
+	}
+	
+	public void setLastHashed(Long lastHashed) {
+		this.lastHashed = lastHashed;
 	}
 
 	@Override
@@ -192,10 +214,10 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 	@Override
 	public String toString() {
 		return "NimbusFile [id=" + id + ", userId=" + userId + ", driveId="
-				+ storageDeviceId + ", path=" + path + ", size=" + size + ", isSong="
-				+ isSong + ", isVideo=" + isVideo + ", isImage=" + isImage
-				+ ", isDirectory=" + isDirectory + ", isReconciled="
-				+ isReconciled + "]";
+				+ storageDeviceId + ", path=" + path + ", size=" + size + ", song="
+				+ song + ", video=" + video + ", image=" + image
+				+ ", directory=" + directory + ", reconciled="
+				+ reconciled + "]";
 	}
 
 	@Override
@@ -204,10 +226,10 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 		int result = 1;
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
-				+ ((isDirectory == null) ? 0 : isDirectory.hashCode());
-		result = prime * result + ((isImage == null) ? 0 : isImage.hashCode());
-		result = prime * result + ((isSong == null) ? 0 : isSong.hashCode());
-		result = prime * result + ((isVideo == null) ? 0 : isVideo.hashCode());
+				+ ((directory == null) ? 0 : directory.hashCode());
+		result = prime * result + ((image == null) ? 0 : image.hashCode());
+		result = prime * result + ((song == null) ? 0 : song.hashCode());
+		result = prime * result + ((video == null) ? 0 : video.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
 		result = prime * result + ((size == null) ? 0 : size.hashCode());
 		result = prime * result
@@ -230,25 +252,25 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (isDirectory == null) {
-			if (other.isDirectory != null)
+		if (directory == null) {
+			if (other.directory != null)
 				return false;
-		} else if (!isDirectory.equals(other.isDirectory))
+		} else if (!directory.equals(other.directory))
 			return false;
-		if (isImage == null) {
-			if (other.isImage != null)
+		if (image == null) {
+			if (other.image != null)
 				return false;
-		} else if (!isImage.equals(other.isImage))
+		} else if (!image.equals(other.image))
 			return false;
-		if (isSong == null) {
-			if (other.isSong != null)
+		if (song == null) {
+			if (other.song != null)
 				return false;
-		} else if (!isSong.equals(other.isSong))
+		} else if (!song.equals(other.song))
 			return false;
-		if (isVideo == null) {
-			if (other.isVideo != null)
+		if (video == null) {
+			if (other.video != null)
 				return false;
-		} else if (!isVideo.equals(other.isVideo))
+		} else if (!video.equals(other.video))
 			return false;
 		if (path == null) {
 			if (other.path != null)
@@ -275,7 +297,7 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 	
 	@Override
 	public int compareTo(NimbusFile o) {
-		int c = ComparatorUtil.nullSafeBooleanComparator(o.isDirectory, this.isDirectory);
+		int c = ComparatorUtil.nullSafeBooleanComparator(o.directory, this.directory);
 		c = c == 0 ? ComparatorUtil.nullSafeStringComparator(this.getName(), o.getName()) : c;
 		return c;
 	}

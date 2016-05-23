@@ -20,6 +20,6 @@ public abstract class FileEvent {
 
 	@Override
 	public String toString() {
-		return "FileEvent [file=" + file + "]";
+		return "FileEvent [" + file + "]";
 	}
 }

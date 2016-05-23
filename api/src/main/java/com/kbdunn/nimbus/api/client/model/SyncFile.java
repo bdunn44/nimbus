@@ -2,24 +2,25 @@ package com.kbdunn.nimbus.api.client.model;
 
 import java.io.File;
 
-import com.kbdunn.nimbus.common.util.StringUtil;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class SyncFile {
 
 	private String path;
 	private File file;
-	private byte[] md5;
-	private boolean isDirectory;
+	private String md5;
+	private Boolean directory;
 
 	public SyncFile() {  }
 	
-	public SyncFile(String path, byte[] md5, boolean isDirectory) {
+	public SyncFile(String path, String md5, boolean directory) {
 		this.path = path;
 		this.file = new File(path);
 		this.md5 = md5;
-		this.isDirectory = isDirectory;
+		this.directory = directory;
 	}
 	
+	@JsonIgnore
 	public String getName() {
 		return file.getName();
 	}
@@ -28,8 +29,9 @@ public class SyncFile {
 		return path;
 	}
 
+	@JsonIgnore
 	public boolean isFile() {
-		return !isDirectory;
+		return !directory;
 		/*if (file.exists()) {
 			return file.isFile();
 		} else {
@@ -38,16 +40,20 @@ public class SyncFile {
 	}
 
 	public boolean isDirectory() {
-		return isDirectory;
+		return directory;
 	}
 
-	public byte[] getMd5() {
+	public String getMd5() {
 		return md5;
+	}
+	
+	public void setMd5(String md5) {
+		this.md5 = md5;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("%s: %s [%s]", isFile() ? "File" : "Folder", getPath(), 
-				isFile() ? String.format("(MD5: %s)", StringUtil.bytesToHex(getMd5())) : "");
+		return String.format("%s: %s [%s]", isDirectory() ? "Folder" : "File", getPath(), 
+				isDirectory() ? "" : String.format("(MD5: %s)", md5));
 	}
 }

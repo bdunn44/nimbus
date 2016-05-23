@@ -1,6 +1,5 @@
 package com.kbdunn.nimbus.desktop.sync.process;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -9,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.desktop.sync.BatchFileSyncArbiter;
 import com.kbdunn.nimbus.desktop.sync.SyncEventHandler;
+import com.kbdunn.nimbus.desktop.sync.SyncStateCache;
 
 public class BatchSynchronizeProcess {
 	
@@ -23,7 +23,7 @@ public class BatchSynchronizeProcess {
 	private final List<SyncFile> toAddRemote;
 	private final List<SyncFile> toUpdateLocal;
 	private final List<SyncFile> toUpdateRemote;
-	private final List<SyncFile> remoteVersionConflicts;
+	private final List<SyncFile> versionConflicts;
 	
 	public BatchSynchronizeProcess(BatchFileSyncArbiter syncArbiter, SyncEventHandler syncHandler) {
 		this.syncHandler = syncHandler;
@@ -35,42 +35,41 @@ public class BatchSynchronizeProcess {
 		this.toAddRemote = syncArbiter.getFilesToAddRemotely();
 		this.toUpdateLocal = syncArbiter.getFilesToUpdateLocally();
 		this.toUpdateRemote = syncArbiter.getFilesToUpdateRemotely();
-		this.remoteVersionConflicts = syncArbiter.getRemoteVersionConflicts();
+		this.versionConflicts = syncArbiter.getVersionConflicts();
 	}
 	
-	public void persistSyncState() throws IOException {
-		BatchFileSyncArbiter.persistCurrentSyncState();
-	}
-	
-	public Boolean start() {
+	public boolean start() {
 		try {
+			// Wait for sync cache to be ready
+			SyncStateCache.instance().awaitCacheReady();
+			
 			// Delete local files
 			for (SyncFile file : toDeleteLocal) {
-				syncHandler.handleLocalFileDelete(file);
+				syncHandler.handleRemoteFileDelete(file);
 			}
 			// Delete remote files
 			for (SyncFile file : toDeleteRemote) {
-				syncHandler.handleRemoteFileDelete(file);
+				syncHandler.handleLocalFileDelete(file);
 			}
 			// Add remote files
 			for (SyncFile file : toAddRemote) {
 				log.debug("DEBUG! " + file);
-				syncHandler.handleRemoteFileAdd(file);
+				syncHandler.handleLocalFileAdd(file);
 			}
 			// Update remote files 
 			for (SyncFile file : toUpdateRemote) {
-				syncHandler.handleRemoteFileUpdate(file);
+				syncHandler.handleLocalFileUpdate(file);
 			}
 			// Add local files
 			for (SyncFile file : toAddLocal) {
-				syncHandler.handleLocalFileAdd(file);
+				syncHandler.handleRemoteFileAdd(file);
 			}
 			// Update local files
 			for (SyncFile file : toUpdateLocal) {
-				syncHandler.handleLocalFileUpdate(file);
+				syncHandler.handleRemoteFileUpdate(file);
 			}
 			// Handle sync conflicts
-			for (SyncFile file : remoteVersionConflicts) {
+			for (SyncFile file : versionConflicts) {
 				syncHandler.handleRemoteVersionConfict(file);
 			}
 			return true;

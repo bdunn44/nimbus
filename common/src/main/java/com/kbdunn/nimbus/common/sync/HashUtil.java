@@ -53,11 +53,11 @@ public class HashUtil {
 	 */
 	public static byte[] hash(File file) throws IOException {
 		if (file == null) {
-			return new byte[0];
+			throw new IllegalArgumentException("File cannot be null");
 		} else if (file.isDirectory()) {
-			return new byte[0];
+			throw new IllegalArgumentException("Cannot hash a directory");
 		} else if (!file.exists()) {
-			return new byte[0];
+			throw new IOException("File does not exist");
 		}
 
 		MessageDigest digest;

@@ -12,10 +12,11 @@ public class Song extends NimbusFile {
 	private String albumYear;
 	
 	public Song(Long id, Long userId, Long driveId, String path, Boolean isDirectory, Long size, 
-			Boolean isSong, Boolean isVideo, Boolean isImage, Boolean isReconciled, Long lastReconciled, Boolean isLibraryRemoved, Date createDate, Date lastUpdateDate, 
-			String title, Integer length, Integer trackNumber, String artist, String album, String albumYear) {
+			Boolean isSong, Boolean isVideo, Boolean isImage, Boolean isReconciled, Long lastReconciled, Boolean isLibraryRemoved, 
+			String md5, Long lastHashed, Date createDate, Date lastUpdateDate, String title, Integer length, Integer trackNumber, String artist, 
+			String album, String albumYear) {
 		super(id, userId, driveId, path, isDirectory, size, isSong, isVideo, isImage,
-				isReconciled, lastReconciled, isLibraryRemoved, createDate, lastUpdateDate);
+				isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, createDate, lastUpdateDate);
 		this.title = title;
 		this.length = length;
 		this.trackNumber = trackNumber;
@@ -137,6 +138,6 @@ public class Song extends NimbusFile {
 	public String toString() {
 		return "Song [title=" + getTitle() + ", length=" + length + ", trackNumber="
 				+ trackNumber + ", artist=" + getArtist() + ", album=" + getAlbum()
-				+ ", albumYear=" + albumYear + "]";
+				+ ", albumYear=" + albumYear + ", path=" + getPath() + "]";
 	}
 }

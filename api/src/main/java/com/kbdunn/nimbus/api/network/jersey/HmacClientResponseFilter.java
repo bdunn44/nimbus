@@ -12,6 +12,7 @@ import javax.annotation.Priority;
 import javax.ws.rs.client.ClientRequestContext;
 import javax.ws.rs.client.ClientResponseContext;
 import javax.ws.rs.client.ClientResponseFilter;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
@@ -41,10 +42,12 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 		NimbusHttpHeaders nmbHeaders = NimbusHttpHeaders.fromMap(headers).coalesce(headers);
 		
 		String status = String.valueOf(responseContext.getStatus());
-		String contentType = responseContext.getMediaType() == null ? null : responseContext.getMediaType().toString();
+		String contentType = responseContext.getMediaType() == null ? null : responseContext.getHeaderString("Content-Type");
 		String content = null;
 		
-		if (responseContext.getEntityStream() != null) {
+		if (responseContext.getEntityStream() != null
+				&& (contentType == null || (!contentType.contains(MediaType.APPLICATION_OCTET_STREAM) 
+						&& !contentType.contains(MediaType.MULTIPART_FORM_DATA)))) {
 			// Read entity, reset the input stream
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			InputStream in = responseContext.getEntityStream();
@@ -52,7 +55,7 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 				if (in.available() > 0) {
 					ReaderWriter.writeTo(in, out);
 					byte[] entity = out.toByteArray();
-					content = "\"" + new String(entity) + "\"";
+					content = new String(entity);
 					responseContext.setEntityStream(new ByteArrayInputStream(entity));
 				}
 			} catch (IOException e) {
@@ -78,7 +81,7 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 			}
 			
 			// Check response requestor matches request requestor
-			final NimbusApiCredentials creds = ((NimbusRequest<?>)requestContext.getProperty(NimbusRequest.PROPERTY_NAME)).getCredentials();
+			final NimbusApiCredentials creds = ((NimbusRequest<?, ?>)requestContext.getProperty(NimbusRequest.PROPERTY_NAME)).getCredentials();
 			if (!nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR).equals(creds.getApiToken()))
 				throw new IllegalArgumentException("Invalid API token in response (" + nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR) + ")!");
 			

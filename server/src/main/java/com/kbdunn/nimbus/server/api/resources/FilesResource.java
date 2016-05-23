@@ -14,7 +14,7 @@ import com.kbdunn.nimbus.common.model.NimbusFile;
 import com.kbdunn.nimbus.common.server.FileService;
 import com.kbdunn.nimbus.common.util.FileUtil;
 
-@Path("/file")
+@Path("/files")
 @Produces(MediaType.APPLICATION_JSON)
 public class FilesResource {
 	

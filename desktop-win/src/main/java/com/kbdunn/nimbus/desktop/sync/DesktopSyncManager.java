@@ -9,20 +9,22 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kbdunn.nimbus.api.client.NimbusClient;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
+import com.kbdunn.nimbus.api.exception.TransportException;
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.client.NimbusWAsyncConnection;
+import com.kbdunn.nimbus.desktop.client.RemoteFileManager;
 import com.kbdunn.nimbus.desktop.model.SyncCredentials;
 import com.kbdunn.nimbus.desktop.sync.listener.LocalFileEventListener;
-import com.kbdunn.nimbus.desktop.sync.listener.RemoteFileEventListener;
 import com.kbdunn.nimbus.desktop.sync.process.BatchSynchronizeProcess;
 
-public class SyncManager {
+public class DesktopSyncManager {
 
 	public enum Status {
 		DISCONNECTED("Disconnected", false),
-		CONNECTION_ERROR("Connection Error", false),
+		CONNECTING("Connecting...", false),
 		CONNECTED("Connected", true),
+		CONNECTION_ERROR("Connection Error", false),
 		SYNCING("Syncing Files...", true),
 		SYNCED("Files Synced", true),
 		SYNC_ERROR("Sync Error", true),
@@ -53,18 +55,18 @@ public class SyncManager {
 		}
 	}
 	
-	private static final Logger log = LoggerFactory.getLogger(SyncManager.class);
-	private static final int WORKER_THREAD_COUNT = 4;
+	private static final Logger log = LoggerFactory.getLogger(DesktopSyncManager.class);
+	private static final int WORKER_THREAD_COUNT = 1;
 	
 	private Status status;
-	private NimbusWAsyncConnection connection;
+	private NimbusClient client;
+	private RemoteFileManager fileManager;
 	private SyncEventHandler syncEventHandler;
 	private NimbusFileObserver fileObserver;
 	private ExecutorService executor;
 	
-	public SyncManager() {
+	public DesktopSyncManager() {
 		status = Status.DISCONNECTED;
-		connection = new NimbusWAsyncConnection();
 	}
 	
 	public Status getSyncStatus() {
@@ -77,30 +79,44 @@ public class SyncManager {
 	
 	public boolean connect() {
 		final SyncCredentials creds = SyncPreferences.getCredentials();
-		if (creds.equals(SyncCredentials.empty())) {
+		final String url = SyncPreferences.getEndpoint();
+		if (creds.equals(SyncCredentials.empty()) || url == null || url.isEmpty()) {
 			// Don't even try
 			status = Status.DISCONNECTED;
 		} else {
-			log.info("Connecting to Nimbus...");
+			log.info("Connecting to Nimbus at {}...", url);
+			status = Status.CONNECTING;
+			Application.updateSyncStatus();
 			try {
 				// Authenticate
-				if (!connection.authenticate(creds)) {
-					throw new Exception("Error authenticating " + creds.getUsername());
+				if (client != null) {
+					client.disconnect();
+				}
+				client = new NimbusClient(url, creds.toNimbusApiCredentials(), NimbusClient.Type.HTTP);
+				// Check REST API authentication
+				if (!client.authenticate()) {
+					throw new TransportException("Error authenticating " + creds.getUsername());
+				}
+				// Connect to PUSH. Don't listen to events until resume()
+				if (!client.connectToPushService()) {
+					throw new TransportException("Error connecting to push service");
 				}
 				status = Status.CONNECTED;
 				log.info("Connected");
 				
 				// Subscribe to network change events
-				syncEventHandler = new SyncEventHandler(connection.getFileManager(), this);
+				fileManager = new RemoteFileManager(client);
+				syncEventHandler = new SyncEventHandler(fileManager, this);
 				
 				// Listen to local change events (not started until resume())
-				fileObserver = new NimbusFileObserver(Application.getSyncRootDirectory());
+				fileObserver = new NimbusFileObserver(SyncPreferences.getSyncDirectory());
 				fileObserver.addFileObserverListener(new LocalFileEventListener(syncEventHandler));
 			} catch (Exception e) {
 				status = Status.CONNECTION_ERROR;
 				log.error("Unable to connect to Nimbus", e);
 			} 
 		}
+		
 		Application.updateSyncStatus();
 		
 		return status.isConnected();
@@ -108,23 +124,18 @@ public class SyncManager {
 	
 	public void disconnect() {
 		// Check that we're connected, if so, disconnect
-		if (connection.isConnected()) {
-			log.info("Disconnecting from Nimbus...");
-			if (connection.disconnect()) { 
-				log.info("Disconnected");
-				status = Status.DISCONNECTED;
-			} else {
-				log.warn("Unable to disconnect");
-			}
-		} else {
-			log.info("Already disconnected");
-			status = Status.DISCONNECTED;
-		}
+		log.info("Disconnecting from Nimbus...");
+		client.disconnect();
+		log.info("Disconnected");
+		status = Status.DISCONNECTED;
 		Application.updateSyncStatus();
 	}
 	
 	public boolean isSyncActive() {
-		return status.isConnected() && status != Status.PAUSED;
+		return status.isConnected() 
+				&& status != Status.PAUSED
+				&& status != Status.CONNECTED // CONNECTED is not actively syncing
+			;
 	}
 	
 	public void pause() {
@@ -132,6 +143,9 @@ public class SyncManager {
 			return;
 		}
 		log.info("Pausing file synchronization");
+		
+		// Unsubscribe from push events
+		fileManager.unsubscribeAll();
 		// Shutdown executor
 		try {
 			executor.shutdown();
@@ -152,11 +166,11 @@ public class SyncManager {
 		}
 		// Save current file state
 		try {
-			BatchFileSyncArbiter.persistCurrentSyncState();
+			SyncStateCache.instance().persist();
 		} catch (IOException e) {
 			log.error("Unable to persist current sync state!", e);
 		}
-		
+
 		status = Status.PAUSED;
 		Application.updateSyncStatus();
 	}
@@ -171,7 +185,7 @@ public class SyncManager {
 			executor = Executors.newFixedThreadPool(WORKER_THREAD_COUNT);
 		}
 		// Run batch synchronize in background thread
-		Application.getDisplay().asyncExec(() -> {
+		Application.asyncExec(() -> {
 			status = Status.SYNCING;
 			Application.updateSyncStatus();
 			
@@ -186,45 +200,64 @@ public class SyncManager {
 				status = Status.SYNCED;
 				Application.updateSyncStatus();
 			}
-			// TODO: Subscribe immediately, queue events if batch is still running?
-			connection.getFileManager().subscribeFileEvents(new RemoteFileEventListener(syncEventHandler));
+			// TODO: Subscribe immediately, queue events while batch is still running
+			/*try {
+				if (!client.isConnectedToPushService()) {
+					log.warn("Client is no longer connected to the push service. Reconnecting...");
+					if (!client.connectToPushService()) {
+						throw new TransportException("Error connecting to push service");
+					}
+				}
+				// Subscribe to pushed events
+				fileManager.subscribeFileEvents(new RemoteFileEventListener(syncEventHandler));
+			} catch (Exception e) {
+				log.error("Error encountered while subscribing to pushed events", e);
+				pause();
+				disconnect();
+			}
 			try {
 				fileObserver.start();
 			} catch (Exception e) {
 				log.error("Unable to start file observer", e);
-			}
+				pause();
+				disconnect();
+			}*/
 		});
 	}
 	
 	private synchronized boolean batchSynchronize() {
-		List<SyncFile> rootNode = null;
+		List<SyncFile> networkState = null;
 		try {
 			long start = System.nanoTime();
 			// Get network state synchronously
-			rootNode = executor.submit(connection.getFileManager().createFileListProcess()).get();
+			networkState = executor.submit(fileManager.createFileListProcess()).get();
 			long end = System.nanoTime();
 			log.debug("Took {}ms to fetch network file list.", TimeUnit.NANOSECONDS.toMillis(end-start));
 		} catch (Exception e) {
 			log.error("Error fetching network file list.", e);
 			return false;
 		}
-		if (rootNode == null) {
-			log.error("Error fetching network file list.");
+		if (networkState == null) {
+			log.error("Error fetching network file list");
 			return false;
 		} 
 		
 		try {
 			long start = System.nanoTime();
-			BatchFileSyncArbiter arbiter = new BatchFileSyncArbiter(rootNode);
+			SyncStateCache.instance().awaitCacheReady();
+			BatchFileSyncArbiter arbiter = new BatchFileSyncArbiter(networkState);
 			BatchSynchronizeProcess batchSync = new BatchSynchronizeProcess(arbiter, syncEventHandler);
 			boolean success = batchSync.start();
 			long end = System.nanoTime();
-			log.debug("Took {}ms to process batch synchronization.", TimeUnit.NANOSECONDS.toMillis(end-start));
 			if (success) {
 				// Batch sync succeeded
-				batchSync.persistSyncState();
-				return true;
+				SyncStateCache.instance().persist();
+				SyncStateCache.instance().disposeLastPersistedSyncState();
 			}
+			log.debug("Took {}ms to process batch synchronization. {}", 
+					TimeUnit.NANOSECONDS.toMillis(end-start),
+					success ? "No errors were encountered" : "Errors were encountered");
+			return success;
 		} catch (Exception e) {
 			log.error("Error executing batch synchronization.", e);
 		}

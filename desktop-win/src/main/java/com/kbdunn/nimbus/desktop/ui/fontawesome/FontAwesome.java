@@ -736,14 +736,14 @@ public enum FontAwesome {
 	
 	public static Font font(int size, int style) {
 		String name = "fontawesome-" + size + "-" + style;
-		log.info("Loading font " + name);
+		//log.info("Loading font " + name);
 		if (JFaceResources.getFontRegistry().hasValueFor(name)) {
 			return JFaceResources.getFontRegistry().get(name);
 		}
 		if (!loadFont()) return null;
 		FontData[] fd = new FontData[] { new FontData("fontawesome", size, style) };
 		JFaceResources.getFontRegistry().put(name, fd);
-		log.debug("Font " + name + " registered");
+		//log.debug("Font " + name + " registered");
 		return JFaceResources.getFontRegistry().get(name);
 	}
 	

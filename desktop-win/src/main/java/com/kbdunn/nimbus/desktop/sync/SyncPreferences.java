@@ -71,7 +71,7 @@ public class SyncPreferences {
 		setPreference(Key.NODE_NAME, nodeName);
 	}
 	
-	public static String getSyncDirectory() {
+	public static String getSyncDirectoryPath() {
 		String dir = getPreference(Key.SYNC_DIR);
 		if (dir == null || dir.isEmpty()) {
 			dir = System.getProperty("user.home") + File.separator + "Nimbus Sync";
@@ -79,5 +79,9 @@ public class SyncPreferences {
 		}
 		
 		return dir;
+	}
+	
+	public static File getSyncDirectory() {
+		return new File(getSyncDirectoryPath());
 	}
 }

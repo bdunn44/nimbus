@@ -223,7 +223,7 @@ public class EmailSettingsForm extends Panel {
 	private void setSavedSmtpValues() {
 		smtpServer.setValue(savedSettings.getSmtpServer());
 		smtpPort.setValue(savedSettings.getSmtpPort());
-		sslEnabled.setValue(savedSettings.isSSLEnabled());
+		sslEnabled.setValue(savedSettings.isSslEnabled());
 		sslPort.setValue(savedSettings.getSslPort());
 		password.setValue(savedSettings.getPassword());
 	}

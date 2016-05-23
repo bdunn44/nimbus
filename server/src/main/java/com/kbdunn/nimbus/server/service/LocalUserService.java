@@ -144,6 +144,15 @@ public class LocalUserService implements UserService {
 		return result;
 	}
 	
+	public String getSyncRootFolderPath(NimbusUser user) {
+		// TODO: UI to change this and set USER_STORAGE.SYNC_ROOT attribute
+		return getUserHomeFolderPath(user, storageService.getStorageDevicesAssignedToUser(user).get(0));
+	}
+	
+	public NimbusFile getSyncRootFolder(NimbusUser user) {
+		return fileService.getFileByPath(getSyncRootFolderPath(user));
+	}
+	
 	/*public Boolean userHasDuplicateNaturalKey(NimbusUser user, boolean ignoreSelf) {
 		return userHasDuplicateEmail(user, ignoreSelf) || userHasDuplicateName(user, ignoreSelf);
 	}*/
@@ -234,7 +243,7 @@ public class LocalUserService implements UserService {
 				if (storageService.storageDeviceIsAvailable(d)) {
 					NimbusFile oldRoot = getUserRootFolder(old, d);
 					if (fileService.fileExistsOnDisk(oldRoot) 
-							&& !fileService.renameFile(oldRoot, StringUtil.getFileNameFromPath(getUserRootFolderPath(user, d)))) {
+							&& fileService.renameFile(oldRoot, StringUtil.getFileNameFromPath(getUserRootFolderPath(user, d))) != null) {
 							return false;
 					}
 				}

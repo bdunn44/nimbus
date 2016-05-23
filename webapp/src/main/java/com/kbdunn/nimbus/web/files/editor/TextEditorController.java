@@ -89,7 +89,7 @@ public class TextEditorController {
 			if (!filename.equals(file.getName())) {
 				log.debug("Renaming the file to " + filename);
 				try {
-					if (!NimbusUI.getFileService().renameFile(file, filename)) {
+					if (NimbusUI.getFileService().renameFile(file, filename) == null) {
 						// Error, revert to old name
 						Notification.show("There was an error renaming the file!");
 						log.error("There was an error renaming the file!");
@@ -107,9 +107,11 @@ public class TextEditorController {
 			writer.write(view.getEditorContent());
 			writer.close();
 			Notification.show("File Saved!");
+			NimbusUI.getFileService().save(file); // Update MD5
 			log.debug("File saved");
 		} catch (IOException e) {
-			log.error(e, e);
+			Notification.show("Error saving file!", Notification.Type.ERROR_MESSAGE);
+			log.error("Error saving text file", e);
 		}
 	}
 	

@@ -8,7 +8,8 @@ import javax.ws.rs.core.GenericType;
 import com.kbdunn.nimbus.api.client.listeners.NimbusRequestListener;
 import com.kbdunn.nimbus.api.client.model.NimbusApiCredentials;
 
-public class NimbusRequest<T> {
+// Generics represent <Request Entity, Response Entity>
+public class NimbusRequest<U, T> {
 
     public interface Method {
         int GET = 0;
@@ -31,28 +32,32 @@ public class NimbusRequest<T> {
     private final int method;
     private final String endpoint;
     private final String path;
-    private final Object entity;
+    private final U entity;
     private final Map<String, String> params;
     private final NimbusRequestListener<T> listener;
     private final GenericType<T> returnType;
     
 	public NimbusRequest(NimbusApiCredentials creds, int method, String endpoint, String path, GenericType<T> returnType) {
-		this(creds, method, endpoint, path, null, returnType);
+		this(creds, method, endpoint, path, (U) null, returnType);
 	}
     
     public NimbusRequest(NimbusApiCredentials creds, int method, String endpoint, String path, NimbusRequestListener<T> listener, GenericType<T> returnType) {
-        this(creds, method, endpoint, path, (T) null, listener, returnType);
+        this(creds, method, endpoint, path, (U) null, listener, returnType);
     }
     
     public NimbusRequest(NimbusApiCredentials connection, int method, String endpoint, String path, Map<String, String> params, NimbusRequestListener<T> listener, GenericType<T> returnType) {
         this(connection, method, endpoint, path, params, null, listener, returnType);
     }
     
-    public NimbusRequest(NimbusApiCredentials connection, int method, String endpoint, String path, Object entity, NimbusRequestListener<T> listener, GenericType<T> returnType) {
+    public NimbusRequest(NimbusApiCredentials connection, int method, String endpoint, String path, U entity, GenericType<T> returnType) {
+        this(connection, method, endpoint, path, null, entity, null, returnType);
+    }
+    
+    public NimbusRequest(NimbusApiCredentials connection, int method, String endpoint, String path, U entity, NimbusRequestListener<T> listener, GenericType<T> returnType) {
         this(connection, method, endpoint, path, null, entity, listener, returnType);
     }
 
-    private NimbusRequest(NimbusApiCredentials connection, int method, String endpoint, String path, Map<String, String> params, Object entity, NimbusRequestListener<T> listener, GenericType<T> returnType) {
+    private NimbusRequest(NimbusApiCredentials connection, int method, String endpoint, String path, Map<String, String> params, U entity, NimbusRequestListener<T> listener, GenericType<T> returnType) {
         this.creds = connection;
         this.method = method;
         this.endpoint = endpoint;
@@ -79,7 +84,7 @@ public class NimbusRequest<T> {
 		return path;
 	}
 
-	public Object getEntity() {
+	public U getEntity() {
 		return entity;
 	}
 

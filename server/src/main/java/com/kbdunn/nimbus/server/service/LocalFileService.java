@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Date;
@@ -45,6 +44,7 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	private LocalMediaLibraryService mediaLibraryService;
 	private LocalUserService userService;
 	private LocalStorageService storageService;
+	private FileSyncService syncService;
 	
 	public LocalFileService() {  }
 	
@@ -52,16 +52,14 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		mediaLibraryService = container.getMediaLibraryService();
 		userService = container.getUserService();
 		storageService = container.getStorageService();
+		syncService = container.getFileSyncService();
 	}
 	
 	/* Used to copy a NimbusFile object */
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getFileCopy(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public NimbusFile getFileCopy(NimbusFile nf) {
 		return new NimbusFile(nf.getId(), nf.getUserId(), nf.getStorageDeviceId(), nf.getPath(), nf.isDirectory(), nf.getSize(), nf.isSong(), 
-				nf.isVideo(), nf.isImage(), nf.isReconciled(), nf.getLastReconciled(), nf.isLibraryRemoved(), nf.getCreated(), nf.getUpdated());
+				nf.isVideo(), nf.isImage(), nf.isReconciled(), nf.getLastReconciled(), nf.isLibraryRemoved(), nf.getMd5(), nf.getLastHashed(), nf.getCreated(), nf.getUpdated());
 	}
 	
 	private void setFileAttributes(NimbusFile nf) {
@@ -110,47 +108,32 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		if (user != null) nf.setUserId(user.getId());
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getFileById(long)
-	 */
 	@Override
 	public NimbusFile getFileById(long id) {
 		return NimbusFileDAO.getById(id);
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getFileByPath(java.nio.file.Path)
-	 */
 	@Override
 	public NimbusFile getFileByPath(Path fullPath) {
 		return getFileByPath(fullPath.toAbsolutePath().toString().replace("\\", "/").replace("C:", ""));
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getFileByPath(java.lang.String)
-	 */
 	@Override
 	public NimbusFile getFileByPath(String fullPath) {
 		return getFileByPath(fullPath, false);
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getFileByPath(java.lang.String)
-	 */
 	@Override
 	public NimbusFile getFileByPath(String fullPath, boolean reconcile) {
 		NimbusFile nf = NimbusFileDAO.getByPath(fullPath);
 		if (nf == null) {
-			nf = new NimbusFile(null, null, null, fullPath, null, null, null, null, null, null, null, null, null, null);
+			nf = new NimbusFile(null, null, null, fullPath, null, null, null, null, null, null, null, null, null, null, null, null);
 			setFileAttributes(nf);
 		}
 		if (reconcile) reconcile(nf);
 		return nf;
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getTotalFileCount()
-	 */
 	@Override
 	public long getTotalFileCount() {
 		return NimbusFileDAO.getTotalFileCount();
@@ -162,9 +145,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return NimbusFileDAO.getTotalFileSize();
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getStorageDevice(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public StorageDevice getStorageDevice(NimbusFile file) {
 		if (file.getPath() == null) throw new NullPointerException("File path cannot be null");
@@ -175,17 +155,11 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return storageService.getStorageDeviceByPath(path.substring(0, path.indexOf("/NimbusUser-")));
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#fileExistsOnDisk(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean fileExistsOnDisk(NimbusFile file) {
 		return Files.exists(Paths.get(file.getPath()));
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getLastModifiedDate(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public Date getLastModifiedDate(NimbusFile file) {
 		try {
@@ -199,9 +173,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		}
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getFileSizeString(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public String getFileSizeString(NimbusFile file) {
 		if (file.isDirectory()) {
@@ -215,9 +186,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return StringUtil.toHumanSizeString(size);
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getRecursiveContentSize(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public long getRecursiveContentSize(NimbusFile file) {
 		if (!file.isDirectory()) return file.getSize();
@@ -225,17 +193,11 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Get the parent NimbusFile
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getParentFile(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public NimbusFile getParentFile(NimbusFile file) {
 		return getFileByPath(Paths.get(file.getPath()).getParent());
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getContentCount(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public int getContentCount(NimbusFile folder) {
 		if (!folder.isDirectory()) return 0;
@@ -244,9 +206,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Does not account for reconciliation. It's a best guess
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getRecursiveContentCount(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public int getRecursiveContentCount(NimbusFile folder) {
 		if (!folder.isDirectory()) return 0;
@@ -254,9 +213,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Check if folder has any children in the least expensive way
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#folderHasContents(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean folderHasContents(NimbusFile folder) {
 		if (!folder.isDirectory()) return false;
@@ -274,9 +230,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Check if folder has any child folders in the least expensive way
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#folderContentsContainsFolder(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean folderContentsContainsFolder(NimbusFile folder) {
 		if (!folder.isDirectory()) throw new IllegalArgumentException("Can't get contents of a regular file");
@@ -296,9 +249,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Determines if the argument is a child of this file
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#fileIsChildOf(com.kbdunn.nimbus.common.bean.NimbusFile, com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean fileIsChildOf(NimbusFile child, NimbusFile parent) {
 		if (!parent.isDirectory()) return false;
@@ -312,9 +262,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	// Methods to retrieve folder contents
 	// If the folder is reconciled (in sync with database), then the database is queried (fast)
 	// Otherwise the file system is checked (slow)
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getContents(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public List<NimbusFile> getContents(NimbusFile folder) {
 		log.debug("Getting all contents of " + folder);
@@ -323,9 +270,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return NimbusFileDAO.getContents(folder);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getContents(com.kbdunn.nimbus.common.bean.NimbusFile, int, int)
-	 */
 	@Override
 	public List<NimbusFile> getContents(NimbusFile folder, int startIndex, int count) {
 		log.debug("Getting top " + count + " contents of " + folder + " from start index " + startIndex);
@@ -334,9 +278,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return NimbusFileDAO.getContents(folder, startIndex, count);
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getFileContents(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public List<NimbusFile> getFileContents(NimbusFile folder) {
 		log.debug("Getting file contents of " + folder);
@@ -345,9 +286,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return NimbusFileDAO.getFileContents(folder);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getFolderContents(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public List<NimbusFile> getFolderContents(NimbusFile folder) {
 		log.debug("Getting folder contents of " + folder);
@@ -356,9 +294,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return NimbusFileDAO.getFolderContents(folder);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getImageContents(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public List<NimbusFile> getImageContents(NimbusFile folder) {
 		log.debug("Getting image contents of " + folder);
@@ -385,9 +320,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Get recursive contents of a folder
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getRecursiveFolderContents(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public List<NimbusFile> getRecursiveFolderContents(NimbusFile folder) {
 		List<NimbusFile> result = new ArrayList<NimbusFile>();
@@ -401,9 +333,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Returns null if the file doesn't exist or canonical path doesn't start with this file's path
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#resolveRelativePath(com.kbdunn.nimbus.common.bean.NimbusFile, java.lang.String)
-	 */
 	@Override
 	public NimbusFile resolveRelativePath(NimbusFile folder, String relativePath) {
 		log.debug("Resolving relative path " + relativePath + " for root " + folder);
@@ -436,9 +365,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return null;
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#getRelativePath(com.kbdunn.nimbus.common.bean.NimbusFile, com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public String getRelativePath(NimbusFile root, NimbusFile file) {
 		if (fileIsChildOf(file, root))
@@ -447,42 +373,74 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 			return null;
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#save(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean save(NimbusFile file) {
+		return save(file, null, false);
+	}
+	
+	public boolean save(NimbusFile file, NimbusFile copySource, boolean moved) {
 		if (file.getUserId() == null) throw new NullPointerException("User ID cannot be null");
 		if (file.getStorageDeviceId() == null) throw new NullPointerException("Drive ID cannot be null");
-		if (file instanceof Song) return mediaLibraryService.save((Song) file);
-		if (file.isSong()) return mediaLibraryService.save(new Song(file));
-		if (file.getId() == null) return insert(file);
-		return update(file);
+		// Check instantiation, work with a temp file
+		// At the end be sure everything is up-to-date
+		NimbusFile tmpfile = checkInstantiation(file);
+		boolean success = false;
+		if (file instanceof Song) success = mediaLibraryService.save((Song) file, copySource, moved);
+		/*if (file.isSong()) return mediaLibraryService.save((Song) checkInstantiation(file));
+		if (file instanceof Video) return mediaLibraryService.save((Video) file);
+		if (file.isVideo()) return mediaLibraryService.save((Video) checkInstantiation(file));*/
+		if (file.getId() == null) success = insert(file, copySource);
+		else success = update(file, copySource, moved);
+		if (tmpfile != file) {
+			// checkInstantiation() did it's job. Update the original object
+			file.setId(tmpfile.getId());
+			file.setCreated(tmpfile.getCreated());
+			file.setUpdated(tmpfile.getUpdated());
+		}
+		return success;
 	}
 	
 	// Create a record in the database
-	boolean insert(NimbusFile file) {
+	boolean insert(NimbusFile file, NimbusFile copySource) {
 		log.trace("Inserting file in database " + file);
 		if (!NimbusFileDAO.insert(file)) return false;
 		NimbusFile dbf = NimbusFileDAO.getByPath(file.getPath());
 		file.setId(dbf.getId());
 		file.setCreated(dbf.getCreated());
 		file.setUpdated(dbf.getUpdated());
+		if (copySource == null) {
+			syncService.publishFileAddEvent(file);
+		} else {
+			syncService.publishFileCopyEvent(copySource, file);
+		}
 		return true;
 	}
 	
 	// Update a record in the database
-	boolean update(NimbusFile file) {
+	// Should surpress the file event only if the file was moved
+	boolean update(NimbusFile file, NimbusFile copySource, boolean moved) {
 		log.trace("Updating file in database " + file);
+		if (copySource == null) {
+			if (!file.isDirectory()) {
+				// Publish file update - sync service takes care of hashing, etc.
+				syncService.publishFileUpdateEvent(file);
+			}
+		} else {
+			// Send copy/move event
+			if (moved) {
+				syncService.publishFileMoveEvent(copySource, file);
+			} else {
+				// Don't think this is needed... Copied files are inserted
+				syncService.publishFileCopyEvent(copySource, file);
+			}
+		}
 		if (!NimbusFileDAO.update(file)) return false;
 		file.setUpdated(new Date()); // close enough
 		return true;
 	}
 	
 	// Delete file or folder. Folder delete is recursive
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#delete(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
+	// Never surpress the file event here
 	@Override
 	public boolean delete(NimbusFile file) {		
 		if (file.isDirectory()) {
@@ -491,16 +449,17 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		}
 		try {
 			Files.delete(Paths.get(file.getPath()));
-			return NimbusFileDAO.delete(file);
+			if (NimbusFileDAO.delete(file)) {
+				// Publish file delete event
+				syncService.publishFileDeleteEvent(file);
+				return true;
+			}
 		} catch (IOException e) {
-			log.error(e, e);
-			return false;
+			log.error("Error deleting file", e);
 		}
+		return false;
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#createDirectory(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean createDirectory(NimbusFile folder) {
 		if (Files.exists(Paths.get(folder.getPath()))) return true;
@@ -520,9 +479,6 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return save(folder);
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#touchFile(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean touchFile(NimbusFile file) {
 		try {
@@ -542,11 +498,8 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Rename a file or folder.
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#renameFile(com.kbdunn.nimbus.common.bean.NimbusFile, java.lang.String)
-	 */
 	@Override
-	public boolean renameFile(NimbusFile file, String newName) throws FileConflictException {
+	public NimbusFile renameFile(NimbusFile file, String newName) throws FileConflictException {
 		if (newName.contains("/")) throw new IllegalArgumentException("Name cannot contain a slash character");
 		
 		String newPath = getParentFile(file).getPath() + "/" + newName;
@@ -559,89 +512,83 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Check for an invalid copy/move location
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#fileMoveDestinationIsValid(com.kbdunn.nimbus.common.bean.NimbusFile, com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean fileMoveDestinationIsValid(NimbusFile sourceFile, NimbusFile destinationFolder) {
 		return !sourceFile.equals(destinationFolder) && !fileIsChildOf(destinationFolder, sourceFile);
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#moveFileTo(com.kbdunn.nimbus.common.bean.NimbusFile, com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
-	public boolean moveFileTo(NimbusFile file, NimbusFile targetFolder) throws FileConflictException {
+	public NimbusFile moveFileTo(NimbusFile file, NimbusFile targetFolder) throws FileConflictException {
 		return moveFile(file, targetFolder.getPath() + "/" + file.getName());
 	}
 	
 	// Move a file or folder
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#moveFile(com.kbdunn.nimbus.common.bean.NimbusFile, java.lang.String)
-	 */
 	@Override
-	public boolean moveFile(NimbusFile file, String fullPath) throws FileConflictException {
+	public NimbusFile moveFile(NimbusFile file, String fullPath) throws FileConflictException {
+		NimbusFile source = getFileCopy(file);
 		NimbusFile target = getFileByPath(fullPath);
 		
 		if (fileExistsOnDisk(target))
 			throw new FileConflictException(new FileConflict(file, target));
 		
-		log.debug("Moving file " + file + " to " + target);
+		log.debug("Moving file " + source + " to " + target);
 		
 		try {
 			Files.move(Paths.get(file.getPath()), Paths.get(target.getPath()));
 		} catch (IOException e) {
 			log.error(e, e);
-			return false;
+			return null;
 		}
 		
 		file.setPath(target.getPath());
-		return save(file);
+		save(file, source, true);
+		return file;
 	}
 	
 	// Copies this file to a target folder. Returns the new copy
 	// TODO: resolve file path?
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#copyFileTo(com.kbdunn.nimbus.common.bean.NimbusFile, com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public NimbusFile copyFileTo(NimbusFile file, NimbusFile targetFolder) throws FileConflictException, IllegalArgumentException {
+		return copyFile(file, targetFolder.getPath() + "/" + file.getName());
+	}
+	
+	public NimbusFile copyFile(NimbusFile file, String fullPath) throws FileConflictException, IllegalArgumentException {
+		NimbusFile target = getFileByPath(fullPath);
+		NimbusFile targetFolder = getParentFile(target);
+		
 		if (!targetFolder.isDirectory() || !fileExistsOnDisk(targetFolder))
 			throw new IllegalArgumentException("Cannot copy file to a path which is not a directory or does not exist");
 		
-		List<FileConflict> conflicts = checkConflicts(file, targetFolder);
+		List<FileConflict> conflicts = checkConflicts(target, targetFolder);
 		if (!conflicts.isEmpty())
 			throw new FileConflictException(conflicts);
-
-		log.debug("Copying file " + file + " to " + targetFolder);
-		NimbusFile copy = getFileByPath(targetFolder.getPath() + "/" + file.getName());
+		
+		log.debug("Copying file " + file + " to " + target);
 		
 		if (file.isDirectory()) {
 			log.debug("Performing recursive folder copy");
-			copy.setDirectory(true);
-			if (!fileExistsOnDisk(copy)) createDirectory(copy);
+			target.setDirectory(true);
+			if (!fileExistsOnDisk(target)) createDirectory(target);
 			
 			for (NimbusFile child: getContents(file)) 
-				copyFileTo(child, copy);
+				copyFileTo(child, target);
 			
 		} else {
 			try {
-				Files.copy(Paths.get(file.getPath()), Paths.get(copy.getPath()), StandardCopyOption.COPY_ATTRIBUTES);
+				Files.copy(Paths.get(file.getPath()), Paths.get(target.getPath()));
 			} catch (IOException e) {
 				log.error(e, e);
 				return null;
 			}
 		}
 		
-		setFileAttributes(copy);
-		save(copy);
-		return copy;
+		setFileAttributes(target);
+		target.setMd5(file.getMd5());
+		save(target, file, false);
+		return target;
 	}
 	
 	// FOLDER CONFLICTS ARE NOT CONFLICTS!!
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#checkConflicts(com.kbdunn.nimbus.common.bean.NimbusFile, com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public List<FileConflict> checkConflicts(NimbusFile source, NimbusFile targetFolder) {
 		List<FileConflict> conflicts = new ArrayList<FileConflict>();
@@ -659,13 +606,19 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return conflicts;
 	}
 	
-	// Recursively copies source files. Conflict resolution map needs to contain resolution for ALL children.
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#batchCopy(java.util.List, com.kbdunn.nimbus.common.bean.NimbusFile, java.util.List)
-	 */
+	public boolean batchMove(List<NimbusFile> sources, NimbusFile targetFolder, List<FileConflict> conflictResolutions) {
+		return processBatchCopyOrMove(sources, targetFolder, conflictResolutions, true);
+	}
+
 	@Override
 	public boolean batchCopy(List<NimbusFile> sources, NimbusFile targetFolder, List<FileConflict> conflictResolutions) {
-		log.debug("Processing batch copy with conflict resolutions");
+		return processBatchCopyOrMove(sources, targetFolder, conflictResolutions, false);
+	}
+	
+	// Recursively copies or moves source files
+	// Conflict resolution map needs to contain resolution for ALL children.
+	private boolean processBatchCopyOrMove(List<NimbusFile> sources, NimbusFile targetFolder, List<FileConflict> conflictResolutions, boolean move) {
+		log.debug("Processing batch " + (move ? "move" : "copy") + " with conflict resolutions");
 		
 		// Build list of sources with conflicts
 		List<NimbusFile> conflictedSources = new ArrayList<NimbusFile>();
@@ -691,7 +644,11 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		log.trace("Target folder is: " + targetFolder.getPath());
 		for (NimbusFile f : conflictFreeSources) {
 			try {
-				copyFileTo(f, targetFolder);
+				if (move) {
+					moveFileTo(f, targetFolder);
+				} else {
+					copyFileTo(f, targetFolder);
+				}
 			} catch (IllegalArgumentException | FileConflictException e) {
 				log.error(e, e);
 				return false;
@@ -700,17 +657,17 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		
 		// Process conflicts
 		for (FileConflict fc : conflictResolutions) {
+			if (fc.getResolution().equals(FileConflict.Resolution.IGNORE)) continue;
 			try {
-				if (fc.getResolution() == FileConflict.Resolution.COPY) {
-					NimbusFile resolution = getFileConflictResolution(fc);
-					Files.copy(Paths.get(fc.getSource().getPath()), Paths.get(resolution.getPath()), StandardCopyOption.COPY_ATTRIBUTES);
-					reconcile(resolution);
-				} else if (fc.getResolution() == FileConflict.Resolution.REPLACE) {
-					Files.copy(Paths.get(fc.getSource().getPath()), Paths.get(fc.getTarget().getPath()), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
-					reconcile(fc.getTarget());
+				NimbusFile resolution = fc.getResolution() == FileConflict.Resolution.COPY ? getFileConflictResolution(fc) : fc.getTarget();
+				log.debug("Copy Source: " + fc.getSource().getPath() + ", resolution: " + resolution.getPath());
+				if (move) {
+					moveFile(fc.getSource(), resolution.getPath());
+				} else {
+					copyFile(fc.getSource(), resolution.getPath());
 				}
 			} catch (Exception e) {
-				log.error(e, e);
+				log.error("Error processing file conflict resolution", e);
 				return false;
 			}
 		}
@@ -718,11 +675,12 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		return true;
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#reconcileFolder(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean reconcileFolder(NimbusFile folder) {
+		return reconcileFolder(folder, null, false);
+	}
+	
+	public boolean reconcileFolder(NimbusFile folder, NimbusFile copySource, boolean moved) {
 		if (!folder.isDirectory()) throw new IllegalArgumentException("Argument must be a directory");
 		
 		// Reconcile a maximum of once every 5 seconds
@@ -746,30 +704,31 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		
 		for (NimbusFile child : fullContents) {
 			child = checkInstantiation(child);
-			save(child);
+			save(child, copySource, moved);
 			//if (child.isDirectory() && recursive) reconcileFolder(child, true);
 		}
 		
 		folder.setReconciled(true);
 		folder.setLastReconciled(ts);
-		return save(folder);
+		return save(folder, copySource, moved);
 	}
 	
 	// Synchronizes files that exist on disk with the database
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalFileService#reconcile(com.kbdunn.nimbus.common.bean.NimbusFile)
-	 */
 	@Override
 	public boolean reconcile(NimbusFile nf) {
+		return reconcile(nf, null, false);
+	}
+	
+	public boolean reconcile(NimbusFile nf, NimbusFile copySource, boolean moved) {
 		log.trace("Reconciling file " + nf);
 		
 		setFileAttributes(nf);
-		nf = checkInstantiation(nf);
+		//nf = checkInstantiation(nf); // This is done in save()
 		
 		if (nf.isDirectory()) {
-			return reconcileFolder(nf);
+			return reconcileFolder(nf, copySource, moved);
 		} else {
-			 return save(nf);
+			 return save(nf, copySource, moved);
 		}
 	}
 

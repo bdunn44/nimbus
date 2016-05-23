@@ -1,13 +1,12 @@
 package com.kbdunn.nimbus.api.util;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 import com.kbdunn.nimbus.api.client.model.SyncFile;
-import com.kbdunn.nimbus.common.sync.HashUtil;
+import com.kbdunn.nimbus.common.model.NimbusFile;
 
 public class SyncFileUtil {
 	
@@ -25,10 +24,26 @@ public class SyncFileUtil {
 		});
 	}
 	
-	public static SyncFile toSyncFile(File syncRootDir, File file, boolean isDirectory) throws IOException {
+	public static SyncFile toSyncFile(NimbusFile syncRootDir, NimbusFile file) {
+		return new SyncFile(
+			file.getPath().replace(syncRootDir.getPath(), "").replace("\\", "/"), 
+			file.getMd5(),
+			file.isDirectory()
+		);
+	}
+	
+	public static SyncFile toSyncFile(File syncRootDir, File file, boolean isDirectory) {
+		return toSyncFile(syncRootDir, file, isDirectory, null);
+	}
+	
+	public static SyncFile toSyncFile(File syncRootDir, File file, boolean isDirectory, String md5) {
+		if (!isDirectory) {
+			// Ensure directories don't have a hash
+			md5 = "";
+		}
 		return new SyncFile(
 				file.getAbsolutePath().replace(syncRootDir.getAbsolutePath(), "").replace("\\", "/"), 
-				isDirectory ? HashUtil.hash(file) : null,
+				md5,
 				isDirectory
 			);
 	}

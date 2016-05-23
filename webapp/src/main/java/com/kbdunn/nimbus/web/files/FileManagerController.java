@@ -533,7 +533,7 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 		}
 		// Rename file, check for errors
 		try {
-			if (!NimbusUI.getFileService().renameFile(targetFile, newName)) {
+			if (NimbusUI.getFileService().renameFile(targetFile, newName) == null) {
 				Notification.show("There was an error renaming the file", Notification.Type.ERROR_MESSAGE);
 			}
 		} catch (FileConflictException e) {
@@ -579,21 +579,21 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 		processCopyOrMove(sources, targetFolder, true);
 	}
 	
-	public void processCopyOrMove(final List<NimbusFile> sources, final NimbusFile targetFolder, boolean deleteAfterCopy) {
+	public void processCopyOrMove(final List<NimbusFile> sources, final NimbusFile targetFolder, boolean move) {
 		if (!validateCopyLocation(sources, targetFolder)) return;
 		
 		List<FileConflict> conflicts = getConflicts(sources, targetFolder);
 		// If there are conflicts, show resolution popup
 		if (conflicts.size() > 0) {
-			resolveConflicts(conflicts, sources, targetFolder, deleteAfterCopy);
-		} else if (deleteAfterCopy) {
-			AsyncOperation op = NimbusUI.getAsyncService().moveFiles(null, sources, targetFolder, true);
-			if (uri.getSubject() == Subject.SHARE_BLOCK) {
-				op.addFinishedListener(new FinishedListener() {
-					
-					@Override
-					public void operationFinished(AsyncOperation operation) {
-						// If the move target is a shared folder, remove the individual files from the share
+			resolveConflicts(conflicts, sources, targetFolder, move);
+		} else if (move) {
+			AsyncOperation op = NimbusUI.getAsyncService().moveFiles(null, sources, targetFolder, false);
+			op.addFinishedListener(new FinishedListener() {
+				
+				@Override
+				public void operationFinished(AsyncOperation operation) {
+					if (uri.getSubject() == Subject.SHARE_BLOCK) {
+						// If the move target is a shared folder, remove the individual source files from the share
 						for (NimbusFile nf : NimbusUI.getFileShareService().getContents(uri.getShareBlock())) {
 							if (targetFolder.equals(nf) || NimbusUI.getFileService().fileIsChildOf(targetFolder, nf)) {
 								for (NimbusFile sf : sources) {
@@ -602,21 +602,34 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 								break;
 							}
 						}
-						UI.getCurrent().access(new Runnable() {
-							@Override
-							public void run() {
-								refreshView();
-								UI.getCurrent().push();
-							}
-						});
 					}
-				});
-			}
-			NimbusUI.getCurrent().getTaskController().addTask(op);
+					UI.getCurrent().access(new Runnable() {
+						@Override
+						public void run() {
+							refreshView();
+							UI.getCurrent().push();
+						}
+					});
+				}
+			});
+			NimbusUI.getCurrent().getTaskController().addAndStartTask(op);
 			moveAction.getPopupWindow().close();
 		} else {
-			AsyncOperation op = NimbusUI.getAsyncService().copyFiles(null, sources, targetFolder, true);
-			NimbusUI.getCurrent().getTaskController().addTask(op);
+			AsyncOperation op = NimbusUI.getAsyncService().copyFiles(null, sources, targetFolder, false);
+			op.addFinishedListener(new FinishedListener() {
+				
+				@Override
+				public void operationFinished(AsyncOperation operation) {
+					UI.getCurrent().access(new Runnable() {
+						@Override
+						public void run() {
+							refreshView();
+							UI.getCurrent().push();
+						}
+					});
+				}
+			});
+			NimbusUI.getCurrent().getTaskController().addAndStartTask(op);
 			copyAction.getPopupWindow().close();
 		}
 		
@@ -758,16 +771,29 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 		resolver.showDialog();
 	}
 	
+	@Override
 	public void conflictsResolved(List<FileConflict> resolutions) {
 		AsyncOperation op = null;
 		if (deleteAfterCopy) {
 			moveAction.getPopupWindow().close();
-			op = NimbusUI.getAsyncService().moveFiles(null, tempConflictSources, tempConflictTargetFolder, resolutions, true);
+			op = NimbusUI.getAsyncService().moveFiles(null, tempConflictSources, tempConflictTargetFolder, resolutions, false);
 		} else {
 			copyAction.getPopupWindow().close();
-			op = NimbusUI.getAsyncService().copyFiles(null, tempConflictSources, tempConflictTargetFolder, resolutions, true);
+			op = NimbusUI.getAsyncService().copyFiles(null, tempConflictSources, tempConflictTargetFolder, resolutions, false);
 		}
-		NimbusUI.getCurrent().getTaskController().addTask(op);
+		op.addFinishedListener(new FinishedListener() {
+			@Override
+			public void operationFinished(AsyncOperation operation) {
+				UI.getCurrent().access(new Runnable() {
+					@Override
+					public void run() {
+						refreshView();
+						UI.getCurrent().push();
+					}
+				});
+			}
+		});
+		NimbusUI.getCurrent().getTaskController().addAndStartTask(op);
 		conflictsBeingResolved = false;
 		refreshView();
 	}

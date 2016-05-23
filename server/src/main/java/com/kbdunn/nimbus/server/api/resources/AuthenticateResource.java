@@ -6,6 +6,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.kbdunn.nimbus.api.client.model.AuthenticateResponse;
+
 @Path("/authenticate")
 @Produces(MediaType.APPLICATION_JSON)
 public class AuthenticateResource {
@@ -14,6 +16,6 @@ public class AuthenticateResource {
 	public Response authenticate() {
 		// Actual authentication is done by the HMAC request filter.
 		// If the request isn't filtered they're authenticated.
-		return Response.ok("Authenticated").build();
+		return Response.ok(new AuthenticateResponse("Authenticated")).build();
 	}
 }

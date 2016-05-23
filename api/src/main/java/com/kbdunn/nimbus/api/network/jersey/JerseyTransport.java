@@ -1,5 +1,10 @@
 package com.kbdunn.nimbus.api.network.jersey;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Map;
 
 import javax.ws.rs.ProcessingException;
@@ -11,10 +16,17 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.glassfish.jersey.apache.connector.ApacheClientProperties;
+import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.media.multipart.FormDataMultiPart;
+import org.glassfish.jersey.media.multipart.MultiPart;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
+import org.glassfish.jersey.media.multipart.file.FileDataBodyPart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
+import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import com.kbdunn.nimbus.api.client.model.NimbusError;
 import com.kbdunn.nimbus.api.exception.InvalidRequestException;
 import com.kbdunn.nimbus.api.exception.InvalidResponseException;
@@ -26,17 +38,45 @@ import com.kbdunn.nimbus.api.network.Transport;
 public class JerseyTransport implements Transport {
 
 	public static final String JERSEY_MEDIA_TYPE = MediaType.APPLICATION_JSON;
+	public static final int DEFAULT_CONNECT_TIMEOUT_MS = 0; // Infinite
+	public static final int DEFAULT_READ_TIMEOUT_MS = 0; // Infinite
 	private static final Logger log = LoggerFactory.getLogger(JerseyTransport.class);
 	
+	private static final JacksonJaxbJsonProvider jsonProvider = new JacksonJaxbJsonProvider();
+	
+	static {
+		jsonProvider.setMapper(ObjectMapperSingleton.getMapper());
+	}
+	
+	private Client client;
+	
+	public JerseyTransport() {
+		initClient();
+	}
+	
+	private void initClient() {
+		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+	    connectionManager.setMaxTotal(100);
+	    connectionManager.setDefaultMaxPerRoute(20);
+		this.client = ClientBuilder.newClient()
+				.register(HmacClientRequestFilter.class)
+				.register(HmacClientResponseFilter.class)
+				.register(jsonProvider)
+				.register(MultiPartFeature.class)
+				.property(ApacheClientProperties.CONNECTION_MANAGER, connectionManager)
+			;
+	}
+	
 	@Override
-	public <T> NimbusResponse<T> process(NimbusRequest<T> request) throws InvalidRequestException, InvalidResponseException, TransportException {
+	public <U, T> NimbusResponse<T> process(NimbusRequest<U, T> request) throws InvalidRequestException, InvalidResponseException, TransportException {
+		return process(request, DEFAULT_READ_TIMEOUT_MS);
+	}
+
+	@Override
+	public <U, T> NimbusResponse<T> process(NimbusRequest<U, T> request, int readTimeout) throws InvalidRequestException, InvalidResponseException, TransportException {
+		if (client == null) initClient();
 		Response response = null;
 		try {
-			final Client client = ClientBuilder.newClient()
-					.register(JacksonJsonProvider.class)
-					.register(HmacClientRequestFilter.class)
-					.register(HmacClientResponseFilter.class);
-					//.register(JerseyExceptionMapper.class);
 			WebTarget endpoint = client.target(request.getEndpoint()).path(request.getPath());
 			if (request.getMethod() == NimbusRequest.Method.GET) {
 				for (Map.Entry<String, String> param : request.getParams().entrySet()) {
@@ -45,6 +85,8 @@ public class JerseyTransport implements Transport {
 			}
 			final Invocation.Builder invocationBuilder = endpoint.request(JERSEY_MEDIA_TYPE);
 			invocationBuilder.property(NimbusRequest.PROPERTY_NAME, request);
+			invocationBuilder.property(ClientProperties.CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
+			invocationBuilder.property(ClientProperties.READ_TIMEOUT, readTimeout);
 			final Entity<?> entity = request.getEntity() == null ? null : Entity.entity(request.getEntity(), JERSEY_MEDIA_TYPE);
 			if (request.getMethod() == NimbusRequest.Method.GET) {
 				response = invocationBuilder.get();
@@ -77,12 +119,104 @@ public class JerseyTransport implements Transport {
 				responseEntity = response.readEntity(request.getReturnType());
 				return new NimbusResponse<>(response.getStatus(), responseEntity);
 			} else {
-				responseError = response.readEntity(NimbusError.class);
+				try {
+					responseError = response.readEntity(NimbusError.class);
+				} catch (Exception e) {
+					responseError = new NimbusError("Request failed with HTTP " 
+							+ response.getStatus() + " (" + response.getStatusInfo().getReasonPhrase() + ")");
+				}
 				return new NimbusResponse<>(response.getStatus(), responseError);
 			}
 		} catch (ProcessingException e) {
 			log.error("Error unmarshalling response entity", e);
 			throw new InvalidResponseException("Error unmarshalling response entity", e);
 		}
+	}
+
+	@Override
+	public NimbusResponse<Void> upload(NimbusRequest<File, Void> request, int readTimeout) throws InvalidRequestException, InvalidResponseException, TransportException {
+		if (client == null) initClient();
+		Response response = null;
+		try {
+			WebTarget endpoint = client.target(request.getEndpoint()).path(request.getPath());
+			if (request.getMethod() == NimbusRequest.Method.GET) {
+				for (Map.Entry<String, String> param : request.getParams().entrySet()) {
+					endpoint = endpoint.queryParam(param.getKey(), param.getValue());
+				}
+			}
+			MultiPart multiPart = new FormDataMultiPart();
+			multiPart.setMediaType(MediaType.MULTIPART_FORM_DATA_TYPE);
+			FileDataBodyPart fileDataBodyPart = new FileDataBodyPart("file", request.getEntity(), MediaType.APPLICATION_OCTET_STREAM_TYPE);
+			//fileDataBodyPart.setContentDisposition(FormDataContentDisposition.name("file").fileName(request.getEntity().getName()).build());
+			multiPart.bodyPart(fileDataBodyPart);
+			response = endpoint.request()//MediaType.APPLICATION_JSON_TYPE)
+					//.header("Content-Type", MediaType.MULTIPART_FORM_DATA)
+					.property(NimbusRequest.PROPERTY_NAME, request)
+					.post(Entity.entity(multiPart, MediaType.MULTIPART_FORM_DATA_TYPE));//multiPart.getMediaType()));
+		} catch (Exception e) {
+			if (e instanceof TransportException) throw e;
+			throw new TransportException("Error processing upload request", e);
+		}
+		try {
+			Response.Status.Family statusFamily = Response.Status.Family.familyOf(response.getStatus());
+			NimbusError responseError = null;
+			if (statusFamily == Response.Status.Family.SUCCESSFUL) {
+				return new NimbusResponse<>(response.getStatus(), null);
+			} else {
+				responseError = response.readEntity(NimbusError.class);
+				return new NimbusResponse<>(response.getStatus(), responseError);
+			}
+		} catch (ProcessingException e) {
+			log.error("Error processing upload response", e);
+			throw new InvalidResponseException("Error processing upload response", e);
+		}
+	}
+
+	@Override
+	public NimbusResponse<File> download(NimbusRequest<Void, File> request, int readTimeout) throws InvalidRequestException, InvalidResponseException, TransportException {
+		if (client == null) initClient();
+		Response response = null;
+		try {
+			WebTarget endpoint = client.target(request.getEndpoint()).path(request.getPath());
+			if (request.getMethod() == NimbusRequest.Method.GET) {
+				for (Map.Entry<String, String> param : request.getParams().entrySet()) {
+					endpoint = endpoint.queryParam(param.getKey(), param.getValue());
+				}
+			}
+			final Invocation.Builder invocationBuilder = endpoint.request(JERSEY_MEDIA_TYPE);
+			invocationBuilder.property(NimbusRequest.PROPERTY_NAME, request);
+			invocationBuilder.property(ClientProperties.CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
+			invocationBuilder.property(ClientProperties.READ_TIMEOUT, readTimeout);
+			invocationBuilder.header("Accept", MediaType.APPLICATION_OCTET_STREAM);
+			response = invocationBuilder.get();
+		} catch (Exception e) {
+			if (e instanceof TransportException) throw e;
+			throw new TransportException("Error processing request", e);
+		}
+		Response.Status.Family statusFamily = Response.Status.Family.familyOf(response.getStatus());
+		if (statusFamily != Response.Status.Family.SUCCESSFUL) {
+			throw new TransportException("File download failed. " 
+					+ response.getStatusInfo().getReasonPhrase() + " (HTTP " + response.getStatus() + ")");
+		}
+		File tmp = null;
+		try (InputStream in = response.readEntity(InputStream.class);
+				OutputStream out = new FileOutputStream(tmp = File.createTempFile("nimbus-", ".tmp"))) {
+			byte[] buffer = new byte[2048];
+			int bytesRead = 0;
+			while ((bytesRead = in.read(buffer)) != -1) {
+			    out.write(buffer, 0, bytesRead);
+			}
+			out.flush();
+			return new NimbusResponse<>(response.getStatus(), tmp);
+		} catch (ProcessingException | IOException e) {
+			log.error("Error processing file download response stream", e);
+			throw new InvalidResponseException("Error processing file download response stream", e);
+		}
+	}
+
+	@Override
+	public void close() {
+		client.close();
+		client = null;
 	}
 }

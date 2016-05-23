@@ -30,7 +30,7 @@ import com.kbdunn.nimbus.common.server.FileService;
 import com.kbdunn.nimbus.common.server.StorageService;
 import com.kbdunn.nimbus.common.server.UserService;
 
-@Path("/user")
+@Path("/users")
 @Produces(MediaType.APPLICATION_JSON)
 public class UsersResource {
 	

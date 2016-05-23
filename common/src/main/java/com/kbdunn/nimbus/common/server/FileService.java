@@ -85,15 +85,15 @@ public interface FileService {
 	boolean touchFile(NimbusFile file);
 
 	// Rename a file or folder.
-	boolean renameFile(NimbusFile file, String newName) throws FileConflictException;
+	NimbusFile renameFile(NimbusFile file, String newName) throws FileConflictException;
 
 	// Check for an invalid copy/move location
 	boolean fileMoveDestinationIsValid(NimbusFile sourceFile, NimbusFile destinationFolder);
 
-	boolean moveFileTo(NimbusFile file, NimbusFile targetFolder) throws FileConflictException;
+	NimbusFile moveFileTo(NimbusFile file, NimbusFile targetFolder) throws FileConflictException;
 
 	// Move a file or folder
-	boolean moveFile(NimbusFile file, String fullPath) throws FileConflictException;
+	NimbusFile moveFile(NimbusFile file, String fullPath) throws FileConflictException;
 
 	// Copies this file to a target folder. Returns the new copy
 	// TODO: resolve file path?

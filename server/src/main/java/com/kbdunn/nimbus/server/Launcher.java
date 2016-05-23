@@ -31,12 +31,15 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.webapp.WebAppContext;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.message.GZipEncoder;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.filter.EncodingFilter;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
+import com.kbdunn.nimbus.api.network.jersey.ObjectMapperSingleton;
 import com.kbdunn.nimbus.common.model.StorageDevice;
 import com.kbdunn.nimbus.common.server.AsyncService;
 import com.kbdunn.nimbus.common.server.FileService;
@@ -266,9 +269,13 @@ public class Launcher {
 		contextHandler.setMimeTypes(mimeTypes);*/
 		
 		// Setup Jersey servlet
+		final JacksonJaxbJsonProvider jsonProvider = new JacksonJaxbJsonProvider();
+		jsonProvider.setMapper(ObjectMapperSingleton.getMapper());
 		final ResourceConfig resourceConfig = new ResourceConfig()
 				.packages("com.kbdunn.nimbus.server.api")
-				.packages("com.kbdunn.nimbus.server.api.resources");
+				.packages("com.kbdunn.nimbus.server.api.resources")
+				.register(jsonProvider)
+				.register(MultiPartFeature.class);
 		EncodingFilter.enableFor(resourceConfig, GZipEncoder.class);
 		final ServletHolder jerseyServletHolder = new ServletHolder(new ServletContainer(resourceConfig));
 		jerseyServletHolder.setInitOrder(2);

@@ -10,6 +10,6 @@ public class FileUpdateEvent extends FileEvent {
 
 	@Override
 	public String toString() {
-		return "FileUpdateEvent [file=" + getFile() + "]";
+		return "FileUpdateEvent [" + getFile() + "]";
 	}
 }

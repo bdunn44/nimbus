@@ -7,11 +7,11 @@ public class Video extends NimbusFile {
 	protected String title;
 	protected Integer length;
 	
-	public Video(Long id, Long userId, Long driveId, String path, Boolean isDirectory, Long size, 
-			Boolean isSong, Boolean isVideo, Boolean isImage, Boolean isReconciled, Long lastReconciled, Boolean isLibraryRemoved, Date createDate, Date lastUpdateDate, 
-			String title, Integer length) {
+	public Video(Long id, Long userId, Long driveId, String path, Boolean isDirectory, Long size,  Boolean isSong, 
+			Boolean isVideo, Boolean isImage, Boolean isReconciled, Long lastReconciled, Boolean isLibraryRemoved, 
+			String md5, Long lastHashed, Date createDate, Date lastUpdateDate, String title, Integer length) {
 		super(id, userId, driveId, path, isDirectory, size, isSong, isVideo, isImage,
-				isReconciled, lastReconciled, isLibraryRemoved, createDate, lastUpdateDate);
+				isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, createDate, lastUpdateDate);
 		this.title = title;
 		this.length = length;
 	}
@@ -69,6 +69,6 @@ public class Video extends NimbusFile {
 
 	@Override
 	public String toString() {
-		return "Video [title=" + title + ", length=" + length + "]";
+		return "Video [title=" + title + ", length=" + length + ", path=" + getPath() + "]";
 	}
 }

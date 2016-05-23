@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.sync.SyncManager;
+import com.kbdunn.nimbus.desktop.sync.DesktopSyncManager;
 import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
 import com.kbdunn.nimbus.desktop.ui.composite.SettingsWindow;
 
@@ -32,7 +32,7 @@ public class TrayMenu {
 	private Shell shell;
 	private TrayItem trayItem;
 	private Menu menu;
-	private SettingsWindow configShell;
+	private SettingsWindow settingsWindow;
 	
 	private MenuItem statusItem;
 	private MenuItem syncControlItem;
@@ -122,9 +122,9 @@ public class TrayMenu {
 		});
 	}
 
-	public void setStatus(SyncManager.Status status) {
+	public void setStatus(DesktopSyncManager.Status status) {
 		statusItem.setText(status.toString());
-		if (status == SyncManager.Status.PAUSED) {
+		if (status == DesktopSyncManager.Status.PAUSED || status == DesktopSyncManager.Status.CONNECTED) {
 			syncControlItem.setText(RESUME_SYNC_TEXT);
 		} else {
 			syncControlItem.setText(PAUSE_SYNC_TEXT);
@@ -132,20 +132,20 @@ public class TrayMenu {
 		syncControlItem.setEnabled(status.isConnected());
 	}
 	
-	public SyncManager.Status getSyncStatus() {
-		return SyncManager.Status.fromString(statusItem.getText());
+	public DesktopSyncManager.Status getSyncStatus() {
+		return DesktopSyncManager.Status.fromString(statusItem.getText());
 	}
 	
 	public boolean isDisposed() {
 		return trayItem.isDisposed()
 				&& shell.isDisposed()
-				&& configShell.isDisposed();
+				&& settingsWindow.isDisposed();
 	}
 	
 	public void dispose() {
 		trayItem.dispose();
 		shell.dispose();
-		configShell.dispose();
+		settingsWindow.dispose();
 	}
 	
 	public void showNotification(String content) {
@@ -190,8 +190,8 @@ public class TrayMenu {
 	}
 	
 	private void onOpenSettingsClick(Event event) {
-		configShell = new SettingsWindow(shell.getDisplay());
-		configShell.open();
+		settingsWindow = new SettingsWindow(shell.getDisplay());
+		settingsWindow.open();
 	}
 	
 	private void onExitClick(Event event) {

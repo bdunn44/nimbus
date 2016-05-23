@@ -12,6 +12,8 @@ import javax.annotation.Priority;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.container.PreMatching;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
@@ -31,6 +33,7 @@ import com.kbdunn.nimbus.server.NimbusContext;
 
 @Provider
 @Priority(1) // Execute first
+@PreMatching
 public class HmacContainerRequestFilter implements ContainerRequestFilter {
 
 	private static final Logger log = LogManager.getLogger(HmacContainerRequestFilter.class.getName());
@@ -39,6 +42,7 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 	
 	@Override
 	public void filter(ContainerRequestContext requestContext) throws IOException {
+		log.debug("In HmacContainerRequestFilter");
 		Map<String, String> headers = toMap(requestContext.getHeaders());
 		Map<String, String> parameters = toMap(requestContext.getUriInfo().getQueryParameters(true));
 		
@@ -69,21 +73,31 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 		
 		if (HttpMethod.POST.equals(requestContext.getMethod()) || HttpMethod.PUT.equals(requestContext.getMethod())) {
 			contentType = requestContext.getHeaderString("Content-Type");
-
+			
+			// Multipart requests (at least with the jersey client) add boundary info to Content-Type
+			// ... which is not accessible at the point of HMAC generation on the client, so we remove it here.
+			if (contentType.startsWith(MediaType.MULTIPART_FORM_DATA)) 
+				contentType = MediaType.MULTIPART_FORM_DATA;
+			
 			// Read entity, reset the input stream
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			InputStream in = requestContext.getEntityStream();
-			try {
-				if (in.available() > 0) {
-					ReaderWriter.writeTo(in, out);
-					byte[] entity = out.toByteArray();
-					content = new String(entity);
-					requestContext.setEntityStream(new ByteArrayInputStream(entity));
+			// Don't read entity for file uploads
+			if (requestContext.getEntityStream() != null
+					&& (contentType == null || (!contentType.contains(MediaType.APPLICATION_OCTET_STREAM) 
+							&& !contentType.contains(MediaType.MULTIPART_FORM_DATA)))) {
+				ByteArrayOutputStream out = new ByteArrayOutputStream();
+				InputStream in = requestContext.getEntityStream();
+				try {
+					if (in.available() > 0) {
+						ReaderWriter.writeTo(in, out);
+						byte[] entity = out.toByteArray();
+						content = new String(entity);
+						requestContext.setEntityStream(new ByteArrayInputStream(entity));
+					}
+				} catch(IOException e) {
+					log.error("Error reading request body", e);
+					requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR).build());
+					return;
 				}
-			} catch(IOException e) {
-				log.error("Unable to read request content!", e);
-				requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR).build());
-				return;
 			}
 		} 
 		
@@ -93,7 +107,7 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 		log.debug("    requestor: " + nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
 		log.debug("    timestamp: " + nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP));
 		log.debug("    signature: " + nmbHeaders.get(NimbusHttpHeaders.Key.SIGNATURE));
-		log.debug("    content: " + content);
+		//log.debug("    content: " + content);
 		log.debug("    content type: " + contentType);
 		
 		try {

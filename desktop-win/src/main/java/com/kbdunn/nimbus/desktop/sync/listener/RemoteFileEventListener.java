@@ -2,6 +2,7 @@ package com.kbdunn.nimbus.desktop.sync.listener;
 
 import com.kbdunn.nimbus.api.client.listeners.FileEventListener;
 import com.kbdunn.nimbus.api.client.model.FileAddEvent;
+import com.kbdunn.nimbus.api.client.model.FileCopyEvent;
 import com.kbdunn.nimbus.api.client.model.FileDeleteEvent;
 import com.kbdunn.nimbus.api.client.model.FileMoveEvent;
 import com.kbdunn.nimbus.api.client.model.FileUpdateEvent;
@@ -33,5 +34,10 @@ public class RemoteFileEventListener implements FileEventListener {
 	@Override
 	public void onFileMove(FileMoveEvent fileEvent) {
 		handler.handleRemoteFileMove(fileEvent.getSrcFile(), fileEvent.getDstFile());
+	}
+
+	@Override
+	public void onFileCopy(FileCopyEvent fileEvent) {
+		handler.hadleRemoteFileCopy(fileEvent.getSrcFile(), fileEvent.getDstFile());
 	}
 }

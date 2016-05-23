@@ -1,29 +1,40 @@
 package com.kbdunn.nimbus.desktop.model;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.kbdunn.nimbus.api.client.model.NimbusApiCredentials;
+
 public class SyncCredentials {
 	
-	private final String username, password, token;
+	private static final Logger log = LoggerFactory.getLogger(SyncCredentials.class);
 	
-	public SyncCredentials(String username, String password, String token) {
+	private final String username, apiToken, hmacKey;
+	
+	public SyncCredentials(String username, String apiToken, String hmacKey) {
 		this.username = username;
-		this.password = password;
-		this.token = token;
+		this.apiToken = apiToken;
+		this.hmacKey = hmacKey;
 	}
 	
 	public String getUsername() {
 		return username;
 	}
 	
-	public String getPassword() {
-		return password;
+	public String getApiToken() {
+		return apiToken;
 	}
 	
-	public String getToken() {
-		return token;
+	public String getHmacKey() {
+		return hmacKey;
 	}
 	
 	public String getCompositeString() {
-		return getUsername() + ":" + getPassword() + ":" + getToken();
+		return getUsername() + "::" + getApiToken() + "::" + getHmacKey();
+	}
+	
+	public NimbusApiCredentials toNimbusApiCredentials() {
+		return new NimbusApiCredentials(apiToken, hmacKey);
 	}
 	
 	public static SyncCredentials empty() {
@@ -33,8 +44,11 @@ public class SyncCredentials {
 	public static SyncCredentials fromCompositeString(String composite) throws IllegalArgumentException {
 		if (composite == null || composite.isEmpty()) return SyncCredentials.empty();
 		
-		String[] split = composite.split(":");
-		if (split.length != 3) throw new IllegalArgumentException("Inavlid composite format");
+		String[] split = composite.split("::");
+		if (split.length != 3) {
+			log.error("Encountered invalid composite credential format. Clearing credentials");
+			return SyncCredentials.empty();
+		}
 		
 		return new SyncCredentials(split[0], split[1], split[2]);
 	}
@@ -43,8 +57,8 @@ public class SyncCredentials {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((password == null) ? 0 : password.hashCode());
-		result = prime * result + ((token == null) ? 0 : token.hashCode());
+		result = prime * result + ((hmacKey == null) ? 0 : hmacKey.hashCode());
+		result = prime * result + ((apiToken == null) ? 0 : apiToken.hashCode());
 		result = prime * result + ((username == null) ? 0 : username.hashCode());
 		return result;
 	}
@@ -58,15 +72,15 @@ public class SyncCredentials {
 		if (!(obj instanceof SyncCredentials))
 			return false;
 		SyncCredentials other = (SyncCredentials) obj;
-		if (password == null) {
-			if (other.password != null)
+		if (hmacKey == null) {
+			if (other.hmacKey != null)
 				return false;
-		} else if (!password.equals(other.password))
+		} else if (!hmacKey.equals(other.hmacKey))
 			return false;
-		if (token == null) {
-			if (other.token != null)
+		if (apiToken == null) {
+			if (other.apiToken != null)
 				return false;
-		} else if (!token.equals(other.token))
+		} else if (!apiToken.equals(other.apiToken))
 			return false;
 		if (username == null) {
 			if (other.username != null)

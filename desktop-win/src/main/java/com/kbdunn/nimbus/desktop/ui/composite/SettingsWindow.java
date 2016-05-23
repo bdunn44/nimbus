@@ -8,6 +8,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.ShellEvent;
 import org.eclipse.swt.events.ShellListener;
+import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
@@ -60,6 +61,7 @@ public class SettingsWindow extends AbstractWindow {
 		
 		RowLayout container = new RowLayout();
 		container.center = true;
+		container.justify = false;
 		container.fill = true;
 		container.wrap = false;
 		container.type = SWT.VERTICAL;
@@ -94,12 +96,13 @@ public class SettingsWindow extends AbstractWindow {
 				refresh();
 			}
 		});
+		connectForm.setLayoutData(new RowData(300, 150));
 	}
 	
 	private void refresh() {
-		connectForm.refresh();
-		statusPane.refresh();
-		stackLayout.topControl = (Application.getSyncStatus().isConnected()) ? statusPane : connectForm;
-		content.layout();
+		if (!connectForm.isDisposed()) connectForm.refresh();
+		if (!statusPane.isDisposed()) statusPane.refresh();
+		if (!this.isDisposed()) stackLayout.topControl = (Application.getSyncStatus().isConnected()) ? statusPane : connectForm;
+		if (!content.isDisposed()) content.layout();
 	}
 }

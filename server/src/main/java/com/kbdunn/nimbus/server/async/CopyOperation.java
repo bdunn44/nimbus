@@ -2,6 +2,7 @@ package com.kbdunn.nimbus.server.async;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.kbdunn.nimbus.common.async.AsyncConfiguration;
 import com.kbdunn.nimbus.common.model.FileConflict;
@@ -13,7 +14,7 @@ public class CopyOperation extends AsyncServerOperation {
 
 	protected List<NimbusFile> sources;
 	protected NimbusFile targetFolder;
-	private List<FileConflict> resolutions;
+	protected List<FileConflict> resolutions;
 
 	public CopyOperation(AsyncConfiguration config, NimbusFile source, NimbusFile targetFolder) {
 		super(config);
@@ -56,6 +57,7 @@ public class CopyOperation extends AsyncServerOperation {
 	@Override
 	public void doOperation() throws Exception {
 		LocalFileService fileService = NimbusContext.instance().getFileService();
+		long start = System.nanoTime();
 		boolean succeeded = true;
 		if (resolutions == null) {
 			float increment = .8f / sources.size();
@@ -68,6 +70,13 @@ public class CopyOperation extends AsyncServerOperation {
 			succeeded = fileService.batchCopy(sources, targetFolder, resolutions);
 			setProgress(.8f);
 		}
+		long end = System.nanoTime();
+		long msDuration = TimeUnit.NANOSECONDS.toMillis(end - start);
+		if (msDuration < 500) {
+			// Force this to take at least 500ms to avoid missed UI updates (push)
+			Thread.sleep(500 - msDuration);
+		}
 		super.setSucceeded(succeeded);
+		super.setProgress(1f);
 	}
 }

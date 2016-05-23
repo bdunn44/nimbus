@@ -142,7 +142,7 @@ public class HardDrive implements StorageDevice, NimbusRecord {
 	
 	@Override
 	public String getType() {
-		return type;
+		return type == null ? "unknown" : type;
 	}
 	
 	public void setType(String type) {

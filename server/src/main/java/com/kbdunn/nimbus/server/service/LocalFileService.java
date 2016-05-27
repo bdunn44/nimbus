@@ -27,6 +27,7 @@ import com.kbdunn.nimbus.common.model.StorageDevice;
 import com.kbdunn.nimbus.common.model.Video;
 import com.kbdunn.nimbus.common.server.FileContainerService;
 import com.kbdunn.nimbus.common.server.FileService;
+import com.kbdunn.nimbus.common.util.FileUtil;
 import com.kbdunn.nimbus.common.util.StringUtil;
 import com.kbdunn.nimbus.server.NimbusContext;
 import com.kbdunn.nimbus.server.dao.NimbusFileDAO;
@@ -59,7 +60,8 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	@Override
 	public NimbusFile getFileCopy(NimbusFile nf) {
 		return new NimbusFile(nf.getId(), nf.getUserId(), nf.getStorageDeviceId(), nf.getPath(), nf.isDirectory(), nf.getSize(), nf.isSong(), 
-				nf.isVideo(), nf.isImage(), nf.isReconciled(), nf.getLastReconciled(), nf.isLibraryRemoved(), nf.getMd5(), nf.getLastHashed(), nf.getCreated(), nf.getUpdated());
+				nf.isVideo(), nf.isImage(), nf.isReconciled(), nf.getLastReconciled(), nf.isLibraryRemoved(), nf.getMd5(), nf.getLastHashed(),
+				nf.getLastModified(), nf.getCreated(), nf.getUpdated());
 	}
 	
 	private void setFileAttributes(NimbusFile nf) {
@@ -70,11 +72,12 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 			nf.setDirectory(null);
 		} else {
 		    try {
+		    	nf.setLastModified(FileUtil.getLastModifiedTime(nf));
 				nf.setDirectory(Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS));
 				if (nf.isDirectory()) nf.setSize(0l);
 				else nf.setSize(Files.size(p));
 			} catch (IOException e) {
-				log.error(e, e);
+				log.error("Error setting file attributes", e);
 			}
 		}
 		
@@ -127,7 +130,7 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	public NimbusFile getFileByPath(String fullPath, boolean reconcile) {
 		NimbusFile nf = NimbusFileDAO.getByPath(fullPath);
 		if (nf == null) {
-			nf = new NimbusFile(null, null, null, fullPath, null, null, null, null, null, null, null, null, null, null, null, null);
+			nf = new NimbusFile(null, null, null, fullPath, null, null, null, null, null, null, null, null, null, null, null, null, null);
 			setFileAttributes(nf);
 		}
 		if (reconcile) reconcile(nf);
@@ -164,7 +167,7 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	public Date getLastModifiedDate(NimbusFile file) {
 		try {
 			if (fileExistsOnDisk(file))
-				return new Date(Files.getLastModifiedTime(Paths.get(file.getPath()), LinkOption.NOFOLLOW_LINKS).toMillis());
+				return FileUtil.getLastModifiedDate(file);
 			else
 				return file.getUpdated();
 		} catch (IOException e) {
@@ -375,22 +378,26 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	
 	@Override
 	public boolean save(NimbusFile file) {
-		return save(file, null, false);
+		return save(file, null, false, null);
 	}
 	
-	public boolean save(NimbusFile file, NimbusFile copySource, boolean moved) {
+	public boolean save(NimbusFile file, String originationId) {
+		return save(file, null, false, originationId);
+	}
+	
+	public boolean save(NimbusFile file, NimbusFile copySource, boolean moved, String originationId) {
 		if (file.getUserId() == null) throw new NullPointerException("User ID cannot be null");
 		if (file.getStorageDeviceId() == null) throw new NullPointerException("Drive ID cannot be null");
 		// Check instantiation, work with a temp file
 		// At the end be sure everything is up-to-date
 		NimbusFile tmpfile = checkInstantiation(file);
 		boolean success = false;
-		if (file instanceof Song) success = mediaLibraryService.save((Song) file, copySource, moved);
+		if (file instanceof Song) success = mediaLibraryService.save((Song) file, copySource, moved, originationId);
 		/*if (file.isSong()) return mediaLibraryService.save((Song) checkInstantiation(file));
 		if (file instanceof Video) return mediaLibraryService.save((Video) file);
 		if (file.isVideo()) return mediaLibraryService.save((Video) checkInstantiation(file));*/
-		if (file.getId() == null) success = insert(file, copySource);
-		else success = update(file, copySource, moved);
+		if (file.getId() == null) success = insert(file, copySource, originationId);
+		else success = update(file, copySource, moved, originationId);
 		if (tmpfile != file) {
 			// checkInstantiation() did it's job. Update the original object
 			file.setId(tmpfile.getId());
@@ -401,7 +408,7 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	// Create a record in the database
-	boolean insert(NimbusFile file, NimbusFile copySource) {
+	boolean insert(NimbusFile file, NimbusFile copySource, String originationId) {
 		log.trace("Inserting file in database " + file);
 		if (!NimbusFileDAO.insert(file)) return false;
 		NimbusFile dbf = NimbusFileDAO.getByPath(file.getPath());
@@ -409,29 +416,45 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		file.setCreated(dbf.getCreated());
 		file.setUpdated(dbf.getUpdated());
 		if (copySource == null) {
-			syncService.publishFileAddEvent(file);
+			try {
+				syncService.publishFileAddEvent(file, originationId);
+			} catch (IOException e) {
+				log.error("Error publishing file add event", e);
+			}
 		} else {
-			syncService.publishFileCopyEvent(copySource, file);
+			try {
+				syncService.publishFileCopyEvent(copySource, file, originationId);
+			} catch (IOException e) {
+				log.error("Error publishing file copy event", e);
+			}
 		}
 		return true;
 	}
 	
 	// Update a record in the database
 	// Should surpress the file event only if the file was moved
-	boolean update(NimbusFile file, NimbusFile copySource, boolean moved) {
+	boolean update(NimbusFile file, NimbusFile copySource, boolean moved, String originationId) {
 		log.trace("Updating file in database " + file);
 		if (copySource == null) {
 			if (!file.isDirectory()) {
 				// Publish file update - sync service takes care of hashing, etc.
-				syncService.publishFileUpdateEvent(file);
+				syncService.publishFileUpdateEvent(file, originationId);
 			}
 		} else {
 			// Send copy/move event
 			if (moved) {
-				syncService.publishFileMoveEvent(copySource, file);
+				try {
+					syncService.publishFileMoveEvent(copySource, file, originationId);
+				} catch (IOException e) {
+					log.error("Error publishing file move event", e);
+				}
 			} else {
-				// Don't think this is needed... Copied files are inserted
-				syncService.publishFileCopyEvent(copySource, file);
+				try {
+					// Don't think this is needed... Copied files are inserted
+					syncService.publishFileCopyEvent(copySource, file, originationId);
+				} catch (IOException e) {
+					log.error("Error publishing file copy event", e);
+				}
 			}
 		}
 		if (!NimbusFileDAO.update(file)) return false;
@@ -442,16 +465,22 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	// Delete file or folder. Folder delete is recursive
 	// Never surpress the file event here
 	@Override
-	public boolean delete(NimbusFile file) {		
+	public boolean delete(NimbusFile file) {
+		return delete(file, null);
+	}
+	
+	public boolean delete(NimbusFile file, String originationId) {
 		if (file.isDirectory()) {
-			for (NimbusFile child: getContents(file)) 
-				if (!delete(child)) return false;
+			reconcileFolder(file);
+			for (NimbusFile child : getContents(file)) {
+				if (!delete(child, originationId)) return false;
+			}
 		}
 		try {
 			Files.delete(Paths.get(file.getPath()));
 			if (NimbusFileDAO.delete(file)) {
 				// Publish file delete event
-				syncService.publishFileDeleteEvent(file);
+				syncService.publishFileDeleteEvent(file, originationId);
 				return true;
 			}
 		} catch (IOException e) {
@@ -462,9 +491,13 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	
 	@Override
 	public boolean createDirectory(NimbusFile folder) {
+		return createDirectory(folder, null);
+	}
+	
+	public boolean createDirectory(NimbusFile folder, String originationId) {
 		if (Files.exists(Paths.get(folder.getPath()))) return true;
 		if (!fileExistsOnDisk(getParentFile(folder))) {
-			if (!createDirectory(getParentFile(folder))) 
+			if (!createDirectory(getParentFile(folder), originationId)) 
 				return false;
 		}
 		
@@ -476,7 +509,7 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		}
 		folder.setDirectory(true);
 		folder.setSize(0l);
-		return save(folder);
+		return save(folder, originationId);
 	}
 	
 	@Override
@@ -519,12 +552,20 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	
 	@Override
 	public NimbusFile moveFileTo(NimbusFile file, NimbusFile targetFolder) throws FileConflictException {
-		return moveFile(file, targetFolder.getPath() + "/" + file.getName());
+		return moveFileTo(file, targetFolder, null);
+	}
+	
+	public NimbusFile moveFileTo(NimbusFile file, NimbusFile targetFolder, String originationId) throws FileConflictException {
+		return moveFile(file, targetFolder.getPath() + "/" + file.getName(), originationId);
 	}
 	
 	// Move a file or folder
 	@Override
 	public NimbusFile moveFile(NimbusFile file, String fullPath) throws FileConflictException {
+		return moveFile(file, fullPath, null);
+	}
+	
+	public NimbusFile moveFile(NimbusFile file, String fullPath, String originationId) throws FileConflictException {
 		NimbusFile source = getFileCopy(file);
 		NimbusFile target = getFileByPath(fullPath);
 		
@@ -541,7 +582,7 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		}
 		
 		file.setPath(target.getPath());
-		save(file, source, true);
+		save(file, source, true, originationId);
 		return file;
 	}
 	
@@ -549,10 +590,14 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	// TODO: resolve file path?
 	@Override
 	public NimbusFile copyFileTo(NimbusFile file, NimbusFile targetFolder) throws FileConflictException, IllegalArgumentException {
-		return copyFile(file, targetFolder.getPath() + "/" + file.getName());
+		return copyFileTo(file, targetFolder, null);
 	}
 	
-	public NimbusFile copyFile(NimbusFile file, String fullPath) throws FileConflictException, IllegalArgumentException {
+	public NimbusFile copyFileTo(NimbusFile file, NimbusFile targetFolder, String originationId) throws FileConflictException, IllegalArgumentException {
+		return copyFile(file, targetFolder.getPath() + "/" + file.getName(), originationId);
+	}
+	
+	public NimbusFile copyFile(NimbusFile file, String fullPath, String originationId) throws FileConflictException, IllegalArgumentException {
 		NimbusFile target = getFileByPath(fullPath);
 		NimbusFile targetFolder = getParentFile(target);
 		
@@ -584,7 +629,7 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		
 		setFileAttributes(target);
 		target.setMd5(file.getMd5());
-		save(target, file, false);
+		save(target, file, false, originationId);
 		return target;
 	}
 	
@@ -607,17 +652,18 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	}
 	
 	public boolean batchMove(List<NimbusFile> sources, NimbusFile targetFolder, List<FileConflict> conflictResolutions) {
-		return processBatchCopyOrMove(sources, targetFolder, conflictResolutions, true);
+		return processBatchCopyOrMove(sources, targetFolder, conflictResolutions, true, null);
 	}
 
 	@Override
 	public boolean batchCopy(List<NimbusFile> sources, NimbusFile targetFolder, List<FileConflict> conflictResolutions) {
-		return processBatchCopyOrMove(sources, targetFolder, conflictResolutions, false);
+		return processBatchCopyOrMove(sources, targetFolder, conflictResolutions, false, null);
 	}
 	
 	// Recursively copies or moves source files
 	// Conflict resolution map needs to contain resolution for ALL children.
-	private boolean processBatchCopyOrMove(List<NimbusFile> sources, NimbusFile targetFolder, List<FileConflict> conflictResolutions, boolean move) {
+	boolean processBatchCopyOrMove(List<NimbusFile> sources, NimbusFile targetFolder, 
+			List<FileConflict> conflictResolutions, boolean move, String originationId) {
 		log.debug("Processing batch " + (move ? "move" : "copy") + " with conflict resolutions");
 		
 		// Build list of sources with conflicts
@@ -645,9 +691,9 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		for (NimbusFile f : conflictFreeSources) {
 			try {
 				if (move) {
-					moveFileTo(f, targetFolder);
+					moveFileTo(f, targetFolder, originationId);
 				} else {
-					copyFileTo(f, targetFolder);
+					copyFileTo(f, targetFolder, originationId);
 				}
 			} catch (IllegalArgumentException | FileConflictException e) {
 				log.error(e, e);
@@ -662,9 +708,9 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 				NimbusFile resolution = fc.getResolution() == FileConflict.Resolution.COPY ? getFileConflictResolution(fc) : fc.getTarget();
 				log.debug("Copy Source: " + fc.getSource().getPath() + ", resolution: " + resolution.getPath());
 				if (move) {
-					moveFile(fc.getSource(), resolution.getPath());
+					moveFile(fc.getSource(), resolution.getPath(), originationId);
 				} else {
-					copyFile(fc.getSource(), resolution.getPath());
+					copyFile(fc.getSource(), resolution.getPath(), originationId);
 				}
 			} catch (Exception e) {
 				log.error("Error processing file conflict resolution", e);
@@ -677,10 +723,10 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 	
 	@Override
 	public boolean reconcileFolder(NimbusFile folder) {
-		return reconcileFolder(folder, null, false);
+		return reconcileFolder(folder, null, false, null);
 	}
 	
-	public boolean reconcileFolder(NimbusFile folder, NimbusFile copySource, boolean moved) {
+	public boolean reconcileFolder(NimbusFile folder, NimbusFile copySource, boolean moved, String originationId) {
 		if (!folder.isDirectory()) throw new IllegalArgumentException("Argument must be a directory");
 		
 		// Reconcile a maximum of once every 5 seconds
@@ -704,31 +750,31 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		
 		for (NimbusFile child : fullContents) {
 			child = checkInstantiation(child);
-			save(child, copySource, moved);
+			save(child, copySource, moved, originationId);
 			//if (child.isDirectory() && recursive) reconcileFolder(child, true);
 		}
 		
 		folder.setReconciled(true);
 		folder.setLastReconciled(ts);
-		return save(folder, copySource, moved);
+		return save(folder, copySource, moved, originationId);
 	}
 	
 	// Synchronizes files that exist on disk with the database
 	@Override
 	public boolean reconcile(NimbusFile nf) {
-		return reconcile(nf, null, false);
+		return reconcile(nf, null, false, null);
 	}
 	
-	public boolean reconcile(NimbusFile nf, NimbusFile copySource, boolean moved) {
+	public boolean reconcile(NimbusFile nf, NimbusFile copySource, boolean moved, String originationId) {
 		log.trace("Reconciling file " + nf);
 		
 		setFileAttributes(nf);
 		//nf = checkInstantiation(nf); // This is done in save()
 		
 		if (nf.isDirectory()) {
-			return reconcileFolder(nf, copySource, moved);
+			return reconcileFolder(nf, copySource, moved, originationId);
 		} else {
-			 return save(nf, copySource, moved);
+			 return save(nf, copySource, moved, originationId);
 		}
 	}
 

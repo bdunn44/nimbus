@@ -18,7 +18,7 @@ import com.kbdunn.nimbus.desktop.client.RemoteFileManager;
 public class LocalFileEventBuffer {
 
 	private static final Logger log = LoggerFactory.getLogger(LocalFileEventBuffer.class);
-	private static final long MAX_REMOTE_STATE_WAIT_MS = TimeUnit.SECONDS.toMillis(10);
+	private static final long MAX_REMOTE_STATE_WAIT_MS = TimeUnit.SECONDS.toMillis(30);
 	
 	private Map<String, SyncFile> uploadBuffer;
 	private Map<String, SyncFile> deleteBuffer;

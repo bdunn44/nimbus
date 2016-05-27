@@ -38,8 +38,6 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 
 	private static final Logger log = LogManager.getLogger(HmacContainerRequestFilter.class.getName());
 	
-	public static final String REQUEST_API_TOKEN = "apiToken";
-	
 	@Override
 	public void filter(ContainerRequestContext requestContext) throws IOException {
 		log.debug("In HmacContainerRequestFilter");
@@ -48,6 +46,9 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 		
 		// Extract custom HTTP headers, coalesce with headers passed as query parameters
 		NimbusHttpHeaders nmbHeaders = NimbusHttpHeaders.fromMap(headers).coalesce(parameters);
+		if (nmbHeaders.containsKey(NimbusHttpHeaders.Key.ORIGINATION_ID)) {
+			requestContext.setProperty(NimbusHttpHeaders.Key.ORIGINATION_ID, nmbHeaders.get(NimbusHttpHeaders.Key.ORIGINATION_ID));
+		}
 		
 		// Remove custom headers from query parameters (if present)
 		Map<String, String> nonHeaderParameters = new HashMap<>();
@@ -75,7 +76,7 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 			contentType = requestContext.getHeaderString("Content-Type");
 			
 			// Multipart requests (at least with the jersey client) add boundary info to Content-Type
-			// ... which is not accessible at the point of HMAC generation on the client, so we remove it here.
+			// ... which is not accessible at the point of HMAC generation on the client, so we remove it here for MAC validation.
 			if (contentType.startsWith(MediaType.MULTIPART_FORM_DATA)) 
 				contentType = MediaType.MULTIPART_FORM_DATA;
 			
@@ -107,7 +108,8 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 		log.debug("    requestor: " + nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
 		log.debug("    timestamp: " + nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP));
 		log.debug("    signature: " + nmbHeaders.get(NimbusHttpHeaders.Key.SIGNATURE));
-		//log.debug("    content: " + content);
+		log.debug("    origination: " + nmbHeaders.get(NimbusHttpHeaders.Key.ORIGINATION_ID));
+		log.debug("    content: " + content);
 		log.debug("    content type: " + contentType);
 		
 		try {
@@ -124,7 +126,7 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 			NimbusUser requestor = NimbusContext.instance().getUserService().getUserByApiToken(nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
 			if (requestor == null) 
 				throw new IllegalArgumentException("Invalid API Token (" + nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR) + ")!");
-			requestContext.setProperty(REQUEST_API_TOKEN, requestor.getApiToken());
+			requestContext.setProperty(NimbusHttpHeaders.Key.REQUESTOR, requestor.getApiToken());
 			
 			// Check timestamp isn't old
 			DateTimeFormatter parser = DateTimeFormat.forPattern(DateUtil.DATE_FORMAT).withZoneUTC();

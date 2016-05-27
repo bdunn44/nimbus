@@ -10,8 +10,18 @@ public class SyncFile {
 	private File file;
 	private String md5;
 	private Boolean directory;
+	private long size;
+	private long lastHashed;
+	private long lastModified;
 
 	public SyncFile() {  }
+
+	public SyncFile(String path, String md5, boolean directory, long size, long lastHashed, long lastModified) {
+		this(path, md5, directory);
+		this.size = size;
+		this.lastHashed = lastHashed;
+		this.lastModified = lastModified;
+	}
 	
 	public SyncFile(String path, String md5, boolean directory) {
 		this.path = path;
@@ -32,11 +42,6 @@ public class SyncFile {
 	@JsonIgnore
 	public boolean isFile() {
 		return !directory;
-		/*if (file.exists()) {
-			return file.isFile();
-		} else {
-			return md5 != null;
-		}*/
 	}
 
 	public boolean isDirectory() {
@@ -49,6 +54,30 @@ public class SyncFile {
 	
 	public void setMd5(String md5) {
 		this.md5 = md5;
+	}
+
+	public long getSize() {
+		return size;
+	}
+
+	public void setSize(long size) {
+		this.size = size;
+	}
+
+	public long getLastHashed() {
+		return lastHashed;
+	}
+
+	public void setLastHashed(long lastHashed) {
+		this.lastHashed = lastHashed;
+	}
+
+	public long getLastModified() {
+		return lastModified;
+	}
+
+	public void setLastModified(long lastModified) {
+		this.lastModified = lastModified;
 	}
 
 	@Override

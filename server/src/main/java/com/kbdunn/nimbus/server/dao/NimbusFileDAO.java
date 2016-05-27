@@ -419,9 +419,9 @@ public abstract class NimbusFileDAO {
 			ps = con.prepareStatement(
 					"INSERT INTO FILE "
 					+ "(USER_STORAGE_ID, PATH, SIZE, IS_DIRECTORY, IS_RECONCILED, LAST_RECONCILED, IS_SONG, IS_VIDEO, IS_IMAGE, IS_LIBRARY_REMOVED, MD5, "
-					+ "LAST_HASHED, TITLE, SEC_LENGTH, TRACK_NO, ARTIST, ALBUM, ALBUM_YEAR, CREATE_DATE, LAST_UPDATE_DATE) "
+					+ "LAST_HASHED, LAST_MODIFIED, TITLE, SEC_LENGTH, TRACK_NO, ARTIST, ALBUM, ALBUM_YEAR, CREATE_DATE, LAST_UPDATE_DATE) "
 					+ "VALUES "
-					+ "((SELECT ID FROM USER_STORAGE WHERE USER_ID=? AND STORAGE_ID=?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE);");
+					+ "((SELECT ID FROM USER_STORAGE WHERE USER_ID=? AND STORAGE_ID=?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE);");
 			int i = 0;
 			ps.setLong(++i, nf.getUserId());
 			ps.setLong(++i, nf.getStorageDeviceId());
@@ -436,6 +436,7 @@ public abstract class NimbusFileDAO {
 			ps.setBoolean(++i, nf.isLibraryRemoved()); 
 			ps.setString(++i, nf.getMd5());
 			ps.setLong(++i, nf.getLastHashed() == null ? 0 : nf.getLastHashed());
+			ps.setLong(++i, nf.getLastModified() == null ? 0 : nf.getLastModified());
 			
 			if (nf instanceof Song) {
 				Song ns = (Song) nf;
@@ -534,6 +535,7 @@ public abstract class NimbusFileDAO {
 					+ "IS_LIBRARY_REMOVED = ?, "
 					+ "MD5 = ?, "
 					+ "LAST_HASHED = ?, "
+					+ "LAST_MODIFIED = ?, "
 					+ "TITLE = ?, "
 					+ "SEC_LENGTH = ?, "
 					+ "TRACK_NO = ?, "
@@ -556,6 +558,7 @@ public abstract class NimbusFileDAO {
 			ps.setBoolean(++i, nf.isLibraryRemoved());
 			ps.setString(++i, nf.getMd5());
 			ps.setLong(++i, nf.getLastHashed() == null ? 0 : nf.getLastHashed());
+			ps.setLong(++i, nf.getLastModified() == null ? 0 : nf.getLastModified());
 			
 			if (nf instanceof Song) {
 				Song ns = (Song) nf;
@@ -641,11 +644,12 @@ public abstract class NimbusFileDAO {
 		try {
 			con = HikariConnectionPool.getConnection();
 			ps = con.prepareStatement(
-					"UPDATE FILE SET MD5 = ?, LAST_HASHED = ?, SIZE = ? WHERE ID = ?;");
+					"UPDATE FILE SET MD5 = ?, LAST_HASHED = ?, SIZE = ?, LAST_MODIFIED = ? WHERE ID = ?;");
 			int i = 0;
 			ps.setString(++i, nf.getMd5());
 			ps.setLong(++i, nf.getLastHashed()); // Should never be null here
 			ps.setLong(++i, nf.getSize()); // Should never be null here
+			ps.setLong(++i,  nf.getLastModified()); // Should never be null here
 			ps.setLong(++i, nf.getId());
 			
 			if (ps.executeUpdate() != 1) throw new SQLException("Update of FILE record failed");
@@ -733,18 +737,19 @@ public abstract class NimbusFileDAO {
 			Boolean isLibraryRemoved = rsColumns.contains("IS_LIBRARY_REMOVED") ? rs.getBoolean("IS_LIBRARY_REMOVED") : null;
 			String md5 = rsColumns.contains("MD5") ? rs.getString("MD5") : null;
 			Long lastHashed = rsColumns.contains("LAST_HASHED") ? rs.getLong("LAST_HASHED") : null;
+			Long lastModified = rsColumns.contains("LAST_MODIFIED") ? rs.getLong("LAST_MODIFIED") : null;
 			Date createDate = rsColumns.contains("CREATE_DATE") ? rs.getTimestamp("CREATE_DATE") : null;
 			Date updateDate = rsColumns.contains("LAST_UPDATE_DATE") ? rs.getTimestamp("LAST_UPDATE_DATE") : null;
 			
 			if (isSong != null && isSong) {
 				return new Song(id, userId, driveId, path, isDir, size, isSong, 
-						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, createDate, updateDate, title, length, trackNo, artist, album, year);
+						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, lastModified, createDate, updateDate, title, length, trackNo, artist, album, year);
 			} else if (isVideo != null && isVideo) {
 				return new Video(id, userId, driveId, path, isDir, size, isSong, 
-						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed,  createDate, updateDate, title, length);
+						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, lastModified, createDate, updateDate, title, length);
 			} else {
 				return new NimbusFile(id, userId, driveId, path, isDir, size, isSong, 
-						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed,  createDate, updateDate);
+						isVideo, isImage, isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, lastModified, createDate, updateDate);
 			}
 		} catch (SQLException e) {
 			log.error(e, e);

@@ -137,15 +137,15 @@ public class TrayMenu {
 	}
 	
 	public boolean isDisposed() {
-		return trayItem.isDisposed()
-				&& shell.isDisposed()
-				&& settingsWindow.isDisposed();
+		return (trayItem == null ||trayItem.isDisposed())
+				&& (shell == null || shell.isDisposed())
+				&& (settingsWindow == null || settingsWindow.isDisposed());
 	}
 	
 	public void dispose() {
-		trayItem.dispose();
-		shell.dispose();
-		settingsWindow.dispose();
+		if (trayItem!= null) trayItem.dispose();
+		if (shell != null) shell.dispose();
+		if (settingsWindow != null) settingsWindow.dispose();
 	}
 	
 	public void showNotification(String content) {

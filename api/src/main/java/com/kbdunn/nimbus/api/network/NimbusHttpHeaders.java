@@ -14,8 +14,9 @@ public class NimbusHttpHeaders {
 		String REQUESTOR = PREFIX + "requestor";
 		String SIGNATURE = PREFIX + "signature";
 		String TIMESTAMP = PREFIX + "timestamp";
+		String ORIGINATION_ID = PREFIX + "origination";
 	}
-		
+	
 	private Map<String, String> headers;
 	
 	public NimbusHttpHeaders() {
@@ -31,7 +32,7 @@ public class NimbusHttpHeaders {
 		return headers.get(key);
 	}
 	
-	public boolean containsKey(Key key) {
+	public boolean containsKey(String key) {
 		return headers.containsKey(key);
 	}
 	

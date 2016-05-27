@@ -15,6 +15,7 @@ import org.eclipse.swt.widgets.Display;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gwt.thirdparty.guava.common.util.concurrent.ThreadFactoryBuilder;
 import com.kbdunn.nimbus.desktop.sync.DesktopSyncManager;
 import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
 import com.kbdunn.nimbus.desktop.sync.SyncStateCache;
@@ -28,6 +29,7 @@ public class Application {
 	
 	public static void main(String[] args) {
 		try {
+			Thread.currentThread().setName("UI Thread");
 			if (instance != null)
 				throw new IllegalStateException("Application instance exists");
 			instance = new Application();
@@ -54,7 +56,8 @@ public class Application {
 	private Application() {
 		display = new Display();
 		appProperties = new Properties();
-		backgroundExecutor = Executors.newSingleThreadScheduledExecutor();
+		backgroundExecutor = Executors.newSingleThreadScheduledExecutor(
+				new ThreadFactoryBuilder().setNameFormat("App Background Thread #%d").build());
 		try (final InputStream in = getClass().getResourceAsStream("/nimbus-desktop.properties")) {
 			appProperties.load(in);
 		} catch (IOException e) {
@@ -124,12 +127,10 @@ public class Application {
 		}
 	}
 	
-	public static void updateSyncStatus() {
-		synchronized(instance) {
-			Application.getDisplay().syncExec(() -> {
-				instance.trayMenu.setStatus(instance.syncManager.getSyncStatus());
-			});
-		}
+	public synchronized static void updateSyncStatus() {
+		access(() -> {
+			instance.trayMenu.setStatus(instance.syncManager.getSyncStatus());
+		});
 	}
 	
 	public static boolean connect() throws UnknownHostException {
@@ -172,6 +173,10 @@ public class Application {
 	
 	public static Future<?> asyncExec(Runnable command, long delay, TimeUnit unit) {
 		return instance.backgroundExecutor.schedule(command, delay, unit);
+	}
+	
+	public static void access(Runnable command) {
+		instance.display.syncExec(command);
 	}
 	
 	public static Display getDisplay() {

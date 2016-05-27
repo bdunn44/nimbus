@@ -135,21 +135,21 @@ public class LocalMediaLibraryService implements MediaLibraryService {
 	
 	@Override
 	public boolean save(Song song) {
-		return save(song, null, false);
+		return save(song, null, false, null);
 	}
 	
-	public boolean save(Song song, NimbusFile copySource, boolean moved) {
+	public boolean save(Song song, NimbusFile copySource, boolean moved, String originationId) {
 		if (song.getUserId() == null) throw new NullPointerException("User ID cannot be null");
 		if (song.getStorageDeviceId() == null) throw new NullPointerException("Drive ID cannot be null");
 		saveId3(song); // Don't stop if this fails
 		if (song.getId() == null) {
-			if (!fileService.insert(song, copySource)) return false;
+			if (!fileService.insert(song, copySource, originationId)) return false;
 			Song dbs = (Song) NimbusFileDAO.getByPath(song.getPath());
 			song.setId(dbs.getId());
 			song.setCreated(dbs.getCreated());
 			song.setUpdated(dbs.getUpdated());
 		} else {
-			if (!fileService.update(song, copySource, moved)) return false;
+			if (!fileService.update(song, copySource, moved, originationId)) return false;
 			song.setUpdated(new Date()); // close enough
 		}
 		

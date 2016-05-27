@@ -75,7 +75,7 @@ public class EventBus {
     	pushExecutor.submit(() -> {
 			try {
 				resource.write(ObjectMapperSingleton.getMapper().writeValueAsBytes(event));
-				log.debug("File event" + event + " pushed to user " + user);
+				log.debug("File event pushed to user " + user + ": " + event);
 			} catch (JsonProcessingException e) {
 				log.error("Error pushing file event to user", e);
 			}

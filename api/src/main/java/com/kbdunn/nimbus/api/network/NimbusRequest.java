@@ -36,6 +36,7 @@ public class NimbusRequest<U, T> {
     private final Map<String, String> params;
     private final NimbusRequestListener<T> listener;
     private final GenericType<T> returnType;
+    private String originationId;
     
 	public NimbusRequest(NimbusApiCredentials creds, int method, String endpoint, String path, GenericType<T> returnType) {
 		this(creds, method, endpoint, path, (U) null, returnType);
@@ -96,8 +97,16 @@ public class NimbusRequest<U, T> {
 	public NimbusRequestListener<T> getListener() {
 		return listener;
 	}
-
+	
 	public GenericType<T> getReturnType() {
 		return returnType;
+	}
+	
+	public String getOriginationId() {
+		return originationId;
+	}
+	
+	public void setOriginationId(String originationId) {
+		this.originationId = originationId;
 	}
 }

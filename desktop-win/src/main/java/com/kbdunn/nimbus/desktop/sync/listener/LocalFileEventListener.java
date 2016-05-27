@@ -2,18 +2,19 @@ package com.kbdunn.nimbus.desktop.sync.listener;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.monitor.FileAlterationListener;
 import org.apache.commons.io.monitor.FileAlterationObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.api.util.SyncFileUtil;
-import com.kbdunn.nimbus.common.sync.HashUtil;
-import com.kbdunn.nimbus.common.util.StringUtil;
+import com.kbdunn.nimbus.desktop.Application;
 import com.kbdunn.nimbus.desktop.sync.SyncEventHandler;
 import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
-import com.kbdunn.nimbus.desktop.sync.util.DesktopSyncFileUtil;
+import com.kbdunn.nimbus.desktop.sync.SyncStateCache;
 
 public class LocalFileEventListener implements FileAlterationListener {
 	
@@ -21,7 +22,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	
 	private final SyncEventHandler handler;
 	
-	public LocalFileEventListener(SyncEventHandler handler) {
+	public LocalFileEventListener(SyncEventHandler handler) { 
 		this.handler = handler;
 	}
 	
@@ -32,7 +33,11 @@ public class LocalFileEventListener implements FileAlterationListener {
 	
 	@Override
 	public void onDirectoryCreate(File directory) {
-		handler.handleLocalFileAdd(SyncFileUtil.toSyncFile(SyncPreferences.getSyncDirectory(), directory, true));
+		try {
+			handler.handleLocalFileAdd(SyncStateCache.instance().update(directory, true));
+		} catch (IOException e) {
+			log.error("Error encountered while processing directory create event '{}'", directory, e);
+		}
 	}
 	
 	@Override
@@ -42,36 +47,64 @@ public class LocalFileEventListener implements FileAlterationListener {
 
 	@Override
 	public void onDirectoryDelete(File directory) {
-		handler.handleLocalFileDelete(SyncFileUtil.toSyncFile(SyncPreferences.getSyncDirectory(), directory, true));
+		try {
+			SyncFile syncFile = SyncFileUtil.toSyncFile(SyncPreferences.getSyncDirectory(), directory, true);
+			SyncStateCache.instance().delete(syncFile);
+			handler.handleLocalFileDelete(syncFile);
+		} catch (IOException e) {
+			log.error("Error encountered while processing directory delete event '{}'", directory, e);
+		}
 	}
 	
 	@Override
 	public void onFileCreate(File file) {
 		try {
-			String md5 = StringUtil.bytesToHex(HashUtil.hash(file));
-			handler.handleLocalFileAdd(DesktopSyncFileUtil.toSyncFile(file, md5));
+			if (file.canRead()) {
+				handler.handleLocalFileAdd(SyncStateCache.instance().update(file, false));
+			} else {
+				// Something is still writing to it. Try again in 1s
+				log.info("Detected file create but the file is currently open by another program ({})", file);
+				Application.getSyncManager().getExecutor().schedule(() -> {
+					onFileCreate(file);
+				}, 1, TimeUnit.SECONDS);
+			}
 		} catch (IOException e) {
-			log.error("Error hashing locally created file " + file, e);
+			log.error("Error encountered while processing file create event '{}'", file, e);
 		}
 	}
 	
 	@Override
 	public void onFileChange(File file) {
 		try {
-			String md5 = StringUtil.bytesToHex(HashUtil.hash(file));
-			handler.handleLocalFileUpdate(DesktopSyncFileUtil.toSyncFile(file, md5));
+			if (file.canRead()) {
+				handler.handleLocalFileUpdate(SyncStateCache.instance().update(file, false));
+			} else {
+				// Something is still writing to it. Try again in 1s
+				log.info("Detected file change but the file is currently open by another program ({})", file);
+				Application.getSyncManager().getExecutor().schedule(() -> {
+					onFileChange(file);
+				}, 1, TimeUnit.SECONDS);
+			}
 		} catch (IOException e) {
-			log.error("Error hashing locally changed file " + file, e);
+			log.error("Error encountered while processing file change event '{}'", file, e);
 		}
 	}
 	
 	@Override
 	public void onFileDelete(File file) {
-		handler.handleLocalFileDelete(SyncFileUtil.toSyncFile(SyncPreferences.getSyncDirectory(), file, false));
+		try {
+			SyncFile syncFile = SyncFileUtil.toSyncFile(SyncPreferences.getSyncDirectory(), file, false);
+			SyncStateCache.instance().delete(syncFile);
+			handler.handleLocalFileDelete(syncFile);
+		} catch (IOException e) {
+			log.error("Error encountered while processing file delete event '{}'", file, e);
+		}
 	}
 	
 	@Override
 	public void onStop(FileAlterationObserver observer) {
 		// Do nothing
 	}
+	
+	
 }

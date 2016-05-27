@@ -10,6 +10,6 @@ public class FileDeleteEvent extends FileEvent {
 
 	@Override
 	public String toString() {
-		return "FileDeleteEvent [" + getFile() + "]";
+		return "FileDeleteEvent [" + getFile() + ", originationId=" + super.getOriginationId() + "]";
 	}
 }

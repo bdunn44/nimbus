@@ -2,7 +2,6 @@ package com.kbdunn.nimbus.common.sync;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -68,15 +67,7 @@ public class HashUtil {
 			return new byte[0];
 		}
 
-		FileInputStream fis;
-		try {
-			// open the stream
-			fis = new FileInputStream(file);
-		} catch (FileNotFoundException e) {
-			log.error("File " + file + " not found to generate the hash", e);
-			return new byte[0];
-		}
-
+		FileInputStream fis = new FileInputStream(file);
 		DigestInputStream dis = new DigestInputStream(fis, digest);
 		try {
 			byte[] buffer = new byte[1024];

@@ -22,6 +22,7 @@ import com.kbdunn.nimbus.api.client.model.FileUpdateEvent;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.api.exception.TransportException;
 import com.kbdunn.nimbus.api.network.PushTransport;
+import com.kbdunn.nimbus.desktop.sync.SyncStateCache;
 import com.kbdunn.nimbus.desktop.sync.util.DesktopSyncFileUtil;
 
 public class RemoteFileManager implements PushEventListener {
@@ -36,17 +37,19 @@ public class RemoteFileManager implements PushEventListener {
 		client.addPushEventListener(this);
 	}
 	
-	public Callable<Void> createAddProcess(SyncFile syncFile) throws IllegalArgumentException {
-		if (syncFile.isDirectory()) throw new IllegalArgumentException("Argument is a directory " + syncFile);
+	public Callable<Void> createUploadProcess(SyncFile syncFile) throws IllegalArgumentException {
 		final File file = DesktopSyncFileUtil.toFile(syncFile);
-		log.debug("Creating add process for file {}" + file);
 		return new Callable<Void>() {
 
 			@Override
 			public Void call() throws Exception {
 				try {
-					client.getFileSyncManager().upload(syncFile, file);
-					log.debug("Add process executed for {}", syncFile);
+					if (syncFile.isDirectory()) {
+						client.getFileSyncManager().createDirectory(syncFile);
+					} else {
+						client.getFileSyncManager().upload(syncFile, file);
+					}
+					log.trace("Remote add process finished {}", syncFile);
 				} catch (Exception e) {
 					log.error("Error encountered during file upload (add)", e);
 					// TODO Error icon
@@ -68,7 +71,7 @@ public class RemoteFileManager implements PushEventListener {
 				for (SyncFile syncFolder : syncFolders) {
 					client.getFileSyncManager().createDirectory(syncFolder);
 				}
-				log.debug("Create folder process executed for {} folders ", syncFolders.size());
+				log.trace("Remote create folder process finished for {} folders ", syncFolders.size());
 			} catch (Exception e) {
 				log.error("Error encountered during remote folder creation", e);
 				// TODO Error icon
@@ -84,7 +87,7 @@ public class RemoteFileManager implements PushEventListener {
 		public Void call() throws Exception {
 			try {
 				client.getFileSyncManager().delete(syncFile);
-				log.debug("Delete process executed for {}", syncFile);
+				log.trace("Remote delete process finished {}", syncFile);
 			} catch (Exception e) {
 				log.error("Error encountered during remote file delete", e);
 			}
@@ -92,7 +95,7 @@ public class RemoteFileManager implements PushEventListener {
 		}};
 	}
 
-	public Callable<Void> createUpdateProcess(SyncFile syncFile) throws IllegalArgumentException {
+	/*public Callable<Void> createUpdateProcess(SyncFile syncFile) throws IllegalArgumentException {
 		if (syncFile.isDirectory()) throw new IllegalArgumentException("Argument is a directory " + syncFile);
 		final File file = DesktopSyncFileUtil.toFile(syncFile);
 		log.debug("Creating update process for file {}" + file);
@@ -109,7 +112,7 @@ public class RemoteFileManager implements PushEventListener {
 			}
 			return null;
 		}};
-	}
+	}*/
 
 	public Callable<Void> createDownloadProcess(SyncFile syncFile) throws IllegalArgumentException {
 		if (syncFile.isDirectory()) throw new IllegalArgumentException("Argument is a directory " + syncFile);
@@ -119,8 +122,12 @@ public class RemoteFileManager implements PushEventListener {
 		public Void call() throws Exception {
 			try {
 				File tmpfile = client.getFileSyncManager().download(syncFile);
-				log.debug("Download process executed for {}. Temp file is {}", syncFile, tmpfile);
-				FileUtils.moveFile(tmpfile, DesktopSyncFileUtil.toFile(syncFile));
+				File tgtfile = DesktopSyncFileUtil.toFile(syncFile);
+				log.trace("Download process finished for {}. Temp file is {}", syncFile, tmpfile);
+				if (!tgtfile.exists() || tgtfile.delete()) {
+					FileUtils.moveFile(tmpfile, tgtfile);
+				}
+				SyncStateCache.instance().update(tgtfile);
 			} catch (Exception e) {
 				log.error("Error encountered during file download", e);
 			}
@@ -128,7 +135,7 @@ public class RemoteFileManager implements PushEventListener {
 		}};
 	}
 
-	public Callable<Void> createMoveProcess(SyncFile source, SyncFile target) throws IllegalArgumentException {
+	/*public Callable<Void> createMoveProcess(SyncFile source, SyncFile target) throws IllegalArgumentException {
 		return new Callable<Void>() {
 
 		@Override
@@ -142,6 +149,22 @@ public class RemoteFileManager implements PushEventListener {
 			}
 			return null;
 		}};
+	}*/
+	
+	public Callable<Void> createCopyProcess(FileCopyEvent event) throws IllegalArgumentException {
+		return new Callable<Void>() {
+
+		@Override
+		public Void call() throws Exception {
+			try {
+				client.getFileSyncManager().copy(event);
+				log.trace("Remote copy process finished {}", event);
+			} catch (Exception e) {
+				log.error("Error encountered during remote file copy", e);
+				// TODO Error icon
+			}
+			return null;
+		}};
 	}
 
 	public Callable<List<SyncFile>> createFileListProcess() {
@@ -151,7 +174,7 @@ public class RemoteFileManager implements PushEventListener {
 		public List<SyncFile> call() throws Exception {
 			try {
 				List<SyncFile> list = client.getFileSyncManager().getSyncFileList();
-				log.debug("Get file list process executed");
+				log.trace("Remote get file list process finished");
 				return list;
 			} catch (Exception e) {
 				log.error("Error encountered during remote file list operation", e);
@@ -162,7 +185,7 @@ public class RemoteFileManager implements PushEventListener {
 
 	public void subscribeFileEvents(FileEventListener listener) throws TransportException {
 		remoteEventListeners.add(listener);
-		log.debug("Listening to pushed file events");
+		log.debug("{} listener(s) watching pushed file events", remoteEventListeners.size());
 	}
 	
 	public void unsubscribeAll() {
@@ -189,7 +212,7 @@ public class RemoteFileManager implements PushEventListener {
 			fireFileDeleteEvent((FileDeleteEvent) event);
 		} else if (event instanceof FileMoveEvent) {
 			fireFileMoveEvent((FileMoveEvent) event);
-		} else if (event instanceof FileAddEvent) {
+		} else if (event instanceof FileUpdateEvent) {
 			fireFileUpdateEvent((FileUpdateEvent) event);
 		}
 	}

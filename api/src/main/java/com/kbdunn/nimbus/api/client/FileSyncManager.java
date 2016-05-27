@@ -5,9 +5,6 @@ import java.util.List;
 
 import javax.ws.rs.core.GenericType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.kbdunn.nimbus.api.client.model.FileAddEvent;
 import com.kbdunn.nimbus.api.client.model.FileCopyEvent;
 import com.kbdunn.nimbus.api.client.model.FileMoveEvent;
@@ -23,8 +20,6 @@ import com.kbdunn.nimbus.common.util.StringUtil;
 
 public class FileSyncManager {
 
-	private static final Logger log = LoggerFactory.getLogger(FileSyncManager.class);
-	
 	private static final String SYNC_ENDPOINT = "/sync";
 	private static final String SYNC_FILES_ENDPOINT = SYNC_ENDPOINT + "/files";
 	
@@ -63,7 +58,6 @@ public class FileSyncManager {
 	}
 	
 	public void createDirectory(SyncFile syncDirectory) throws InvalidRequestException, InvalidResponseException, TransportException {
-		log.info("Processing createDirectory for " + syncDirectory);
 		NimbusResponse<PutResponse> response = client.process(new NimbusRequest<FileAddEvent, PutResponse>(
 				client.getCredentials(), 
 				NimbusRequest.Method.PUT, 
@@ -77,13 +71,13 @@ public class FileSyncManager {
 		}
 	}
 	
-	public void move(SyncFile source, SyncFile target) throws InvalidRequestException, InvalidResponseException, TransportException {
+	public void move(FileMoveEvent event) throws InvalidRequestException, InvalidResponseException, TransportException {
 		NimbusResponse<PostResponse> response = client.process(new NimbusRequest<FileMoveEvent, PostResponse>(
 				client.getCredentials(), 
 				NimbusRequest.Method.POST, 
 				client.getApiEndpoint(), 
 				SYNC_FILES_ENDPOINT + "/move",
-				new FileMoveEvent(source, target),
+				event,
 				new GenericType<PostResponse>(){}
 			), 0);
 		if (!response.succeeded()) {
@@ -91,18 +85,26 @@ public class FileSyncManager {
 		}
 	}
 	
-	public void copy(SyncFile source, SyncFile target) throws InvalidRequestException, InvalidResponseException, TransportException {
+	public void copy(FileCopyEvent event) throws InvalidRequestException, InvalidResponseException, TransportException {
 		NimbusResponse<PostResponse> response = client.process(new NimbusRequest<FileCopyEvent, PostResponse>(
 				client.getCredentials(), 
 				NimbusRequest.Method.POST, 
 				client.getApiEndpoint(), 
 				SYNC_FILES_ENDPOINT + "/copy",
-				new FileCopyEvent(source, target),
+				event,
 				new GenericType<PostResponse>(){}
 			), 0);
 		if (!response.succeeded()) {
 			throw new TransportException(response.getError().getMessage());
 		}
+	}
+	
+	public void copy(SyncFile source, SyncFile target, boolean replaceExisting) throws InvalidRequestException, InvalidResponseException, TransportException {
+		copy(new FileCopyEvent(source, target, replaceExisting));
+	}
+	
+	public void move(SyncFile source, SyncFile target, boolean replaceExisting) throws InvalidRequestException, InvalidResponseException, TransportException {
+		move(new FileMoveEvent(source, target, replaceExisting));
 	}
 	
 	public void delete(SyncFile syncFile) throws InvalidRequestException, InvalidResponseException, TransportException {

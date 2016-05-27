@@ -53,6 +53,9 @@ public class FileSyncResource {
 	@HeaderParam(NimbusHttpHeaders.Key.REQUESTOR)
 	private String requestor;
 	
+	@HeaderParam(NimbusHttpHeaders.Key.ORIGINATION_ID)
+	private String originationId;
+	
 	private final FileSyncService syncService;
 	private final LocalUserService userService;
 	
@@ -84,16 +87,24 @@ public class FileSyncResource {
 	public Response getSyncFile(@PathParam("path") String path) {
 		path = StringUtil.decodeUriUtf8(path);
 		NimbusUser user = getUser();
-		SyncFile file = syncService.toSyncFile(user, path);
-		if (file == null) {
-			return Response.noContent().build();
+		try {
+			SyncFile file = syncService.toSyncFile(user, path);
+			if (file == null) {
+				return Response.noContent().build();
+			}
+			return Response.ok(file).build();
+		} catch (IOException e) {
+			log.error("Error retrieving sync file " + path, e);
+			return Response.serverError()
+					.entity(new NimbusError("Error retrieving sync file " + path + ". " + e.getClass() + ": " + e.getMessage()))
+					.build();
 		}
-		return Response.ok(file).build();
 	}
 	
 	@PUT
 	@Path("/files/{path:.+}")
 	public Response createDirectory(@PathParam("path") String path, FileAddEvent addEvent) {
+		if (addEvent.getOriginationId() == null) addEvent.setOriginationId(originationId);
 		path = StringUtil.decodeUriUtf8(path);
 		log.info("Processing " + addEvent);
 		log.info("File is " + addEvent.getFile());
@@ -115,7 +126,7 @@ public class FileSyncResource {
 		path = StringUtil.decodeUriUtf8(path);
 		log.info("Processing delete " + path + " for " + getUser());
 		try {
-			if (syncService.processFileDelete(getUser(), path)) {
+			if (syncService.processFileDelete(getUser(), path, originationId)) {
 				return Response.ok().build();
 			} else {
 				return Response.status(Status.NOT_FOUND)
@@ -132,6 +143,7 @@ public class FileSyncResource {
 	@POST
 	@Path("/files/move")
 	public Response moveFile(FileMoveEvent moveEvent) {
+		if (moveEvent.getOriginationId() == null) moveEvent.setOriginationId(originationId);
 		log.info("Processing " + moveEvent);
 		try {
 			final NimbusFile file = syncService.processFileMove(getUser(), moveEvent);
@@ -147,6 +159,7 @@ public class FileSyncResource {
 	@POST
 	@Path("/files/copy")
 	public Response copyFile(FileCopyEvent copyEvent) {
+		if (copyEvent.getOriginationId() == null) copyEvent.setOriginationId(originationId);
 		log.info("Processing " + copyEvent);
 		try {
 			final NimbusFile copy = syncService.processFileCopy(getUser(), copyEvent);
@@ -165,7 +178,7 @@ public class FileSyncResource {
 	public Response uploadFile(@PathParam("path") String path, @FormDataParam("file") InputStream in) {
 		path = StringUtil.decodeUriUtf8(path);
 		try {
-			syncService.processFileUpload(getUser(), path, in);
+			syncService.processFileUpload(getUser(), path, originationId, in);
 		} catch (Exception e) {
 			log.error("Error processing file upload request", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -217,7 +230,7 @@ public class FileSyncResource {
 		return userService.getUserByApiToken(requestor);
 	}
 	
-	private String getUri(NimbusFile file) {
+	private String getUri(NimbusFile file) throws IOException {
 		return "sync/files" + StringUtil.encodeUriUtf8(syncService.toSyncFile(file).getPath());
 	}
 }

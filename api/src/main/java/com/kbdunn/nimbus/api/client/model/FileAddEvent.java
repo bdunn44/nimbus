@@ -10,6 +10,6 @@ public class FileAddEvent extends FileEvent {
 
 	@Override
 	public String toString() {
-		return "FileAddEvent [" + getFile() + "]";
+		return "FileAddEvent [" + getFile() + ", originationId=" + super.getOriginationId() + "]";
 	}
 }

@@ -42,11 +42,17 @@ public class HmacContainerResponseFilter implements ContainerResponseFilter {
 		NimbusHttpHeaders responseHeaders = new NimbusHttpHeaders();
 		ObjectMapper mapper = ObjectMapperSingleton.getMapper();
 		responseHeaders.put(NimbusHttpHeaders.Key.TIMESTAMP, mapper.writeValueAsString(new Date()).replace("\"", "")); // unquote
-		responseHeaders.put(NimbusHttpHeaders.Key.REQUESTOR, (String) requestContext.getProperty(HmacContainerRequestFilter.REQUEST_API_TOKEN));
+		responseHeaders.put(NimbusHttpHeaders.Key.REQUESTOR, (String) requestContext.getProperty(NimbusHttpHeaders.Key.REQUESTOR));
+		if (requestContext.getProperty(NimbusHttpHeaders.Key.ORIGINATION_ID) != null) {
+			responseHeaders.put(NimbusHttpHeaders.Key.ORIGINATION_ID, (String) requestContext.getProperty(NimbusHttpHeaders.Key.ORIGINATION_ID));
+		}
 		
 		// Set response headers
 		responseContext.getHeaders().putSingle(NimbusHttpHeaders.Key.TIMESTAMP.toString(), responseHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP));
 		responseContext.getHeaders().putSingle(NimbusHttpHeaders.Key.REQUESTOR.toString(), responseHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
+		if (responseHeaders.containsKey(NimbusHttpHeaders.Key.ORIGINATION_ID)) {
+			responseContext.getHeaders().putSingle(NimbusHttpHeaders.Key.ORIGINATION_ID.toString(), responseHeaders.get(NimbusHttpHeaders.Key.ORIGINATION_ID));
+		}
 		
 		String mac = null;
 		String contentType = responseContext.getStringHeaders().getFirst("Content-Type");

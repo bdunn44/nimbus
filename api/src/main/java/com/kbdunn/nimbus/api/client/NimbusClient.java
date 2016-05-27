@@ -25,6 +25,7 @@ import org.jboss.netty.logging.Slf4JLoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.kbdunn.nimbus.api.client.OriginationIdProvider.OriginationIdListener;
 import com.kbdunn.nimbus.api.client.listeners.PushEventListener;
 import com.kbdunn.nimbus.api.client.model.AuthenticateResponse;
 import com.kbdunn.nimbus.api.client.model.FileEvent;
@@ -40,7 +41,7 @@ import com.kbdunn.nimbus.api.network.Transport;
 import com.kbdunn.nimbus.api.network.jersey.JerseyTransport;
 import com.kbdunn.nimbus.api.network.wasync.AtmosphereTransport;
 
-public class NimbusClient implements PushEventListener {
+public class NimbusClient implements PushEventListener, OriginationIdListener {
 
 	public interface Type {
 		int HTTP = 0;
@@ -58,6 +59,9 @@ public class NimbusClient implements PushEventListener {
 	private Transport transport;
 	private final PushTransport asyncTransport;
 	private final List<PushEventListener> pushEventListeners = new ArrayList<>();
+	private OriginationIdProvider originationIdProvider;
+	private final List<OriginationIdListener> originationIdListeners = new ArrayList<>();
+	private OriginationIdFilter originationIdFilter;
 	
 	public NimbusClient(String url, NimbusApiCredentials credentials, int type) throws MalformedURLException {
 		if (!url.startsWith("http")) {
@@ -69,6 +73,7 @@ public class NimbusClient implements PushEventListener {
 		asyncTransport.addPushEventListener(this);
 		if (type == Type.HTTP) transport = new JerseyTransport();
 		else throw new IllegalArgumentException("Invalid client type");
+		originationIdProvider = new DefaultOriginationIdProvider(this);
 	}
 	
 	public static void main(String[] args) {
@@ -108,11 +113,13 @@ public class NimbusClient implements PushEventListener {
 			Thread.sleep(3000);
 			log.debug("Copying file");
 			syncManager.copy(new SyncFile("/Videos/Wildlife.wmv", "D8C2EAFD90C266E19AB9DCACC479F8AF", false), 
-					new SyncFile("/Videos/another-Wildlife.wmv", "D8C2EAFD90C266E19AB9DCACC479F8AF", false));
+					new SyncFile("/Videos/another-Wildlife.wmv", "D8C2EAFD90C266E19AB9DCACC479F8AF", false),
+					false);
 			Thread.sleep(3000);
 			log.debug("Moving file");
 			syncManager.move(new SyncFile("/Videos/another-Wildlife.wmv", "D8C2EAFD90C266E19AB9DCACC479F8AF", false), 
-					new SyncFile("/Videos/moved-Wildlife.wmv", "D8C2EAFD90C266E19AB9DCACC479F8AF", false));
+					new SyncFile("/Videos/moved-Wildlife.wmv", "D8C2EAFD90C266E19AB9DCACC479F8AF", false),
+					false);
 			Thread.sleep(3000);
 			log.debug("Creating Directory");
 			syncManager.createDirectory(new SyncFile("/Videos/newApiDirectory", "", true));
@@ -177,7 +184,7 @@ public class NimbusClient implements PushEventListener {
 		final ScheduledFuture<?> reconnectFuture = reconnectExecutor.scheduleAtFixedRate(() -> {
 			try {
 				log.info("Authenticating with the Nimbus API...");
-				final NimbusResponse<AuthenticateResponse> response = transport.process(getAuthenticateRequest());
+				final NimbusResponse<AuthenticateResponse> response = process(getAuthenticateRequest());
 				if (!response.succeeded()) {
 					throw new TransportException(response.getError().getMessage());
 				} 
@@ -249,22 +256,22 @@ public class NimbusClient implements PushEventListener {
 	
 	public <U, T> NimbusResponse<T> process(NimbusRequest<U, T> request) throws InvalidRequestException, InvalidResponseException, TransportException {
 		if (transport == null) transport = new JerseyTransport();
-		return transport.process(request);
+		return transport.process(originationIdProvider.setOriginationId(request));
 	}
 	
 	public <U, T> NimbusResponse<T> process(NimbusRequest<U, T> request, int readTimeout) throws InvalidRequestException, InvalidResponseException, TransportException {
 		if (transport == null) transport = new JerseyTransport();
-		return transport.process(request, readTimeout);
+		return transport.process(originationIdProvider.setOriginationId(request), readTimeout);
 	}
 
 	public NimbusResponse<File> processDownload(NimbusRequest<Void, File> request, int readTimeout) throws InvalidRequestException, InvalidResponseException, TransportException {
 		if (transport == null) transport = new JerseyTransport();
-		return transport.download(request, readTimeout);
+		return transport.download(originationIdProvider.setOriginationId(request), readTimeout);
 	}
 
 	public NimbusResponse<Void> processUpload(NimbusRequest<File, Void> request, int readTimeout) throws InvalidRequestException, InvalidResponseException, TransportException {
 		if (transport == null) transport = new JerseyTransport();
-		return transport.upload(request, readTimeout);
+		return transport.upload(originationIdProvider.setOriginationId(request), readTimeout);
 	}
 	
 	public void addPushEventListener(PushEventListener listener) {
@@ -292,7 +299,13 @@ public class NimbusClient implements PushEventListener {
 	@Override
 	public void onFileEvent(PushTransport transport, FileEvent event) {
 		for (PushEventListener listener : pushEventListeners) {
-			listener.onFileEvent(transport, event);
+			if (originationIdFilter == null 
+					|| !originationIdFilter.isFiltered(event.getOriginationId())) {
+				log.debug("File event recieved: {}", event);
+				listener.onFileEvent(transport, event);
+			} else {
+				log.debug("Filtered pushed file event which originated from this client: {}", event);
+			}
 		}
 	}
 	
@@ -321,5 +334,32 @@ public class NimbusClient implements PushEventListener {
 				"/eventbus",
 				new GenericType<Void>(){}
 			);
+	}
+	
+	public void setOriginationIdProvider(OriginationIdProvider provider) {
+		this.originationIdProvider = provider;
+	}
+	
+	public void addOriginationIdListener(OriginationIdListener listener) {
+		originationIdListeners.add(listener);
+	}
+	
+	public void removeOriginationIdListener(OriginationIdListener listener) {
+		originationIdListeners.remove(listener);
+	}
+	
+	public void enablePushEventOriginationFilter() {
+		originationIdFilter = new OriginationIdFilter(this);
+	}
+	
+	public void disablePushEventOriginationFilter() {
+		originationIdFilter = null;
+	}
+	
+	@Override
+	public void onOriginationIdProvided(NimbusRequest<?, ?> request) {
+		for (OriginationIdListener listener : originationIdListeners) {
+			listener.onOriginationIdProvided(request);
+		}
 	}
 }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 public abstract class FileEvent {
 	
 	private SyncFile file;
+	private String originationId;
 	
 	public FileEvent() {  }
 	
@@ -17,9 +18,17 @@ public abstract class FileEvent {
 	public SyncFile getFile() {
 		return file;
 	}
+	
+	public String getOriginationId() {
+		return originationId;
+	}
+	
+	public void setOriginationId(String originationId) {
+		this.originationId = originationId;
+	}
 
 	@Override
 	public String toString() {
-		return "FileEvent [" + file + "]";
+		return "FileEvent [" + file + ", originationId=" + originationId + "]";
 	}
 }

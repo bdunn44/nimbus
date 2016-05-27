@@ -18,26 +18,26 @@ public class RemoteFileEventListener implements FileEventListener {
 	
 	@Override
 	public void onFileAdd(FileAddEvent fileEvent) {
-		handler.handleRemoteFileAdd(fileEvent.getFile());
+		handler.processRemoteFileAdd(fileEvent.getFile());
 	}
 	
 	@Override
 	public void onFileUpdate(FileUpdateEvent fileEvent) {
-		handler.handleRemoteFileUpdate(fileEvent.getFile());
+		handler.processRemoteFileUpdate(fileEvent.getFile());
 	}
 	
 	@Override
 	public void onFileDelete(FileDeleteEvent fileEvent) {
-		handler.handleRemoteFileDelete(fileEvent.getFile());
+		handler.processRemoteFileDelete(fileEvent.getFile());
 	}
 	
 	@Override
 	public void onFileMove(FileMoveEvent fileEvent) {
-		handler.handleRemoteFileMove(fileEvent.getSrcFile(), fileEvent.getDstFile());
+		handler.processRemoteFileMove(fileEvent);
 	}
 
 	@Override
 	public void onFileCopy(FileCopyEvent fileEvent) {
-		handler.hadleRemoteFileCopy(fileEvent.getSrcFile(), fileEvent.getDstFile());
+		handler.processRemoteFileCopy(fileEvent);
 	}
 }

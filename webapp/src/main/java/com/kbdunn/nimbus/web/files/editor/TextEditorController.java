@@ -83,6 +83,8 @@ public class TextEditorController {
 		}
 		// Perform the save
 		log.debug("Saving file " + file.getName());
+		// Refresh the file - something may have happened to it since it's been opened
+		file = NimbusUI.getFileService().getFileByPath(file.getPath());
 		String filename = view.getFileName();
 		try {
 			// Rename file if necessary

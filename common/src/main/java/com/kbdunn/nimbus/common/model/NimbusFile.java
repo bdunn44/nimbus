@@ -24,12 +24,13 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 	private Boolean libraryRemoved;
 	private String md5;
 	private Long lastHashed;
+	private Long lastModified;
 	private Date created;
 	private Date updated;
 	
 	/* DAO constructor to instantiate a persisted NimbusFile */
 	public NimbusFile(Long id, Long userId, Long storageDeviceId, String path, Boolean directory, Long size, Boolean song, Boolean video, Boolean image, 
-			Boolean reconciled, Long lastReconciled, Boolean libraryRemoved, String md5, Long lastHashed, Date createDate, Date lastUpdateDate) {
+			Boolean reconciled, Long lastReconciled, Boolean libraryRemoved, String md5, Long lastHashed, Long lastModified, Date createDate, Date lastUpdateDate) {
 		this.id = id;
 		this.userId = userId;
 		this.storageDeviceId = storageDeviceId;
@@ -44,6 +45,7 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 		this.libraryRemoved = libraryRemoved;
 		this.md5 = md5;
 		this.lastHashed = lastHashed;
+		this.lastModified = lastModified;
 		this.created = createDate;
 		this.updated = lastUpdateDate;
 	}
@@ -64,6 +66,7 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 		this.libraryRemoved = copy.isLibraryRemoved();
 		this.md5 = copy.getMd5();
 		this.lastHashed = copy.getLastHashed();
+		this.lastModified = copy.getLastModified();
 		this.created = copy.getCreated();
 		this.updated = copy.getUpdated();
 	}
@@ -179,11 +182,19 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 	}
 	
 	public Long getLastHashed() {
-		return lastHashed;
+		return lastHashed == null ? 0 : lastHashed;
 	}
 	
 	public void setLastHashed(Long lastHashed) {
 		this.lastHashed = lastHashed;
+	}
+	
+	public Long getLastModified() {
+		return lastModified == null ? 0 : lastModified;
+	}
+	
+	public void setLastModified(Long lastModified) {
+		this.lastModified = lastModified;
 	}
 
 	@Override

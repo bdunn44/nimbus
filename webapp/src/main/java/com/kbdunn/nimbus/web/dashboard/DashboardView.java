@@ -120,7 +120,7 @@ public class DashboardView extends VerticalLayout implements View {
 	}
 
 	private void updateManaged() {
-		managed.setValue(NumberFormat.getNumberInstance(Locale.US).format(NimbusUI.getFileService().getTotalFileCount()) + " Files");
+		managed.setValue(NumberFormat.getNumberInstance(Locale.US).format(NimbusUI.getFileService().getTotalFileCount()));
 		managed.setSubValue("[ <span style=\"font-weight:bold;\">" 
 				+ StringUtil.toHumanSizeString(NimbusUI.getFileService().getTotalFileSize()) 
 				+ "</span> total ]");

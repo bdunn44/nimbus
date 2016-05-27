@@ -65,7 +65,6 @@ public class AtmosphereTransport implements PushTransport {
 			socket.on(Event.MESSAGE.toString(), new Function<FileEvent>() {
 				@Override
 				public void on(FileEvent event) {
-					log.info("File event recieved: {}", event);
 					for (PushEventListener listener : listeners) {
 						listener.onFileEvent(AtmosphereTransport.this, event);
 					}

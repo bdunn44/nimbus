@@ -9,9 +9,9 @@ public class Video extends NimbusFile {
 	
 	public Video(Long id, Long userId, Long driveId, String path, Boolean isDirectory, Long size,  Boolean isSong, 
 			Boolean isVideo, Boolean isImage, Boolean isReconciled, Long lastReconciled, Boolean isLibraryRemoved, 
-			String md5, Long lastHashed, Date createDate, Date lastUpdateDate, String title, Integer length) {
+			String md5, Long lastHashed, Long lastModified, Date createDate, Date lastUpdateDate, String title, Integer length) {
 		super(id, userId, driveId, path, isDirectory, size, isSong, isVideo, isImage,
-				isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, createDate, lastUpdateDate);
+				isReconciled, lastReconciled, isLibraryRemoved, md5, lastHashed, lastModified, createDate, lastUpdateDate);
 		this.title = title;
 		this.length = length;
 	}

@@ -34,8 +34,7 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 	private Text endpoint;
 	private Text username;
 	private Text apiToken;
-	private Text hmacKey;
-	private Text nodeName;
+	//private Text nodeName;
 	private Label errorMessage;
 	private Button connect;
 	
@@ -47,21 +46,21 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 	}
 	
 	private void buildForm() {
-		this.setSize(300, 150);
+		this.setSize(300, 200);
 		
 		GridLayout layout = new GridLayout();
 		layout.numColumns = 2;
 		layout.makeColumnsEqualWidth = false;
-		layout.verticalSpacing = 5;
+		layout.verticalSpacing = 6;
 		layout.horizontalSpacing = 10;
 		//layout.marginHeight = (SettingsWindow.CLIENT_HEIGHT - 100 - this.getSize().y) / 2;
-		layout.marginWidth = (SettingsWindow.CLIENT_WIDTH - this.getSize().x) / 2;
+		layout.marginWidth = (SettingsWindow.CONTENT_WIDTH - this.getSize().x) / 2;
 		this.setLayout(layout);
 		
 		Label header = new Label(this, SWT.CENTER);
-		header.setText("Connect to Nimbus");
+		header.setText("Connect to Your Cloud");
 		FontData fd = header.getFont().getFontData()[0];
-		fd.setHeight(16);
+		fd.setHeight(12);
 		//fd.setStyle(SWT.BOLD);
 		header.setFont(new Font(getDisplay(), fd));
 		header.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 2, 1));
@@ -77,6 +76,7 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 		errorMessage.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 2, 1));
 		
 		GridData textData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+		textData.widthHint = 200;
 		new Label(this, SWT.RIGHT).setText("Nimbus URL");
 		endpoint = new Text(this, SWT.SINGLE | SWT.BORDER);
 		endpoint.setLayoutData(textData);
@@ -86,17 +86,9 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 		username.setLayoutData(textData);
 		username.addKeyListener(this);
 		new Label(this, SWT.RIGHT).setText("API Token");
-		apiToken = new Text(this, SWT.SINGLE | SWT.BORDER);
+		apiToken = new Text(this, SWT.SINGLE | SWT.BORDER | SWT.PASSWORD | SWT.NO_REDRAW_RESIZE);
 		apiToken.setLayoutData(textData);
 		apiToken.addKeyListener(this);
-		new Label(this, SWT.RIGHT).setText("API Passcode");
-		hmacKey = new Text(this, SWT.SINGLE | SWT.PASSWORD | SWT.BORDER);
-		hmacKey.setLayoutData(textData);
-		hmacKey.addKeyListener(this);
-		new Label(this, SWT.RIGHT).setText("Node Name");
-		nodeName = new Text(this, SWT.SINGLE | SWT.BORDER);
-		nodeName.setLayoutData(textData);
-		nodeName.addKeyListener(this);
 		
 		connect = new Button(this, SWT.PUSH);
 		connect.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 2, 1));
@@ -112,8 +104,7 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 		endpoint.setText(SyncPreferences.getEndpoint());
 		username.setText(creds.getUsername());
 		apiToken.setText(creds.getApiToken());
-		hmacKey.setText(creds.getHmacKey());
-		nodeName.setText(SyncPreferences.getNodeName());
+		//nodeName.setText(SyncPreferences.getNodeName());
 		/*endpoint.setSize(100, 50);
 		username.setSize(100, 50);
 		apiToken.setSize(100, 50);
@@ -128,7 +119,7 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 			Application.asyncExec(() -> {
 				try {
 					if (instance.isDisposed()) return;
-					getDisplay().syncExec(() -> { 
+					Application.access(() -> { 
 						refresh(); 
 					});
 				} catch (Exception e) {
@@ -136,7 +127,7 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 				}
 			}, 1, TimeUnit.SECONDS);
 		} else if (Application.getSyncStatus() == Status.CONNECTION_ERROR) {
-			onConnectAttemptComplete(false, null, "Unable to connect");
+			onConnectAttemptComplete(false, null, "Connection Error");
 		}
 	}
 	
@@ -144,9 +135,9 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 	public void widgetSelected(final SelectionEvent arg0) {
 		// Save settings
 		SyncPreferences.setCredentials(
-				new SyncCredentials(username.getText(), apiToken.getText(), hmacKey.getText()));
+				new SyncCredentials(username.getText(), apiToken.getText()));
 		SyncPreferences.setEndpoint(endpoint.getText());
-		SyncPreferences.setNodeName(nodeName.getText());
+		//SyncPreferences.setNodeName(nodeName.getText());
 		
 		// Check that we have everything we need
 		// Will always be the case if user initiates this 
@@ -158,7 +149,7 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 	
 	private boolean requiredFieldsArePopulated() {
 		return !endpoint.getText().isEmpty() && !username.getText().isEmpty() && 
-				!apiToken.getText().isEmpty() && !hmacKey.getText().isEmpty() && !nodeName.getText().isEmpty();
+				!apiToken.getText().isEmpty();// && !nodeName.getText().isEmpty();
 	}
 
 	@Override
@@ -185,13 +176,12 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 			endpoint.setEnabled(false);
 			username.setEnabled(false);
 			apiToken.setEnabled(false);
-			hmacKey.setEnabled(false);
-			nodeName.setEnabled(false);
+			//nodeName.setEnabled(false);
 			connect.setEnabled(false);
 			connect.setText("Connecting...");
 			connect.setFocus();
 			connect.pack();
-			this.layout();
+			layout();
 		});
 	}
 	
@@ -214,8 +204,7 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 			endpoint.setFocus();
 			username.setEnabled(true);
 			apiToken.setEnabled(true);
-			hmacKey.setEnabled(true);
-			nodeName.setEnabled(true);
+			//nodeName.setEnabled(true);
 			connect.setEnabled(true);
 			connect.setText("Connect");
 			connect.pack();

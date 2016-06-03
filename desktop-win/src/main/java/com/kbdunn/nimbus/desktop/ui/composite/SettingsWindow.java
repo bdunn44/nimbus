@@ -2,30 +2,31 @@ package com.kbdunn.nimbus.desktop.ui.composite;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
-import org.eclipse.swt.events.DisposeEvent;
-import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.events.ShellEvent;
-import org.eclipse.swt.events.ShellListener;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.layout.RowLayout;
+import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Label;
 
 import com.kbdunn.nimbus.desktop.Application;
 import com.kbdunn.nimbus.desktop.ui.ApplicationResources;
 
 public class SettingsWindow extends AbstractWindow {
 	
-	public static int CLIENT_WIDTH = 400;
-	public static int CLIENT_HEIGHT = 400;
+	public static int CONTENT_WIDTH = 400;
+	public static int CONTENT_HEIGHT = 350;
 	
 	private Composite content;
 	private StackLayout stackLayout;
 	private ConnectForm connectForm;
 	private StatusPane statusPane;
+	
+	public static void main(String[] args) {
+		Application.main(args);
+	}
 	
 	public SettingsWindow(Display display) {
 		super(display, SWT.CLOSE | SWT.TITLE | SWT.MIN); // Fixed size, can be minimized
@@ -38,44 +39,30 @@ public class SettingsWindow extends AbstractWindow {
 		super.buildWindow();
 		getShell().setImage(ApplicationResources.getIcon(getDisplay()));
 		getShell().setText("Nimbus Sync");
-		getShell().setSize(400, 400);
-		getShell().addDisposeListener(new DisposeListener() {
-			@Override
-			public void widgetDisposed(DisposeEvent arg0) {
-				dispose();
-			}
-		});
-		getShell().addShellListener(new ShellListener() {
-			@Override
-			public void shellActivated(ShellEvent event) {
-				int trimx = getShell().getSize().x - getShell().getClientArea().width;
-				int trimy = getShell().getSize().y - getShell().getClientArea().height;
-				getShell().setSize(CLIENT_WIDTH+trimx, CLIENT_HEIGHT+trimy);
-			}
-			
-			@Override public void shellClosed(ShellEvent event) {  }
-			@Override public void shellDeactivated(ShellEvent event) {  }
-			@Override public void shellDeiconified(ShellEvent event) {  }
-			@Override public void shellIconified(ShellEvent event) {  }
-		});
+		getShell().setSize(CONTENT_WIDTH, CONTENT_HEIGHT);
 		
-		RowLayout container = new RowLayout();
+		RowLayout container = new RowLayout(SWT.NONE);
 		container.center = true;
 		container.justify = false;
-		container.fill = true;
+		container.fill = false;
 		container.wrap = false;
 		container.type = SWT.VERTICAL;
-		container.spacing = 0;
+		container.spacing = 25;
 		getShell().setLayout(container);
 		
-		Label header = new Label(getShell(), SWT.NONE);
-		header.setImage(ApplicationResources.getLogo(getDisplay()));
-		header.setBounds(0, 0, 400, 100);
+		Canvas canvas = new Canvas(getShell(), SWT.NONE);
+		canvas.setLayoutData(new RowData(getContentWidth(), getContentHeight()/4));
+		canvas.addPaintListener((e) -> {
+			Image logo = ApplicationResources.getLogo(getDisplay());
+			e.gc.drawImage(logo, 
+					(canvas.getSize().x-logo.getImageData().width)/2,
+					(canvas.getSize().y-logo.getImageData().height)/2 + 10); // top-pad 10px
+		});
 		
 		content = new Composite(getShell(), SWT.NONE);
 		stackLayout = new StackLayout();
 		content.setLayout(stackLayout);
-		content.setBounds(0, 0, 400, 300);
+		content.setBounds(0, 0, getContentWidth(), 250);
 		
 		statusPane = new StatusPane(content, SWT.NONE, new SelectionListener() {
 
@@ -96,13 +83,23 @@ public class SettingsWindow extends AbstractWindow {
 				refresh();
 			}
 		});
-		connectForm.setLayoutData(new RowData(300, 150));
+		connectForm.setLayoutData(new RowData(getContentWidth()/4*3, 200));
 	}
 	
-	private void refresh() {
+	public void refresh() {
 		if (!connectForm.isDisposed()) connectForm.refresh();
 		if (!statusPane.isDisposed()) statusPane.refresh();
 		if (!this.isDisposed()) stackLayout.topControl = (Application.getSyncStatus().isConnected()) ? statusPane : connectForm;
 		if (!content.isDisposed()) content.layout();
+	}
+
+	@Override
+	protected int getContentWidth() {
+		return CONTENT_WIDTH;
+	}
+
+	@Override
+	protected int getContentHeight() {
+		return CONTENT_HEIGHT;
 	}
 }

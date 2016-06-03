@@ -41,6 +41,8 @@ public class TrayMenu {
 	private MenuItem openSettingsItem;
 	private MenuItem exitItem;
 	
+	private boolean windowOpen = false;
+	
 	public TrayMenu(Display display) {
 		this.shell = new Shell(display);
 		createTrayItem(display);
@@ -130,6 +132,7 @@ public class TrayMenu {
 			syncControlItem.setText(PAUSE_SYNC_TEXT);
 		}
 		syncControlItem.setEnabled(status.isConnected());
+		if (settingsWindow != null) settingsWindow.refresh();
 	}
 	
 	public DesktopSyncManager.Status getSyncStatus() {
@@ -166,13 +169,18 @@ public class TrayMenu {
 	}
 	
 	private void onOpenSyncFolderClick(Event event) {
-		// TODO Auto-generated method stub
-		log.debug("Open synchronized folder");
-		
+		try {
+			Desktop.getDesktop().open(SyncPreferences.getSyncDirectory());
+		} catch (IOException e) {
+			log.error("Failed to open sync folder {}", SyncPreferences.getSyncDirectory(), e);
+		}
 	}
 
 	private void onOpenWebAppClick(Event event) {
 		String url = SyncPreferences.getEndpoint();
+		if (!url.startsWith("http")) {
+			url = "http://" + url;
+		}
 		log.info("Opening web app in browser (" + url + ")");
 		if (Desktop.isDesktopSupported()) {
 			try {
@@ -181,17 +189,38 @@ public class TrayMenu {
 				log.error("Error opening web app in browser", e);
 			}
 		} else {
-			try {
-				Runtime.getRuntime().exec("xdg-open " + url);
-			} catch (IOException e) {
-				log.error("Error opening web app in browser", e);
+
+			String os = System.getProperty("os.name").toLowerCase();
+			String cmd = null;
+			if (os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0) {
+				cmd = "xdg-open " + url;
+			} else if (os.indexOf("mac" ) >= 0) {
+				cmd = "open " + url;
+			} else if (os.indexOf("win" ) >= 0) {
+				cmd = "rundll32 url.dll,FileProtocolHandler " + url;
+			}
+			if (cmd != null) {
+				try {
+					Runtime.getRuntime().exec(cmd);
+				} catch (IOException e) {
+					log.error("Failed to execute command '{}'", cmd, e);
+				}
 			}
 		}
 	}
 	
 	private void onOpenSettingsClick(Event event) {
-		settingsWindow = new SettingsWindow(shell.getDisplay());
-		settingsWindow.open();
+		if (windowOpen) {
+			settingsWindow.getShell().forceFocus();
+		}
+		else {
+			settingsWindow = new SettingsWindow(shell.getDisplay());
+			settingsWindow.getShell().addDisposeListener((e) -> {
+				windowOpen = false;
+			});
+			settingsWindow.open();
+			windowOpen = true;
+		}
 	}
 	
 	private void onExitClick(Event event) {

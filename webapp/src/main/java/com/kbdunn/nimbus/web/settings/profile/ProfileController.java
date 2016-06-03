@@ -217,4 +217,8 @@ public class ProfileController implements SettingsTabController {
 		}
 		return null;
 	}
+	
+	void generateNewTokens() {
+		//TODO
+	}
 }

@@ -2,19 +2,19 @@ package com.kbdunn.nimbus.api.client.model;
 
 public class NimbusApiCredentials {
 
+	private final String username;
 	private final String apiToken;
-	private final String hmacKey;
 	
-	public NimbusApiCredentials(String apiToken, String hmacKey) {
+	public NimbusApiCredentials(String username, String apiToken) {
+		this.username = username;
 		this.apiToken = apiToken;
-		this.hmacKey = hmacKey;
+	}
+	
+	public String getUsername() {
+		return username;
 	}
 
 	public String getApiToken() {
 		return apiToken;
-	}
-
-	public String getHmacKey() {
-		return hmacKey;
 	}
 }

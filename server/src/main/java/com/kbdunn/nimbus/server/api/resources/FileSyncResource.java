@@ -134,6 +134,7 @@ public class FileSyncResource {
 						.build();
 			}
 		} catch (Exception e) {
+			log.error("Error processing delete request", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
 					.entity(new NimbusError("Unable to delete file. " + e.getClass() + ": " + e.getMessage()))
 					.build();
@@ -227,7 +228,7 @@ public class FileSyncResource {
 	}
 	
 	private NimbusUser getUser() {
-		return userService.getUserByApiToken(requestor);
+		return userService.getUserByNameOrEmail(requestor);
 	}
 	
 	private String getUri(NimbusFile file) throws IOException {

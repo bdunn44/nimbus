@@ -20,6 +20,7 @@ import com.kbdunn.nimbus.common.model.Playlist;
 import com.kbdunn.nimbus.common.model.Song;
 import com.kbdunn.nimbus.common.model.Video;
 import com.kbdunn.nimbus.common.server.MediaLibraryService;
+import com.kbdunn.nimbus.common.util.ComparatorUtil;
 import com.kbdunn.nimbus.server.NimbusContext;
 import com.kbdunn.nimbus.server.dao.MediaLibraryDAO;
 import com.kbdunn.nimbus.server.dao.NimbusFileDAO;
@@ -97,37 +98,59 @@ public class LocalMediaLibraryService implements MediaLibraryService {
 	private void saveId3(Song song) {
 		// JAudioTagger
 		// Save as incrementally as possible
+		
+		// Copy the song
+		Song song2 = new Song(song);
+		setSongAttributes(song2);
+		boolean changed = false;
+
 		try {
 			final File songFile = new File(song.getPath());
 			AudioFile f = AudioFileIO.read(songFile);
 			Tag tag = f.getTag();
 			
-			try {
-				tag.setField(FieldKey.ARTIST, song.getArtist());
-			} catch (Exception e) {
-				log.warn("Error setting " + FieldKey.ARTIST + " on ID3");
+			if (ComparatorUtil.nullSafeStringComparator(song.getArtist(), song2.getArtist()) != 0) {
+				try {
+					tag.setField(FieldKey.ARTIST, song.getArtist());
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.ARTIST + " on ID3");
+				}
 			}
-			try {
-				tag.setField(FieldKey.ALBUM, song.getAlbum());
-			} catch (Exception e) {
-				log.warn("Error setting " + FieldKey.ALBUM + " on ID3");
+			if (ComparatorUtil.nullSafeStringComparator(song.getAlbum(), song2.getAlbum()) != 0) {
+				try {
+					tag.setField(FieldKey.ALBUM, song.getAlbum());
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.ALBUM + " on ID3");
+				}
 			}
-			try {
-				tag.setField(FieldKey.TITLE, song.getTitle());
-			} catch (Exception e) {
-				log.warn("Error setting " + FieldKey.TITLE + " on ID3");
+			if (ComparatorUtil.nullSafeStringComparator(song.getTitle(), song2.getTitle()) != 0) {
+				try {
+					tag.setField(FieldKey.TITLE, song.getTitle());
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.TITLE + " on ID3");
+				}
 			}
-			try {
-				tag.setField(FieldKey.TRACK, String.valueOf(song.getTrackNumber()));
-			} catch (Exception e) {
-				log.warn("Error setting " + FieldKey.TRACK + " on ID3");
+			if (ComparatorUtil.nullSafeStringComparator(String.valueOf(song.getTrackNumber()), 
+					String.valueOf(song2.getTrackNumber())) != 0) {
+				try {
+					tag.setField(FieldKey.TRACK, String.valueOf(song.getTrackNumber()));
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.TRACK + " on ID3");
+				}
 			}
-			try {
-				tag.setField(FieldKey.YEAR, song.getAlbumYear());
-			} catch (Exception e) {
-				log.warn("Error setting " + FieldKey.YEAR + " on ID3");
+			if (ComparatorUtil.nullSafeStringComparator(song.getAlbumYear(), song2.getAlbumYear()) != 0) {
+				try {
+					tag.setField(FieldKey.YEAR, song.getAlbumYear());
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.YEAR + " on ID3");
+				}
 			}
-			f.commit();
+			if (changed) f.commit();
 		} catch (Exception e) {
 			log.error("Error saving ID3: " + e.getMessage());
 		}

@@ -176,7 +176,7 @@ public class Application {
 	}
 	
 	public static void access(Runnable command) {
-		instance.display.syncExec(command);
+		instance.display.asyncExec(command);
 	}
 	
 	public static Display getDisplay() {

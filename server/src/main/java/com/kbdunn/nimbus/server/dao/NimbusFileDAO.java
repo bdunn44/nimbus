@@ -218,7 +218,7 @@ public abstract class NimbusFileDAO {
 					+ (excludeDirectories ? " AND NOT IS_DIRECTORY" : "")
 					+ (excludeRegularFiles ? " AND IS_DIRECTORY" : "")
 					+ (imageFilesOnly ? " AND IS_IMAGE" : "") 
-					+ " ORDER BY IS_DIRECTORY DESC, NAME"
+					+ " ORDER BY IS_DIRECTORY DESC, UPPER(NAME)"
 					+ (startIndex != null ? " OFFSET ? LIMIT ?" : "")
 					+ ";");
 			ps.setString(1, folder.getPath());

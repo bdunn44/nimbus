@@ -123,10 +123,10 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 			}
 			
 			// Check requestor exists
-			NimbusUser requestor = NimbusContext.instance().getUserService().getUserByApiToken(nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
+			NimbusUser requestor = NimbusContext.instance().getUserService().getUserByNameOrEmail(nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
 			if (requestor == null) 
-				throw new IllegalArgumentException("Invalid API Token (" + nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR) + ")!");
-			requestContext.setProperty(NimbusHttpHeaders.Key.REQUESTOR, requestor.getApiToken());
+				throw new IllegalArgumentException("Invalid Requestor (" + nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR) + ")!");
+			requestContext.setProperty(NimbusHttpHeaders.Key.REQUESTOR, nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
 			
 			// Check timestamp isn't old
 			DateTimeFormatter parser = DateTimeFormat.forPattern(DateUtil.DATE_FORMAT).withZoneUTC();
@@ -136,7 +136,7 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 			}
 			
 			// Check mac hash
-			String serverMac = HmacUtil.hmacDigestRequest(requestor.getHmacKey(), verb, resource, content, contentType, 
+			String serverMac = HmacUtil.hmacDigestRequest(requestor.getApiToken(), verb, resource, content, contentType, 
 					nmbHeaders, nonHeaderParameters);
 			if (!serverMac.equals(nmbHeaders.get(NimbusHttpHeaders.Key.SIGNATURE))) {
 				if (NimbusContext.instance().getPropertiesService().isDevMode()) log.debug("Valid signature is '" + serverMac + "'");

@@ -12,7 +12,7 @@ public class OriginationIdFilter {
 	
 	private static final Logger log = LoggerFactory.getLogger(OriginationIdFilter.class);
 	
-	private static final long CACHE_TTL_SECONDS = 30;
+	private static final int CACHE_TTL_SECONDS = 30;
 	private final Map<String, Long> idCache = new HashMap<>();
 	
 	public OriginationIdFilter() {  }

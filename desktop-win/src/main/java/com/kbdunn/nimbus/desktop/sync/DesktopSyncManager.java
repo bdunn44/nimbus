@@ -64,6 +64,7 @@ public class DesktopSyncManager {
 	private RemoteFileManager fileManager;
 	private SyncEventHandler syncEventHandler;
 	private NimbusFileObserver fileObserver;
+	private RemoteFileEventListener remoteEventListener;
 	private ScheduledExecutorService executor;
 	
 	private final AtomicBoolean batchSyncRunning;
@@ -74,6 +75,9 @@ public class DesktopSyncManager {
 	}
 	
 	public Status getSyncStatus() {
+		if (status.isConnected && !client.isConnectedToPushService()) {
+			status = Status.CONNECTION_ERROR;
+		}
 		return status;
 	}
 	
@@ -99,11 +103,11 @@ public class DesktopSyncManager {
 				client = new NimbusClient(url, creds.toNimbusApiCredentials(), NimbusClient.Type.HTTP);
 				client.enablePushEventOriginationFilter();
 				// Check REST API authentication
-				if (!client.authenticate()) {
+				if (!client.authenticate(TimeUnit.SECONDS.toMillis(5))) {
 					throw new TransportException("Error authenticating " + creds.getUsername());
 				}
 				// Connect to PUSH. Don't listen to events until resume()
-				if (!client.connectToPushService()) {
+				if (!client.connectToPushService(TimeUnit.SECONDS.toMillis(5))) {
 					throw new TransportException("Error connecting to push service");
 				}
 				status = Status.CONNECTED;
@@ -113,9 +117,10 @@ public class DesktopSyncManager {
 				fileManager = new RemoteFileManager(client);
 				syncEventHandler = new SyncEventHandler(fileManager, this);
 				
-				// Listen to local change events (not started until resume())
+				// Listen to local and remote change events (not started until resume())
 				fileObserver = new NimbusFileObserver(SyncPreferences.getSyncDirectory());
 				fileObserver.addFileObserverListener(new LocalFileEventListener(syncEventHandler));
+				remoteEventListener = new RemoteFileEventListener(syncEventHandler);
 			} catch (Exception e) {
 				status = Status.CONNECTION_ERROR;
 				log.error("Unable to connect to Nimbus", e);
@@ -155,7 +160,7 @@ public class DesktopSyncManager {
 		try {
 			if (executor != null) {
 				executor.shutdown();
-				executor.awaitTermination(5, TimeUnit.SECONDS);
+				executor.awaitTermination(2, TimeUnit.SECONDS);
 			}
 		} catch (InterruptedException e) {
 			log.warn("Sync tasks interrupted");
@@ -213,7 +218,7 @@ public class DesktopSyncManager {
 					}
 				}
 				// Subscribe to pushed events
-				fileManager.subscribeFileEvents(new RemoteFileEventListener(syncEventHandler));
+				fileManager.subscribeFileEvents(remoteEventListener);
 			} catch (Exception e) {
 				log.error("Error encountered while subscribing to pushed events", e);
 				pause();

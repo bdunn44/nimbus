@@ -309,7 +309,7 @@ public class NimbusFile implements NimbusRecord, FileContainer, Comparable<Nimbu
 	@Override
 	public int compareTo(NimbusFile o) {
 		int c = ComparatorUtil.nullSafeBooleanComparator(o.directory, this.directory);
-		c = c == 0 ? ComparatorUtil.nullSafeStringComparator(this.getName(), o.getName()) : c;
+		c = c == 0 ? ComparatorUtil.nullSafeStringComparator(this.getName().toUpperCase(), o.getName().toUpperCase()) : c;
 		return c;
 	}
 }

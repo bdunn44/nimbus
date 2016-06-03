@@ -8,17 +8,12 @@ import org.eclipse.swt.widgets.Display;
 public class ApplicationResources {
 
 	private static ApplicationResources instance;
-	private Image icon;
-	private Image logo;
+	private Image icon, logo;
 	private Color grey;
 	
 	private ApplicationResources(Display display) { 
-		icon = new Image(display, 
-				ApplicationResources.class.getResourceAsStream("/favicon-96x96.png"));
-				//"C:\\Users\\kdunn\\Documents\\STS\\nimbus\\webapp\\src\\main\\webapp\\VAADIN\\themes\\nimbus\\favicon.ico");
-		logo = new Image(display, 
-				ApplicationResources.class.getResourceAsStream("/logo.png"));
-				//"C:\\Users\\kdunn\\Documents\\Nimbus\\nlogo.png");
+		icon = new Image(display, getClass().getResourceAsStream("/favicon-96x96.png"));
+		logo = new Image(display, getClass().getResourceAsStream("/logo.png"));
 		grey = display.getSystemColor(SWT.COLOR_DARK_GRAY);
 	}
 	

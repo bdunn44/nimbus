@@ -22,6 +22,7 @@ public class ProfileSettingsTab extends VerticalLayout implements SettingsTab, C
 	private HorizontalLayout panelLayout;
 	private UserProfileForm profileForm;
 	private EmailSettingsForm emailForm;
+	private ApiTokenForm apiForm;
 	
 	public ProfileSettingsTab(ProfileController controller) {
 		this.controller = controller;
@@ -48,6 +49,7 @@ public class ProfileSettingsTab extends VerticalLayout implements SettingsTab, C
 		controller.refreshUser();
 		profileForm.refresh();
 		emailForm.refresh();
+		apiForm.refresh();
 	}
 
 	@Override
@@ -58,7 +60,8 @@ public class ProfileSettingsTab extends VerticalLayout implements SettingsTab, C
 	private void buildLayout() {
 		setMargin(true);
 		setSpacing(true);
-		setSizeUndefined();
+		//setSizeUndefined();
+		setSizeFull();
 		
 		Label title = new Label("Edit Your Profile");
 		title.addStyleName(ValoTheme.LABEL_H2);
@@ -73,14 +76,23 @@ public class ProfileSettingsTab extends VerticalLayout implements SettingsTab, C
 		profileForm = new UserProfileForm(controller);
 		profileForm.setWidth("400px");
 		profileForm.setCaption("Profile");
+		profileForm.setSizeFull();
 		panelLayout.addComponent(profileForm);
 		panelLayout.setComponentAlignment(profileForm, Alignment.TOP_LEFT);
 		
 		emailForm = new EmailSettingsForm(controller);
 		emailForm.setWidth("400px");
 		emailForm.setCaption("Email Account");
+		emailForm.setSizeFull();
 		panelLayout.addComponent(emailForm);
 		panelLayout.setComponentAlignment(emailForm, Alignment.TOP_LEFT);
+		
+		apiForm = new ApiTokenForm(controller);
+		apiForm.setWidth("400px");
+		apiForm.setCaption("API Credentials");
+		apiForm.setSizeFull();
+		panelLayout.addComponent(apiForm);
+		panelLayout.setComponentAlignment(apiForm, Alignment.TOP_LEFT);
 		
 		HorizontalLayout buttonLayout = new HorizontalLayout();
 		//buttonLayout.setMargin(true);

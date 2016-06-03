@@ -25,6 +25,16 @@ public class Song extends NimbusFile {
 		this.albumYear = albumYear;
 	}
 	
+	public Song(Song song) {
+		super(song);
+		this.title = song.title;
+		this.length = song.length;
+		this.trackNumber = song.trackNumber;
+		this.artist = song.artist;
+		this.album = song.album;
+		this.albumYear = song.albumYear;
+	}
+	
 	public Song(NimbusFile nf) {
 		super(nf);
 	}

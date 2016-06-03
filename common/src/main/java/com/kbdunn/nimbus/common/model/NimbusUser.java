@@ -19,7 +19,6 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 	protected String email;
 	protected String passwordDigest;
 	protected String apiToken;
-	protected String hmacKey;
 	protected Boolean passwordTemporary;
 	protected Boolean administrator;
 	protected Boolean owner;
@@ -33,7 +32,7 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 		owner = false;
 	}
 
-	public NimbusUser(Long id, String name, String email, String passwordDigest, String apiToken, String hmacKey,
+	public NimbusUser(Long id, String name, String email, String passwordDigest, String apiToken,
 			Boolean passwordTemporary, Boolean administrator, Boolean owner, Type oAuthEmailService, Date created,
 			Date updated) {
 		super();
@@ -42,7 +41,6 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 		this.email = email;
 		this.passwordDigest = passwordDigest;
 		this.apiToken = apiToken;
-		this.hmacKey = hmacKey;
 		this.passwordTemporary = passwordTemporary;
 		this.administrator = administrator;
 		this.owner = owner;
@@ -57,7 +55,6 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 		this.email = user.email;
 		this.passwordDigest = user.passwordDigest;
 		this.apiToken = user.apiToken;
-		this.hmacKey = user.hmacKey;
 		this.passwordTemporary = user.passwordTemporary;
 		this.administrator = user.administrator;
 		this.owner = user.owner;
@@ -90,14 +87,6 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 	
 	public void setEmail(String email) {
 		this.email = email;
-	}
-	
-	public String getHmacKey() {
-		return hmacKey;
-	}
-	
-	public void setHmacKey(String hmacKey) {
-		this.hmacKey = hmacKey;
 	}
 	
 	public String getApiToken() {

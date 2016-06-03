@@ -60,8 +60,8 @@ public class EventBus {
     }
     
     public static boolean isUserConnected(NimbusUser user) {
-    	if (user.getApiToken() == null) throw new IllegalArgumentException("User's API Token cannot be null");
-    	return clientMap.containsKey(user.getApiToken());
+    	return clientMap.containsKey(user.getName())
+    			|| clientMap.containsKey(user.getEmail());
     }
     
     public static void pushFileEvent(NimbusUser user, FileEvent event) {

@@ -43,7 +43,7 @@ public class StatusPane extends Composite implements SelectionListener {
 		layout.verticalSpacing = 5;
 		layout.horizontalSpacing = 10;
 		layout.marginHeight = 50;//(SettingsWindow.CLIENT_HEIGHT - 200) / 2;
-		layout.marginWidth = (SettingsWindow.CLIENT_WIDTH - this.getSize().x) / 2;
+		layout.marginWidth = (SettingsWindow.CONTENT_WIDTH - this.getSize().x) / 2;
 		this.setLayout(layout);
 		
 		icon = new Label(this, SWT.NONE);

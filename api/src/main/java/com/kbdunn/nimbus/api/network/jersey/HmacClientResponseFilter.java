@@ -82,7 +82,7 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 			
 			// Check response requestor matches request requestor
 			final NimbusApiCredentials creds = ((NimbusRequest<?, ?>)requestContext.getProperty(NimbusRequest.PROPERTY_NAME)).getCredentials();
-			if (!nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR).equals(creds.getApiToken()))
+			if (!nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR).equals(creds.getUsername()))
 				throw new IllegalArgumentException("Invalid API token in response (" + nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR) + ")!");
 			
 			// Check timestamp isn't old
@@ -94,7 +94,7 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 			
 			// Check mac hash
 			String clientMac = HmacUtil.hmacDigestResponse(
-					creds.getHmacKey(), 
+					creds.getApiToken(), 
 					status, 
 					content, 
 					contentType, 

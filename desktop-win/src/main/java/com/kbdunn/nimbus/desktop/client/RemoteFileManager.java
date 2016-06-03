@@ -22,6 +22,7 @@ import com.kbdunn.nimbus.api.client.model.FileUpdateEvent;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.api.exception.TransportException;
 import com.kbdunn.nimbus.api.network.PushTransport;
+import com.kbdunn.nimbus.desktop.Application;
 import com.kbdunn.nimbus.desktop.sync.SyncStateCache;
 import com.kbdunn.nimbus.desktop.sync.util.DesktopSyncFileUtil;
 
@@ -195,6 +196,7 @@ public class RemoteFileManager implements PushEventListener {
 	@Override
 	public void onClose(PushTransport transport) {
 		log.info("Push connection closed");
+		Application.updateSyncStatus();
 	}
 	
 	@Override
@@ -220,6 +222,7 @@ public class RemoteFileManager implements PushEventListener {
 	@Override
 	public void onError(PushTransport transport, Throwable t) {
 		log.error("Push connection encountered an error", t);
+		Application.updateSyncStatus();
 	}
 	
 	private void fireFileAddEvent(FileAddEvent event) {

@@ -1,4 +1,4 @@
-package com.kbdunn.nimbus.desktop.sync.buffer;
+package com.kbdunn.nimbus.desktop.sync;
 
 import java.util.ArrayList;
 import java.util.Iterator;

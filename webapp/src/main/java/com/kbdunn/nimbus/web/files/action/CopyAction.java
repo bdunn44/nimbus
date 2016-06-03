@@ -43,7 +43,7 @@ public class CopyAction extends AbstractFileAction {
 		l.addStyleName(ValoTheme.LABEL_LARGE);
 		popupLayout.addComponent(l);
 		
-		targetFolderTree = new FolderTree();
+		targetFolderTree = new FolderTree(true);
 		targetFolderTree.addStyleName(ValoTheme.TREETABLE_SMALL);
 		popupLayout.addComponent(targetFolderTree);
 		popupLayout.setComponentAlignment(targetFolderTree, Alignment.MIDDLE_CENTER);

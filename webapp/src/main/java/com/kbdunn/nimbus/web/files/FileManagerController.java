@@ -204,8 +204,16 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 		}
 	}
 	
+	/*public FileContainer getRootContainer() {
+		if (uri.getSubject() == Subject.FILES)
+			return fileView.folderTree.getRootContainer();
+		else
+			return uri.getShareBlock();
+	}*/
+	
 	// Either a storage device or share block, never a folder
-	public FileContainer getCurrentRootFileContainer() {
+	@Override
+	public FileContainer getRootContainer() {
 		return uri.getSubject() == Subject.FILES ? uri.getStorageDevice() : uri.getShareBlock();
 	}
 	
@@ -222,7 +230,7 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 	// Navigate to a new directory - must be on same StorageDevice or ShareBlock as current
 	public void navigateToDirectory(NimbusFile folder) {
 		log.debug("Changing directory to " + folder.getName());
-		FileContainer root = getCurrentRootFileContainer();
+		FileContainer root = getRootContainer();
 		FileManagerUri target = null;
 		if (root instanceof ShareBlock) {
 			target = new FileManagerUri((ShareBlock) root, folder);
@@ -286,8 +294,10 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 	}
 	
 	public void refreshView() {
+		refreshActions();
+		
 		if (uri.getSubject() == Subject.FILES) {
-			fileView.folderTree.setRootContainer(NimbusUI.getUserService().getUserHomeFolder(NimbusUI.getCurrentUser(), uri.getStorageDevice()));
+			fileView.folderTree.setRootContainer(uri.getStorageDevice());
 			fileView.breadCrumbs.setHomeCrumb(new FileManagerUri(uri.getStorageDevice()).getUri());
 			fileView.fileTable.setCurrentContainer(getCurrentFileContainer());
 			fileView.breadCrumbs.setCurrentPath(uri.getUri());
@@ -305,8 +315,6 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 			//shareView.getFileManagerLayout().setDriveSelectVisible(false);
 			shareView.refresh();
 		}
-		
-		refreshActions();
 	}
 	
 	public List<NimbusFile> getSelectedFiles() {
@@ -314,13 +322,6 @@ public class FileManagerController extends AbstractActionHandler implements Reso
 			return fileView.getSelectedFiles();
 		else
 			return shareView.getFileManagerLayout().getSelectedFiles();
-	}
-	
-	public FileContainer getRootContainer() {
-		if (uri.getSubject() == Subject.FILES)
-			return fileView.folderTree.getRootContainer();
-		else
-			return uri.getShareBlock();
 	}
 	
 	boolean filesAreSelected() {

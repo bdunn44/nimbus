@@ -58,10 +58,11 @@ public class HmacContainerResponseFilter implements ContainerResponseFilter {
 		String contentType = responseContext.getStringHeaders().getFirst("Content-Type");
 		
 		try {
-			String token =  responseHeaders.get(NimbusHttpHeaders.Key.REQUESTOR);
-			if (token == null || token.isEmpty()) throw new IllegalStateException("API token property is unset for request context");
-			NimbusUser user = NimbusContext.instance().getUserService().getUserByApiToken(token);
-			if (user == null) throw new IllegalArgumentException("Unable to find user with API token '" + token + "'");
+			String requestor =  responseHeaders.get(NimbusHttpHeaders.Key.REQUESTOR);
+			if (requestor == null || requestor.isEmpty() || "null".equals(requestor)) 
+				throw new IllegalStateException("Requestor property is unset for request context");
+			NimbusUser user = NimbusContext.instance().getUserService().getUserByNameOrEmail(requestor);
+			if (user == null) throw new IllegalArgumentException("Unable to find requestor '" + user + "'");
 			String entity = null;
 			if (responseContext.getEntityStream() != null
 				&& (contentType == null || (!contentType.contains(MediaType.APPLICATION_OCTET_STREAM) 
@@ -69,7 +70,7 @@ public class HmacContainerResponseFilter implements ContainerResponseFilter {
 				entity = mapper.writeValueAsString(responseContext.getEntity());
 			}
 			mac = HmacUtil.hmacDigestResponse(
-					user.getHmacKey(), 
+					user.getApiToken(), 
 					String.valueOf(responseContext.getStatus()),
 					entity,
 					contentType,

@@ -246,8 +246,10 @@ public class NimbusClient implements PushEventListener, OriginationIdListener {
 	public void disconnect() {
 		log.info("Disconnecting from async event bus.");
 		asyncTransport.disconnect();
-		transport.close();
-		transport = null;
+		if (transport != null) {
+			transport.close();
+			transport = null;
+		}
 	}
 	
 	public FileSyncManager getFileSyncManager() {

@@ -8,8 +8,11 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -39,11 +42,13 @@ public class FileSyncService {
 	private static final Logger log = LogManager.getLogger(FileSyncService.class);
 	
 	private final ExecutorService hashExecutor;
+	private final ConcurrentHashMap<String, Future<?>> hashJobs;
 	private LocalUserService userService;
 	private LocalFileService fileService;
 	
 	public FileSyncService() { 
 		hashExecutor = Executors.newSingleThreadExecutor();
+		hashJobs = new ConcurrentHashMap<>();
 	}
 	
 	public void initialize(NimbusContext context) {
@@ -64,16 +69,21 @@ public class FileSyncService {
 		if (!isTrackedFile(user, file)) return; // Don't worry about files not in the sync folder
 		
 		if (!file.isDirectory()) {
-			hashExecutor.submit(() -> {
+			hashJobs.put(file.getPath(), hashExecutor.submit(() -> {
 				try {
-					if (!hashIfNeeded(file)) log.warn("Hash was not updated for a file add event!");
+					if (!hashIfNeeded(file)) {
+						log.warn("Hash was not updated for a file add event! It may no longer exist.");
+						return;
+					}
 					FileAddEvent event = new FileAddEvent(toSyncFile(user, file));
 					if (originationId != null) event.setOriginationId(originationId);
 					publishFileEvent(user, event);
 				} catch (IOException e) {
 					log.error("Error hashing updated file", e);
+				} finally {
+					hashJobs.remove(file.getPath());
 				}
-			});
+			}));
 		} else {
 			FileAddEvent event = new FileAddEvent(toSyncFile(user, file));
 			if (originationId != null) event.setOriginationId(originationId);
@@ -148,7 +158,7 @@ public class FileSyncService {
 		if (!isTrackedFile(user, file)) return; // Don't worry about files not in the sync folder
 		
 		// Check if the file size changed, or if the file was modified since the last record save
-		hashExecutor.submit(() -> {
+		hashJobs.put(file.getPath(), hashExecutor.submit(() -> {
 			try {
 				if (hashIfNeeded(file)) {
 					FileUpdateEvent event = new FileUpdateEvent(toSyncFile(user, file));
@@ -157,20 +167,22 @@ public class FileSyncService {
 				}
 			} catch (IOException e) {
 				log.error("Error hashing updated file", e);
+			} finally {
+				hashJobs.remove(file.getPath());
 			}
-		});
+		}));
 	}
 	
 	public List<SyncFile> getSyncFileList(NimbusUser user) throws IOException {
 		final List<SyncFile> syncFiles = new ArrayList<>();
 		final NimbusFile syncRoot = userService.getSyncRootFolder(user);
-		for (NimbusFile file : fileService.getRecursiveFolderContents(syncRoot)) {
-			if (hashIfNeeded(file)) {
-				// Get updated hash
-				file = fileService.getFileById(file.getId());
-			}
+		List<NimbusFile> nimbusFiles = fileService.getRecursiveFolderContents(syncRoot);
+		awaitHashJobsFinished(nimbusFiles);
+		nimbusFiles = fileService.getRecursiveFolderContents(syncRoot); // refresh
+		for (NimbusFile file : nimbusFiles) {
 			syncFiles.add(SyncFileUtil.toSyncFile(syncRoot, file));
 		}
+		
 		return syncFiles;
 	}
 	
@@ -265,14 +277,59 @@ public class FileSyncService {
 		hashIfNeeded(fileService.getFileByPath(file.getPath())); // Update hash. TODO: fix the ID setting after reconciliation...
 	}
 	
+	public void awaitHashJobsFinished(List<NimbusFile> hashTargets) {
+		for (Future<?> future : getFutures(hashTargets)) {
+			try {
+				future.get();
+			} catch (InterruptedException | ExecutionException e) {
+				log.warn("Hash job interrupted or failed while waiting. " + e.getMessage());
+			}
+		}
+	}
+	
+	// This was not working - files being hashed were not closed
+/*	public void cancelHashJobs(List<NimbusFile> hashTargets) {
+		for (Future<?> future : getFutures(hashTargets)) {
+			if (!future.cancel(true)) {
+				try {
+					log.warn("Failed to cancel hash job. Waiting for completion.");
+					future.get();
+				} catch (InterruptedException|ExecutionException e) {
+					log.warn("Hash job interrupted or failed while waiting. " + e.getMessage());
+				}
+			}
+		}
+	}*/
+	
+	private List<Future<?>> getFutures(List<NimbusFile> hashTargets) {
+		List<Future<?>> futures = new ArrayList<>();
+		for (NimbusFile hashTarget : hashTargets) {
+			if (hashJobs.containsKey(hashTarget.getPath())) {
+				futures.add(hashJobs.get(hashTarget.getPath()));
+			}
+		}
+		return futures;
+	}
+	
 	// Returns true if the hash was updated AND changed
 	private boolean hashIfNeeded(NimbusFile file) throws IOException {
+		if (!fileService.fileExistsOnDisk(file)) {
+			// File has been moved/deleted since hashing was scheduled
+			return false;
+		}
 		if (file.isDirectory()) return false;
 		final String lastMd5 = file.getMd5();
 		final Long modified = FileUtil.getLastModifiedTime(file);
 		final Long size = FileUtil.getFileSize(file);
-		//log.debug("Evaluating hash of " + file.getPath() + ". Size: " + file.getSize() + " vs. " + size + ". Last Hashed: " + lastHashed + " vs. modified " + modified 
-		//		+ " (" + ComparatorUtil.nullSafeLongComparator(file.getSize(), size) + ", " + ComparatorUtil.nullSafeDateComparator(lastHashed, modified) + ")");
+		/*log.debug("Evaluating hash of " + file.getPath() + " [MD5:" + lastMd5 + "]");
+		log.debug("  Size: " + file.getSize() + " vs. " + size);
+		log.debug("  Modified: " + file.getLastModified() + " vs. " + modified);
+		log.debug("  Last Hashed: " + file.getLastHashed() + " vs. modified " + modified);
+		log.debug("  Evaluations: " + (lastMd5 == null || lastMd5.isEmpty())
+				+ ", " + (ComparatorUtil.nullSafeLongComparator(file.getSize(), size) != 0)
+				+ ", " + (ComparatorUtil.nullSafeLongComparator(file.getLastModified(), modified) != 0)
+				+ ", " + (ComparatorUtil.nullSafeLongComparator(file.getLastHashed(), modified) < 0)
+			);*/
 		if (lastMd5 == null || lastMd5.isEmpty() // We've never hashed it
 				|| ComparatorUtil.nullSafeLongComparator(file.getSize(), size) != 0 // File size changed
 				|| ComparatorUtil.nullSafeLongComparator(file.getLastModified(), modified) != 0 // Modified date has changed

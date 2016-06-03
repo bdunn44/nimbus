@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import com.kbdunn.nimbus.common.model.FileContainer;
 import com.kbdunn.nimbus.common.model.NimbusFile;
 import com.kbdunn.nimbus.common.model.ShareBlock;
+import com.kbdunn.nimbus.common.model.StorageDevice;
 import com.kbdunn.nimbus.web.NimbusUI;
 import com.kbdunn.nimbus.web.files.MoveFilesDropHandler;
 import com.kbdunn.nimbus.web.interfaces.Refreshable;
@@ -29,7 +30,14 @@ public class FolderTree extends Tree implements Refreshable, ExpandListener {
 	private FileContainer rootContainer;
 	private MoveFilesDropHandler dropHandler;
 	
+	private boolean showRoot = false;
+	
 	public FolderTree() {
+		this(false);
+	}
+	
+	public FolderTree(boolean showRoot) {
+		this.showRoot = showRoot;
 		buildFolderTree();
 	}
 	
@@ -40,6 +48,10 @@ public class FolderTree extends Tree implements Refreshable, ExpandListener {
 	}
 	
 	public void setRootContainer(FileContainer rootContainer) {
+		if (rootContainer instanceof StorageDevice) {
+			rootContainer = NimbusUI.getUserService().getUserHomeFolder(
+					NimbusUI.getCurrentUser(), (StorageDevice) rootContainer);
+		}
 		this.rootContainer = rootContainer;
 		refresh();
 	}
@@ -70,32 +82,16 @@ public class FolderTree extends Tree implements Refreshable, ExpandListener {
 	@Override
 	// TODO: Should probably add/remove individual items instead of whacking the whole thing
 	public void refresh() {
-		// Keep track of currently expanded items
-		/*List<Object> expanded = new ArrayList<Object>();
-		for (Object o: folderContainer.getItemIds()) 
-			if (isExpanded(o))
-				expanded.add(o);*/
-		
-		// Rebuild tree based on filesystem
 		removeAllItems();
-		//rootDirectories = rootDirectory.getChildFolders();
-		addChildItems(rootContainer);
-		/*Collections.sort(rootDirectories);
-		for (NFile nf: rootDirectories) {
-			FileBean newFile = new FileBean(nf);
-			Item newItem = folderContainer.addItem(newFile);
-			newItem.getItemProperty(FileBean.PROPERTY_NAME).setValue(nf.getName());
-			//newItem.getItemProperty(FileBean.PROPERTY_FILE).setValue(nf);
-			addChildItems(newFile);
-			//expandItem(rootDirectories[i]);
-			setItemIcon(newFile, NimbusFileTypeResolver.getIcon(newFile));
-			//setItemIcon(rootDirectories[i], new ThemeResource(NimbusFileTypeResolver.DEFAULT_FOLDER_ICON));
-		}*/
-		//folderContainer.sort(new Object[] { FileBean.PROPERTY_UPPER_NAME}, new boolean[] {true});
-		
-		// Re-expand previously expanded items
-		/*for (Object o: expanded) 
-			expandItem(o);*/
+		if (showRoot && rootContainer instanceof NimbusFile) {
+			addFolder((NimbusFile) rootContainer);
+			//addChildItems(rootContainer);
+			expandItem(rootContainer); // Automatically adds children
+
+			//addChildItems(rootContainer);
+		} else {
+			addChildItems(rootContainer);
+		}
 	}
 	
 	protected void addChildItems(Object parent) {

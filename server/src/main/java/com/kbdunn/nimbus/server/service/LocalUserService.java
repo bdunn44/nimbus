@@ -66,11 +66,6 @@ public class LocalUserService implements UserService {
 		return NimbusUserDAO.getByDomainKey(name);	
 	}
 	
-	@Override
-	public NimbusUser getUserByApiToken(String apiToken) {
-		return NimbusUserDAO.getByApiToken(apiToken);	
-	}
-	
 	// TODO: Implement all FileContainer methods?
 	@Override
 	public NimbusFile resolveRelativePath(NimbusUser user, StorageDevice device, String relativePath) {
@@ -205,6 +200,12 @@ public class LocalUserService implements UserService {
 	}
 	
 	@Override
+	public void resetApiToken(NimbusUser user) throws UsernameConflictException, EmailConflictException, FileConflictException {
+		user.setApiToken(HmacUtil.generateSecretKey());
+		save(user);
+	}
+	
+	@Override
 	public boolean save(NimbusUser user) throws UsernameConflictException, EmailConflictException, FileConflictException {
 		if (user.getName() == null || user.getName().isEmpty() 
 				|| user.getEmail() == null || user.getEmail().isEmpty())
@@ -213,7 +214,6 @@ public class LocalUserService implements UserService {
 		if (hasDuplicateName(user)) throw new UsernameConflictException(user.getName());
 		else if (hasDuplicateEmail(user)) throw new EmailConflictException(user.getEmail());
 		
-		if (user.getHmacKey() == null) user.setHmacKey(HmacUtil.generateSecretKey());
 		if (user.getApiToken() == null) user.setApiToken(HmacUtil.generateSecretKey());
 		
 		if (user.getId() == null)  return insert(user);

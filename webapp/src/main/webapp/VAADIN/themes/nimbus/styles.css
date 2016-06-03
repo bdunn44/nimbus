@@ -16874,6 +16874,29 @@ div.v-layout.v-horizontal.v-widget {
 	margin-bottom: 10px;
 }
 
+.nimbus .v-slot.v-slot-n-display-none {
+	display: none;
+}
+
+.nimbus .v-slot.v-slot-n-display-none + .v-spacing {
+	display: none;
+}
+
+.nimbus .v-textfield-n-copy-input-merge {
+	border-top-right-radius: 0 !important;
+	border-bottom-right-radius: 0 !important;
+}
+
+.nimbus .n-copy-input-merge button {
+	margin-left: -11px;
+	border-top-left-radius: 0 !important;
+	border-bottom-left-radius: 0 !important;
+	border-left-width: 0 !important;
+	font-size: 0 !important;
+	background: url("images/clippy.svg") no-repeat center;
+	background-size: 14px;
+}
+
 .nimbus .n-mejs-player .mejs-container.mejs-audio {
 	background: none;
 }

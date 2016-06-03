@@ -34,7 +34,7 @@ public class HmacClientRequestFilter implements ClientRequestFilter {
 		final NimbusRequest<?, ?> request = (NimbusRequest<?, ?>) requestContext.getProperty(NimbusRequest.PROPERTY_NAME);
 		final NimbusHttpHeaders requestHeaders = new NimbusHttpHeaders();
 		requestHeaders.put(NimbusHttpHeaders.Key.TIMESTAMP, mapper.writeValueAsString(new Date()).replace("\"", "")); // unquote
-		requestHeaders.put(NimbusHttpHeaders.Key.REQUESTOR, request.getCredentials().getApiToken());
+		requestHeaders.put(NimbusHttpHeaders.Key.REQUESTOR, request.getCredentials().getUsername());
 		requestHeaders.put(NimbusHttpHeaders.Key.ORIGINATION_ID, request.getOriginationId());
 		
 		String mac = null;
@@ -51,7 +51,7 @@ public class HmacClientRequestFilter implements ClientRequestFilter {
 		
 		try {
 			mac = HmacUtil.hmacDigestRequest(
-					request.getCredentials().getHmacKey(), 
+					request.getCredentials().getApiToken(), 
 					verb,
 					resource,
 					content,

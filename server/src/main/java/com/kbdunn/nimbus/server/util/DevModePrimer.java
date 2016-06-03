@@ -38,7 +38,6 @@ public class DevModePrimer {
 		bryson.setName("Bryson");
 		bryson.setEmail("bryson@cloudnimbus.org");
 		bryson.setPasswordDigest("1000:934c26f1f0f8d03bcf4af7c3ab1fe1755a8e3d8c2e1ccdfc:7736a5ac51ccf0466c641a52e79cf1882cbfa4b674c45d52"); // bryson
-		bryson.setHmacKey("769fbec5b880e85f5519e9c05f2a76aa630dbb95cf536ef125faae3b401464f9");
 		bryson.setApiToken("d6c48e3208bfed94c100b0d5aa7232793f60c2630816d15fc35895a65c18992b");
 		bryson.setAdministrator(true);
 		try {
@@ -60,7 +59,6 @@ public class DevModePrimer {
 		createuser.setName("CreateUser");
 		createuser.setEmail("create@cloudnimbus.org");
 		createuser.setPasswordDigest("1000:934c26f1f0f8d03bcf4af7c3ab1fe1755a8e3d8c2e1ccdfc:7736a5ac51ccf0466c641a52e79cf1882cbfa4b674c45d52"); // bryson
-		createuser.setHmacKey("162bf17e42ab8db3bf6c67cc795d69ffd1e958127433fe60b4216abef6b77e24");
 		createuser.setAdministrator(false);
 		try {
 			userService.save(createuser);
@@ -74,7 +72,6 @@ public class DevModePrimer {
 		updateuser.setName("UpdateUser");
 		updateuser.setEmail("update@cloudnimbus.org");
 		updateuser.setPasswordDigest("1000:934c26f1f0f8d03bcf4af7c3ab1fe1755a8e3d8c2e1ccdfc:7736a5ac51ccf0466c641a52e79cf1882cbfa4b674c45d52");
-		updateuser.setHmacKey("48af1b481cb9fb9f5b9da59dcda8af360549597f70b47a4e34baeb915f6c6eff");
 		updateuser.setAdministrator(false);
 		try {
 			userService.save(updateuser);
@@ -88,7 +85,6 @@ public class DevModePrimer {
 		deleteuser.setName("DeleteUser");
 		deleteuser.setEmail("delete@cloudnimbus.org");
 		deleteuser.setPasswordDigest("1000:934c26f1f0f8d03bcf4af7c3ab1fe1755a8e3d8c2e1ccdfc:7736a5ac51ccf0466c641a52e79cf1882cbfa4b674c45d52");
-		deleteuser.setHmacKey("bfe547fd7658278c86e7d1d568d5d2ddb34712c8cd804d717a728d4d640b47ee");
 		deleteuser.setAdministrator(false);
 		try {
 			userService.save(deleteuser);

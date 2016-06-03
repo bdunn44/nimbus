@@ -1,8 +1,12 @@
 package com.kbdunn.nimbus.api.network.wasync;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.atmosphere.wasync.Client;
 import org.atmosphere.wasync.ClientFactory;
@@ -19,12 +23,15 @@ import org.atmosphere.wasync.impl.DefaultOptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.kbdunn.nimbus.api.client.listeners.PushEventListener;
 import com.kbdunn.nimbus.api.client.model.FileEvent;
 import com.kbdunn.nimbus.api.exception.InvalidRequestException;
 import com.kbdunn.nimbus.api.exception.InvalidResponseException;
 import com.kbdunn.nimbus.api.exception.TransportException;
 import com.kbdunn.nimbus.api.network.PushTransport;
+import com.kbdunn.nimbus.api.network.jersey.ObjectMapperSingleton;
+import com.kbdunn.nimbus.api.network.util.HmacUtil;
 import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
 import com.kbdunn.nimbus.api.network.NimbusRequest;
 
@@ -46,11 +53,43 @@ public class AtmosphereTransport implements PushTransport {
 	
 	@Override
 	public <U, T> void connect(NimbusRequest<U, T> request) throws InvalidRequestException, InvalidResponseException, TransportException {
+		// HMAC signature
+		NimbusHttpHeaders nHeaders = new NimbusHttpHeaders();
+		String verb = "GET";
+		String resource;
+		String requestor = request.getCredentials().getUsername();
+		String ts;
+		try {
+			resource = new URI(request.getEndpoint() + request.getPath()).getPath();
+			ts = ObjectMapperSingleton.getMapper().writeValueAsString(new Date()).replace("\"", ""); // unquote;
+		} catch (URISyntaxException e) {
+			throw new InvalidRequestException("Invalid target URI " + request.getEndpoint() + request.getPath(), request);
+		} catch (JsonProcessingException e) {
+			throw new TransportException("Error initiating async request", e);
+		}
+		nHeaders.put(NimbusHttpHeaders.Key.REQUESTOR, requestor);
+		nHeaders.put(NimbusHttpHeaders.Key.TIMESTAMP, ts);
+		try {
+			nHeaders.put(NimbusHttpHeaders.Key.SIGNATURE, HmacUtil.hmacDigestRequest(
+					request.getCredentials().getApiToken(), 
+					verb, 
+					resource, 
+					null, 
+					null, 
+					nHeaders, 
+					null
+				));
+		} catch (Exception e) {
+			throw new TransportException("Error signing async request", e);
+		}
+		
 		final RequestBuilder<AtmosphereRequestBuilder> builder = client.newRequestBuilder()
 				.method(Request.METHOD.GET)
 				.header("Content-Type", "application/json")
 				.uri(request.getEndpoint() + request.getPath())
-				.header(NimbusHttpHeaders.Key.REQUESTOR, request.getCredentials().getApiToken())
+				.header(NimbusHttpHeaders.Key.REQUESTOR, nHeaders.get(NimbusHttpHeaders.Key.REQUESTOR))
+				.header(NimbusHttpHeaders.Key.TIMESTAMP, nHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP))
+				.header(NimbusHttpHeaders.Key.SIGNATURE, nHeaders.get(NimbusHttpHeaders.Key.SIGNATURE))
 				.trackMessageLength(true)
 				.encoder(new JacksonEncoder())
 				.decoder(new FileEventDecoder())
@@ -62,7 +101,17 @@ public class AtmosphereTransport implements PushTransport {
 		socket = client.create();
 		
 		try {
-			socket.on(Event.MESSAGE.toString(), new Function<FileEvent>() {
+			socket.on(new Function<Map<String, ArrayList<String>>>() {
+				
+				@Override
+				public void on(Map<String, ArrayList<String>> t) {
+					log.info("HEADERS event called.");
+					
+					for (Map.Entry<String, ArrayList<String>> e : t.entrySet()) {
+						log.info("  " + e.getKey() + "=" + e.getValue().get(0));
+					}
+				}
+			}).on(Event.MESSAGE.toString(), new Function<FileEvent>() {
 				@Override
 				public void on(FileEvent event) {
 					for (PushEventListener listener : listeners) {
@@ -74,9 +123,6 @@ public class AtmosphereTransport implements PushTransport {
 				public void on(Throwable t) {
 					log.error("Unexpected error encountered during async communication", t);
 					checkConnection();
-					for (PushEventListener listener : listeners) {
-						listener.onError(AtmosphereTransport.this, t);
-					}
 				}
 			}).on(Event.CLOSE.name(), new Function<String>() {
 				@Override
@@ -103,10 +149,10 @@ public class AtmosphereTransport implements PushTransport {
 				@Override
 				public void on(String t) {
 					log.info("Socket error: {}", t);
-					checkConnection();
 					for (PushEventListener listener : listeners) {
 						listener.onError(AtmosphereTransport.this, new TransportException(t));
 					}
+					checkConnection();
 				}
 			}).on(Event.TRANSPORT.name(), new Function<Request.TRANSPORT>() {
 				@Override

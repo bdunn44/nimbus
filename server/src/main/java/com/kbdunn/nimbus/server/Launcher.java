@@ -16,8 +16,6 @@ import org.atmosphere.cpr.ApplicationConfig;
 import org.atmosphere.cpr.AtmosphereServlet;
 import org.atmosphere.cpr.SessionSupport;
 import org.eclipse.jetty.http.HttpVersion;
-import org.eclipse.jetty.security.ConstraintMapping;
-import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.ForwardedRequestCustomizer;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -26,9 +24,9 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -39,7 +37,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
-import com.kbdunn.nimbus.api.network.jersey.ObjectMapperSingleton;
+import com.kbdunn.nimbus.api.network.jackson.ObjectMapperSingleton;
 import com.kbdunn.nimbus.common.model.StorageDevice;
 import com.kbdunn.nimbus.common.server.AsyncService;
 import com.kbdunn.nimbus.common.server.FileService;
@@ -51,6 +49,7 @@ import com.kbdunn.nimbus.common.server.StorageService;
 import com.kbdunn.nimbus.common.server.UserService;
 import com.kbdunn.nimbus.server.async.ReconcileOperation;
 import com.kbdunn.nimbus.server.jdbc.HikariConnectionPool;
+import com.kbdunn.nimbus.server.security.SecuredRedirectHandler;
 import com.kbdunn.nimbus.server.util.DatabaseCleaner;
 import com.kbdunn.nimbus.server.util.DemoModePrimer;
 import com.kbdunn.nimbus.server.util.DevModePrimer;
@@ -126,6 +125,7 @@ public class Launcher {
 		
 		log.info("-------------------------------------------------");
 		log.info("Starting Nimbus" + mode);
+		log.info("Nimbus Home: " + System.getProperty("nimbus.home"));
 		log.info("Listening on http://localhost:" + port);
 		log.info("-------------------------------------------------");
 		
@@ -135,10 +135,11 @@ public class Launcher {
 		
 		final Server server = new Server();
 		
+		// Initialize handler list
+		HandlerList handlers = new HandlerList();
+		
 		// HTTP Configuration
 		HttpConfiguration httpConfig = new HttpConfiguration();
-        httpConfig.setSecureScheme("https");
-        httpConfig.setSecurePort(8443);
         httpConfig.setOutputBufferSize(65536);
         httpConfig.setRequestHeaderSize(16384);
         httpConfig.setResponseHeaderSize(16384);
@@ -163,23 +164,22 @@ public class Launcher {
 		// SSL
 		ServerConnector https = null;
 		if (sslEnabled) {
-			log.info("SSL is enabled.");
-			
 			String keystore = NimbusContext.instance().getPropertiesService().getKeystorePath();
 			String keystorePw = NimbusContext.instance().getPropertiesService().getKeystorePassword();
 			String truststore = NimbusContext.instance().getPropertiesService().getTruststorePath();
 			String truststorePw = NimbusContext.instance().getPropertiesService().getTruststorePassword();
 			String keymanagerPw = NimbusContext.instance().getPropertiesService().getKeyManagerPassword();
 			
-			log.info("Configuring SSL over port " + httpsPort);
-			
 			if (keystore == null || keystore.isEmpty() || keystorePw == null || keystorePw.isEmpty()) {
 				http.close();
 				throw new IllegalStateException("The nimbus.ssl.keystore.path and nimbus.ssl.keystore.password properties must be set to enable SSL.");
 			}
+			
+			log.info("Enabling SSL over port " + httpsPort + " using keystore located at " + keystore);
+			
 			SslContextFactory sslContextFactory = new SslContextFactory(keystore);
 			sslContextFactory.setKeyStorePassword(keystorePw);
-			sslContextFactory.setIncludeCipherSuites(".*RC4.*"); // Prevent BEAST attack?
+			//sslContextFactory.setIncludeCipherSuites(".*RC4.*"); // Prevent BEAST attack?
 			
 			if (truststore != null && !truststore.isEmpty()) {
 				sslContextFactory.setTrustStorePath(truststore);
@@ -199,18 +199,13 @@ public class Launcher {
 			https.setPort(httpsPort);
 			https.setIdleTimeout(500000);
 			
-			// Causes http requests to return a !403 error, effectively redirecting to https
-			ConstraintSecurityHandler constraintHandler = new ConstraintSecurityHandler();
-			Constraint constraint = new Constraint();
-			constraint.setDataConstraint(Constraint.DC_CONFIDENTIAL);
-			ConstraintMapping constraintMapping = new ConstraintMapping();
-			constraintMapping.setPathSpec("/*");
-			constraintMapping.setConstraint(constraint);
-			constraintHandler.addConstraintMapping(constraintMapping);
-			server.setHandler(constraintHandler);
+			// Redirect http to https
+			handlers.addHandler(new SecuredRedirectHandler());
 			
+			// Add HTTP and HTTPS connectors
 			server.setConnectors(new Connector[] { http, https });
 		} else {
+			// Add HTTP connector
 			server.setConnectors(new Connector[] { http });
 		}
 		
@@ -230,6 +225,7 @@ public class Launcher {
 		final ServletContextHandler webappContextHandler = (ServletContextHandler) webappContext.getServletContext().getContextHandler();
 		webappContextHandler.setMaxFormKeys(Integer.MAX_VALUE);
 		webappContextHandler.setMaxFormContentSize(Integer.MAX_VALUE);
+		handlers.addHandler(webappContextHandler);
 		
 		// Set Nimbus services
 		webappContextHandler.setAttribute(AsyncService.class.getName(), NimbusContext.instance().getAsyncService());
@@ -291,7 +287,7 @@ public class Launcher {
 		webappContextHandler.addServlet(atmosphereServletHolder, "/async/*");
 		
 		// Set server handlers
-		server.setHandler(webappContextHandler);
+		server.setHandler(handlers);
 		
 		try {
 			runDataPrimers();

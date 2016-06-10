@@ -3,7 +3,7 @@ package com.kbdunn.nimbus.api.network.wasync;
 import org.atmosphere.wasync.Encoder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.kbdunn.nimbus.api.network.jersey.ObjectMapperSingleton;
+import com.kbdunn.nimbus.api.network.jackson.ObjectMapperSingleton;
 
 public class JacksonEncoder implements Encoder<Object, String> {
 	

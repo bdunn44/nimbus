@@ -309,6 +309,7 @@ $v-layout-margin-right: 24px; */
 	}
 	.n-copy-input-merge button {
 		margin-left: -$v-layout-spacing-horizontal;
+		top: -2px; /* Fix for text fields without caption */
 		border-top-left-radius: 0 !important;
 		border-bottom-left-radius: 0 !important;
 		border-left-width: 0 !important;

@@ -16889,6 +16889,7 @@ div.v-layout.v-horizontal.v-widget {
 
 .nimbus .n-copy-input-merge button {
 	margin-left: -11px;
+	top: -2px;
 	border-top-left-radius: 0 !important;
 	border-bottom-left-radius: 0 !important;
 	border-left-width: 0 !important;

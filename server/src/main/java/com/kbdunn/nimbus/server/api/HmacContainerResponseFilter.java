@@ -15,7 +15,7 @@ import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
-import com.kbdunn.nimbus.api.network.jersey.ObjectMapperSingleton;
+import com.kbdunn.nimbus.api.network.jackson.ObjectMapperSingleton;
 import com.kbdunn.nimbus.api.network.util.HmacUtil;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.server.NimbusContext;

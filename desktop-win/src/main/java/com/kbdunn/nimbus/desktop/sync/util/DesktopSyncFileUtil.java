@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.api.client.model.SyncFile;
-import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
+import com.kbdunn.nimbus.desktop.sync.data.SyncPreferences;
 
 public final class DesktopSyncFileUtil {
 	

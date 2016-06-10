@@ -2,8 +2,6 @@ package com.kbdunn.nimbus.server.api.async;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -20,8 +18,9 @@ import org.atmosphere.interceptor.SuspendTrackerInterceptor;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.kbdunn.nimbus.api.client.model.FileEvent;
+import com.kbdunn.nimbus.api.client.model.SyncRootChangeEvent;
 import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
-import com.kbdunn.nimbus.api.network.jersey.ObjectMapperSingleton;
+import com.kbdunn.nimbus.api.network.jackson.ObjectMapperSingleton;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 
 @Singleton
@@ -36,11 +35,10 @@ public class EventBus {
 	
 	private static final Logger log = LogManager.getLogger(EventBus.class);
 	private static final ConcurrentHashMap<String, AtmosphereResource> clientMap = new ConcurrentHashMap<>();
-	private static final ExecutorService pushExecutor = Executors.newSingleThreadExecutor();
 	
 	@Ready
     public void onReady(final AtmosphereResource r) {
-		log.info("Client connected " + r.uuid());
+		log.info("Client connected " + r.uuid() + " (" + r.getRequest().getHeader(NimbusHttpHeaders.Key.REQUESTOR) + ")");
 		clientMap.put(r.getRequest().getHeader(NimbusHttpHeaders.Key.REQUESTOR), r);
 		r.suspend();
 	}
@@ -59,26 +57,42 @@ public class EventBus {
 		}
     }
     
-    public static boolean isUserConnected(NimbusUser user) {
+    public static boolean userIsConnected(NimbusUser user) {
+    	log.info("Checking if " + user.getName() + " is connected. " + (clientMap.containsKey(user.getName())
+			|| clientMap.containsKey(user.getEmail())));
     	return clientMap.containsKey(user.getName())
     			|| clientMap.containsKey(user.getEmail());
     }
     
     public static void pushFileEvent(NimbusUser user, FileEvent event) {
-    	if (!isUserConnected(user)) return;
-		final AtmosphereResource resource = clientMap.get(user.getApiToken());
-		/*if (resource.getBroadcaster().isDestroyed()) {
-			log.warn("Broadcaster unexpectedly destroyed! " + resource.getBroadcaster());
-			clientMap.remove(user.getApiToken());
-			return;
-		}*/
-    	pushExecutor.submit(() -> {
-			try {
-				resource.write(ObjectMapperSingleton.getMapper().writeValueAsBytes(event));
-				log.debug("File event pushed to user " + user + ": " + event);
-			} catch (JsonProcessingException e) {
-				log.error("Error pushing file event to user", e);
+    	publish(user, event);
+    }
+    
+    public static void pushRootChangeEvent(NimbusUser user, SyncRootChangeEvent event) {
+    	publish(user, event);
+    }
+    
+    private static void publish(NimbusUser user, Object message) {
+    	if (userIsConnected(user)) {
+			final AtmosphereResource resource = 
+					clientMap.containsKey(user.getName()) ? clientMap.get(user.getName()) :
+					clientMap.containsKey(user.getEmail()) ? clientMap.get(user.getEmail()) :
+					null;
+			if (resource == null) {
+				log.warn("Attempted to push a file event to user that is no longer connected.");
+				return;
 			}
-    	});
+			/*if (resource.getBroadcaster().isDestroyed()) {
+				log.warn("Broadcaster unexpectedly destroyed! " + resource.getBroadcaster());
+				clientMap.remove(user.getApiToken());
+				return;
+			}*/
+			try {
+				resource.write(ObjectMapperSingleton.getMapper().writeValueAsBytes(message));
+				log.debug("Message pushed to user " + user + ": " + message);
+			} catch (JsonProcessingException e) {
+				log.error("Error pushing message to user", e);
+			}
+    	}
     }
 }

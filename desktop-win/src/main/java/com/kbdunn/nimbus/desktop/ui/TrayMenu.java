@@ -19,9 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.sync.DesktopSyncManager;
-import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
-import com.kbdunn.nimbus.desktop.ui.composite.SettingsWindow;
+import com.kbdunn.nimbus.desktop.sync.SyncManager;
+import com.kbdunn.nimbus.desktop.sync.data.SyncPreferences;
+import com.kbdunn.nimbus.desktop.ui.resources.ApplicationResources;
 
 public class TrayMenu {
 
@@ -124,19 +124,19 @@ public class TrayMenu {
 		});
 	}
 
-	public void setStatus(DesktopSyncManager.Status status) {
-		statusItem.setText(status.toString());
-		if (status == DesktopSyncManager.Status.PAUSED || status == DesktopSyncManager.Status.CONNECTED) {
+	public void setStatus(SyncManager.Status status, int taskCount) {
+		if (statusItem.isDisposed() || syncControlItem.isDisposed()) return;
+		statusItem.setText(status == SyncManager.Status.SYNCING ? 
+				"Processing " + taskCount + " sync task" + (taskCount > 1 ? "s" : "") + "..." : 
+				status.toString()
+			);
+		if (status == SyncManager.Status.PAUSED || status == SyncManager.Status.CONNECTED) {
 			syncControlItem.setText(RESUME_SYNC_TEXT);
 		} else {
 			syncControlItem.setText(PAUSE_SYNC_TEXT);
 		}
 		syncControlItem.setEnabled(status.isConnected());
 		if (settingsWindow != null) settingsWindow.refresh();
-	}
-	
-	public DesktopSyncManager.Status getSyncStatus() {
-		return DesktopSyncManager.Status.fromString(statusItem.getText());
 	}
 	
 	public boolean isDisposed() {
@@ -177,7 +177,7 @@ public class TrayMenu {
 	}
 
 	private void onOpenWebAppClick(Event event) {
-		String url = SyncPreferences.getEndpoint();
+		String url = SyncPreferences.getUrl();
 		if (!url.startsWith("http")) {
 			url = "http://" + url;
 		}

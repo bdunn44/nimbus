@@ -15,8 +15,8 @@ DESC="Nimbus"
 NAME=nimbus
 
 # Read configuration variable file if it is present
-if [ -r /etc/default/$NAME ]; then 
-	echo "Config file read"
+if [ -r /etc/default/$NAME ]
+then 
 	. /etc/default/$NAME
 else
 	SCRIPT_DIR=$(readlink -f "$0")
@@ -25,7 +25,8 @@ else
 	NIMBUS_USER=$USER
 fi
 
-if [ ! -d "$NIMBUS_HOME" ]; then
+if [ ! -d "$NIMBUS_HOME" ]
+then
 	echo "The \$NIMBUS_HOME variable ($NIMBUS_HOME) is not set properly. Correct this value in /etc/default/$NAME or make sure you are running this script from the Nimbus installation directory."
 	exit 0
 fi
@@ -47,13 +48,15 @@ do_start()
 	[ "0" = "$?" ] && return 1
 	
 	# Exit if Java isn't installed or Nimbus Home isn't set correctly
-	if [ ! -x "$NIMBUS_JAVA" ]; then 
+	if [ ! -x "$NIMBUS_JAVA" ]
+	then 
 		echo "Java is not installed!" 
 		return 2
 	fi
 
 	# Exit if Nimbus User isn't set
-	if [ "x$NIMBUS_USER" = "x" ]; then
+	if [ "x$NIMBUS_USER" = "x" ]
+	then
 		echo "The \$NIMBUS_USER variable is not set. Correct this value in /etc/default/$NAME or set the \$USER variable if you are running this script from the installation directory."
 		echo "It is NOT recommended to run Nimbus as root."
 		return 2
@@ -63,7 +66,8 @@ do_start()
 	NIMBUS_JAR=$NIMBUS_HOME/lib/`ls $NIMBUS_HOME/lib | egrep nimbus-server-.*\.jar | cut -f 1`
 
 	# Exit if Nimbus JAR wasn't located
-	if [ ! -f "$NIMBUS_JAR" ]; then
+	if [ ! -f "$NIMBUS_JAR" ]
+	then
 		echo "Could not find the Nimbus installation. The Nimbus home directory ('$NIMBUS_HOME') may be incorrect."
 		return 2
 	fi
@@ -79,7 +83,8 @@ do_start()
 	# Print startup information
 	echo "+++++++++++++++++++++++++++++++++++++++++++"
 	echo "+  NIMBUS CONFIGURATION"
-	if [ -r /etc/default/$NAME ]; then 
+	if [ -r /etc/default/$NAME ]
+	then 
 		echo "+  Configuration file: /etc/default/$NAME"
 	fi
 	echo "+  Nimbus Home: $NIMBUS_HOME"
@@ -88,7 +93,8 @@ do_start()
 	
 	# Run Nimbus daemon in the background
 	nohup $DAEMON $DAEMON_ARGS >/dev/null 2>&1 &
-	if [ "0" = "$?" ]; then
+	if [ "0" = "$?" ]
+	then
 		sleep 2 # Wait for nohup child process to start
 		ps --ppid $! -o pid= | tr -d ' ' | tr -d '\n' > $PIDFILE # Get PID of child process
 		echo "Nimbus startup initiated. Checking status of PID `cat $PIDFILE`..."
@@ -114,7 +120,8 @@ do_stop()
 	[ "0" = "$?" ] || return 2
 	PID=$(cat "$PIDFILE")
 	[ "x$PID" != 'x' ] && kill $PID >/dev/null 2>&1
-	if [ "$?" = "0" ]; then
+	if [ "$?" = "0" ]
+	then
 		rm -f "$PIDFILE"
 		return 0
 	else
@@ -131,9 +138,14 @@ do_status_check()
 	#   0 if daemon is running
 	#	1 if daemon is not running
 	
-	if [ -f "$PIDFILE" ]; then 
-		if ps -p `cat $NIMBUS_HOME/logs/nimbus.pid` > /dev/null 2>&1; then 
+	if [ -f "$PIDFILE" ]
+	then 
+		if ps -p `cat $NIMBUS_HOME/logs/nimbus.pid` > /dev/null 2>&1
+		then 
 			return 0
+		else
+			# Delete the invalid PID file
+			rm -f $PIDFILE
 		fi
 	fi
 	return 1
@@ -141,57 +153,57 @@ do_status_check()
 
 RET=0
 case "$1" in
-  start)
-	echo "Starting $DESC..."
-	do_start
-	RET=$?
-	case $RET in
-		0) echo "$DESC was started successfully." ;;
-		1) echo "$DESC is already running." ;;
-		2) echo "$DESC could not be started." ;;
-	esac
+	start)
+		echo "Starting $DESC..."
+		do_start
+		RET=$?
+		case $RET in
+			0) echo "$DESC was started successfully." ;;
+			1) echo "$DESC is already running." ;;
+			2) echo "$DESC could not be started." ;;
+		esac
 	;;
-  stop)
-	echo "Stopping $DESC..."
-	do_stop
-	RET=$?
-	case $RET in
-		0) echo "$DESC stopped." ;;
-		1) echo "Unable to stop $DESC." ;;
-		2) echo "$DESC is not running." ;;
-	esac
+	stop)
+		echo "Stopping $DESC..."
+		do_stop
+		RET=$?
+		case $RET in
+			0) echo "$DESC stopped." ;;
+			1) echo "Unable to stop $DESC." ;;
+			2) echo "$DESC is not running." ;;
+		esac
 	;;
-  status)
-	do_status_check
-	case "$?" in 
-		0) echo "$DESC is running." ;;
-		1) echo "$DESC is stopped." ;;
-	esac
-	RET=0
+	status)
+		do_status_check
+		case "$?" in 
+			0) echo "$DESC is running." ;;
+			1) echo "$DESC is stopped." ;;
+		esac
+		RET=0
 	;;
-  restart|force-reload)
-	echo "Restarting $DESC..."
-	do_stop
-	RET=$?
-	case $RET in
-		0) echo "$DESC stopped." ;;
-		1) 
-			echo "Unable to stop $DESC."
-			return 
-			;;
-		# Ignore 2 - we dont' care if it's not running
-	esac
-	do_start
-	RET=$?
-	case $RET in
-		0) echo "$DESC was started successfully." ;;
-		1) echo "$DESC is already running." ;;
-		2) echo "$DESC could not be started." ;;
-	esac
+	restart|force-reload)
+		echo "Restarting $DESC..."
+		do_stop
+		RET=$?
+		case $RET in
+			0) echo "$DESC stopped." ;;
+			1) 
+				echo "Unable to stop $DESC."
+				return 
+				;;
+			# Ignore 2 - we dont' care if it's not running
+		esac
+		do_start
+		RET=$?
+		case $RET in
+			0) echo "$DESC was started successfully." ;;
+			1) echo "$DESC is already running." ;;
+			2) echo "$DESC could not be started." ;;
+		esac
 	;;
-  *)
-	echo "Usage: $SCRIPTNAME {start|stop|status|restart}" >&2
-	exit 3
+	*)
+		echo "Usage: $SCRIPTNAME [start|stop|status|restart]" >&2
+		exit 3
 	;;
 esac
 exit $RET

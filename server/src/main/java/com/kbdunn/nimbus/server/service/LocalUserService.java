@@ -139,13 +139,18 @@ public class LocalUserService implements UserService {
 		return result;
 	}
 	
+	@Override
 	public String getSyncRootFolderPath(NimbusUser user) {
-		// TODO: UI to change this and set USER_STORAGE.SYNC_ROOT attribute
-		return getUserHomeFolderPath(user, storageService.getStorageDevicesAssignedToUser(user).get(0));
+		final StorageDevice rootDevice = storageService.getSyncRootStorageDevice(user);
+		if (rootDevice == null) return null;
+		return getUserHomeFolderPath(user, rootDevice);
 	}
 	
+	@Override
 	public NimbusFile getSyncRootFolder(NimbusUser user) {
-		return fileService.getFileByPath(getSyncRootFolderPath(user));
+		final String path = getSyncRootFolderPath(user);
+		if (path == null) return null;
+		return fileService.getFileByPath(path);
 	}
 	
 	/*public Boolean userHasDuplicateNaturalKey(NimbusUser user, boolean ignoreSelf) {

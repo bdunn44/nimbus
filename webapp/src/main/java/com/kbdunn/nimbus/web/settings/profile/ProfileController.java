@@ -130,6 +130,10 @@ public class ProfileController implements SettingsTabController {
 			}
 			return;
 		}
+		
+		// Update Sync Root
+		NimbusUI.getStorageService().setSyncRootStorageDevice(getCurrentUser(), tab.getSyncForm().getRootSelection());
+		
 		Notification.show("Your profile has been updated");
 		UI.getCurrent().getSession().setAttribute("user", getCurrentUser());
 		NimbusUI.getCurrent().refresh(); // Refresh UI to apply name change (updates controller.getUser() menu)
@@ -219,6 +223,10 @@ public class ProfileController implements SettingsTabController {
 	}
 	
 	void generateNewTokens() {
-		//TODO
+		try {
+			NimbusUI.getUserService().resetApiToken(getCurrentUser());
+		} catch (UsernameConflictException | EmailConflictException | FileConflictException e) {
+			Notification.show("Unable to generate a new API token!", Notification.Type.ERROR_MESSAGE);
+		}
 	}
 }

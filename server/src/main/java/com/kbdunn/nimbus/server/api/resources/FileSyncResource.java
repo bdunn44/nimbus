@@ -74,7 +74,7 @@ public class FileSyncResource {
 			List<SyncFile> result = syncService.getSyncFileList(user);
 			log.debug("Took " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) + "ms to build sync file list");
 			return Response.ok(result).build();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			log.error("Error generating sync file list", e);
 			return Response.status(HttpStatus.INTERNAL_SERVER_ERROR_500)
 					.entity(new NimbusError("Error generating sync file list. " + e.getClass() + ": " + e.getMessage()))
@@ -93,7 +93,7 @@ public class FileSyncResource {
 				return Response.noContent().build();
 			}
 			return Response.ok(file).build();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			log.error("Error retrieving sync file " + path, e);
 			return Response.serverError()
 					.entity(new NimbusError("Error retrieving sync file " + path + ". " + e.getClass() + ": " + e.getMessage()))
@@ -106,10 +106,16 @@ public class FileSyncResource {
 	public Response createDirectory(@PathParam("path") String path, FileAddEvent addEvent) {
 		if (addEvent.getOriginationId() == null) addEvent.setOriginationId(originationId);
 		path = StringUtil.decodeUriUtf8(path);
+		final NimbusUser user = getUser();
+		if (!syncService.userHasSyncRoot(user)) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
+					.build();
+		}
 		log.info("Processing " + addEvent);
 		log.info("File is " + addEvent.getFile());
 		try {
-			final NimbusFile file = syncService.processCreateDirectory(getUser(), addEvent);
+			final NimbusFile file = syncService.processCreateDirectory(user, addEvent);
 			if (file == null) throw new IOException("Failed to create directory");
 			return Response.ok(new PutResponse(file.getId(), file.getCreated(), file.getUpdated(), getUri(file))).build();
 		} catch (Exception e) {
@@ -124,9 +130,15 @@ public class FileSyncResource {
 	@Path("/files/{path:.+}")
 	public Response deleteFile(@PathParam("path") String path) {
 		path = StringUtil.decodeUriUtf8(path);
+		final NimbusUser user = getUser();
+		if (!syncService.userHasSyncRoot(user)) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
+					.build();
+		}
 		log.info("Processing delete " + path + " for " + getUser());
 		try {
-			if (syncService.processFileDelete(getUser(), path, originationId)) {
+			if (syncService.processFileDelete(user, path, originationId)) {
 				return Response.ok().build();
 			} else {
 				return Response.status(Status.NOT_FOUND)
@@ -145,9 +157,15 @@ public class FileSyncResource {
 	@Path("/files/move")
 	public Response moveFile(FileMoveEvent moveEvent) {
 		if (moveEvent.getOriginationId() == null) moveEvent.setOriginationId(originationId);
+		final NimbusUser user = getUser();
+		if (!syncService.userHasSyncRoot(user)) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
+					.build();
+		}
 		log.info("Processing " + moveEvent);
 		try {
-			final NimbusFile file = syncService.processFileMove(getUser(), moveEvent);
+			final NimbusFile file = syncService.processFileMove(user, moveEvent);
 			return Response.ok(new PostResponse(file.getId(), file.getCreated(), file.getUpdated(), getUri(file))).build();
 		} catch (Exception e) {
 			log.error("Error processing file move request", e);
@@ -161,9 +179,15 @@ public class FileSyncResource {
 	@Path("/files/copy")
 	public Response copyFile(FileCopyEvent copyEvent) {
 		if (copyEvent.getOriginationId() == null) copyEvent.setOriginationId(originationId);
+		final NimbusUser user = getUser();
+		if (!syncService.userHasSyncRoot(user)) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
+					.build();
+		}
 		log.info("Processing " + copyEvent);
 		try {
-			final NimbusFile copy = syncService.processFileCopy(getUser(), copyEvent);
+			final NimbusFile copy = syncService.processFileCopy(user, copyEvent);
 			return Response.ok(new PostResponse(copy.getId(), copy.getCreated(), copy.getUpdated(), getUri(copy))).build();
 		} catch (Exception e) {
 			log.error("Error processing file copy request", e);
@@ -177,9 +201,15 @@ public class FileSyncResource {
 	@Path("/files/upload/{path:.+}")
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	public Response uploadFile(@PathParam("path") String path, @FormDataParam("file") InputStream in) {
+		final NimbusUser user = getUser();
+		if (!syncService.userHasSyncRoot(user)) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
+					.build();
+		}
 		path = StringUtil.decodeUriUtf8(path);
 		try {
-			syncService.processFileUpload(getUser(), path, originationId, in);
+			syncService.processFileUpload(user, path, originationId, in);
 		} catch (Exception e) {
 			log.error("Error processing file upload request", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -193,9 +223,14 @@ public class FileSyncResource {
 	@Path("/files/download/{path:.+}")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public Response downloadFile(@PathParam("path") String path) {
+		final NimbusUser user = getUser();
+		if (!syncService.userHasSyncRoot(user)) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
+					.build();
+		}
 		path = StringUtil.decodeUriUtf8(path);
 		try {
-			final NimbusUser user = getUser();
 			final NimbusFile file = syncService.toNimbusFile(getUser(), path);
 			if (file.isDirectory()) {
 				throw new IllegalArgumentException("Cannot request the download of a directory: " + file.getPath());

@@ -5,7 +5,7 @@ import java.io.IOException;
 import org.atmosphere.config.managed.Decoder;
 
 import com.kbdunn.nimbus.api.client.model.FileEvent;
-import com.kbdunn.nimbus.api.network.jersey.ObjectMapperSingleton;
+import com.kbdunn.nimbus.api.network.jackson.ObjectMapperSingleton;
 
 public class FileEventDecoder implements Decoder<String, FileEvent> {
 

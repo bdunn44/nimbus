@@ -34,6 +34,8 @@ import com.kbdunn.nimbus.api.exception.TransportException;
 import com.kbdunn.nimbus.api.network.NimbusRequest;
 import com.kbdunn.nimbus.api.network.NimbusResponse;
 import com.kbdunn.nimbus.api.network.Transport;
+import com.kbdunn.nimbus.api.network.jackson.ObjectMapperSingleton;
+import com.kbdunn.nimbus.api.network.security.SSLTrustManager;
 
 public class JerseyTransport implements Transport {
 
@@ -58,12 +60,14 @@ public class JerseyTransport implements Transport {
 		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
 	    connectionManager.setMaxTotal(100);
 	    connectionManager.setDefaultMaxPerRoute(20);
-		this.client = ClientBuilder.newClient()
+		this.client = ClientBuilder.newBuilder()//.newClient()
+				.sslContext(SSLTrustManager.instance().getSSLContext())
 				.register(HmacClientRequestFilter.class)
 				.register(HmacClientResponseFilter.class)
 				.register(jsonProvider)
 				.register(MultiPartFeature.class)
 				.property(ApacheClientProperties.CONNECTION_MANAGER, connectionManager)
+				.build()
 			;
 	}
 	
@@ -71,19 +75,22 @@ public class JerseyTransport implements Transport {
 	public <U, T> NimbusResponse<T> process(NimbusRequest<U, T> request) throws InvalidRequestException, InvalidResponseException, TransportException {
 		return process(request, DEFAULT_READ_TIMEOUT_MS);
 	}
-
+	
 	@Override
 	public <U, T> NimbusResponse<T> process(NimbusRequest<U, T> request, int readTimeout) throws InvalidRequestException, InvalidResponseException, TransportException {
 		if (client == null) initClient();
 		Response response = null;
 		try {
-			WebTarget endpoint = client.target(request.getEndpoint()).path(request.getPath());
+			WebTarget endpoint = client.target(request.getEndpoint())
+					.path(request.getPath())
+					.property(ClientProperties.FOLLOW_REDIRECTS, true);
 			if (request.getMethod() == NimbusRequest.Method.GET) {
 				for (Map.Entry<String, String> param : request.getParams().entrySet()) {
 					endpoint = endpoint.queryParam(param.getKey(), param.getValue());
 				}
 			}
 			final Invocation.Builder invocationBuilder = endpoint.request(JERSEY_MEDIA_TYPE);
+			invocationBuilder.property(Transport.PROPERTY_NAME, this);
 			invocationBuilder.property(NimbusRequest.PROPERTY_NAME, request);
 			invocationBuilder.property(ClientProperties.CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
 			invocationBuilder.property(ClientProperties.READ_TIMEOUT, readTimeout);
@@ -115,7 +122,9 @@ public class JerseyTransport implements Transport {
 			Response.Status.Family statusFamily = Response.Status.Family.familyOf(response.getStatus());
 			T responseEntity = null;
 			NimbusError responseError = null;
-			if (statusFamily == Response.Status.Family.SUCCESSFUL) {
+			if (statusFamily == Response.Status.Family.REDIRECTION) {
+				return new NimbusResponse<>(response.getStatus(), response.getLocation());
+			} else if (statusFamily == Response.Status.Family.SUCCESSFUL) {
 				responseEntity = response.readEntity(request.getReturnType());
 				return new NimbusResponse<>(response.getStatus(), responseEntity);
 			} else {
@@ -151,6 +160,7 @@ public class JerseyTransport implements Transport {
 			multiPart.bodyPart(fileDataBodyPart);
 			response = endpoint.request()//MediaType.APPLICATION_JSON_TYPE)
 					//.header("Content-Type", MediaType.MULTIPART_FORM_DATA)
+					.property(Transport.PROPERTY_NAME, this)
 					.property(NimbusRequest.PROPERTY_NAME, request)
 					.post(Entity.entity(multiPart, MediaType.MULTIPART_FORM_DATA_TYPE));//multiPart.getMediaType()));
 		} catch (Exception e) {
@@ -161,7 +171,7 @@ public class JerseyTransport implements Transport {
 			Response.Status.Family statusFamily = Response.Status.Family.familyOf(response.getStatus());
 			NimbusError responseError = null;
 			if (statusFamily == Response.Status.Family.SUCCESSFUL) {
-				return new NimbusResponse<>(response.getStatus(), null);
+				return new NimbusResponse<>(response.getStatus(), (Void) null);
 			} else {
 				responseError = response.readEntity(NimbusError.class);
 				return new NimbusResponse<>(response.getStatus(), responseError);
@@ -184,6 +194,7 @@ public class JerseyTransport implements Transport {
 				}
 			}
 			final Invocation.Builder invocationBuilder = endpoint.request(JERSEY_MEDIA_TYPE);
+			invocationBuilder.property(Transport.PROPERTY_NAME, this);
 			invocationBuilder.property(NimbusRequest.PROPERTY_NAME, request);
 			invocationBuilder.property(ClientProperties.CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
 			invocationBuilder.property(ClientProperties.READ_TIMEOUT, readTimeout);

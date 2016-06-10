@@ -30,8 +30,8 @@ public class NimbusRequest<U, T> {
 
     private final NimbusApiCredentials creds;
     private final int method;
-    private final String endpoint;
-    private final String path;
+    private String endpoint;
+    private String path;
     private final U entity;
     private final Map<String, String> params;
     private final NimbusRequestListener<T> listener;
@@ -77,8 +77,18 @@ public class NimbusRequest<U, T> {
 		return method;
 	}
 
+	// Needed for redirects
+	public void setEndpoint(String endpoint) {
+		this.endpoint = endpoint;
+	}
+	
 	public String getEndpoint() {
 		return endpoint;
+	}
+
+	// Needed for redirects
+	public void setPath(String path) {
+		this.path = path;
 	}
 
 	public String getPath() {

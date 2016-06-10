@@ -24,12 +24,13 @@ import com.kbdunn.nimbus.api.client.model.NimbusApiCredentials;
 import com.kbdunn.nimbus.api.client.model.NimbusError;
 import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
 import com.kbdunn.nimbus.api.network.NimbusRequest;
+import com.kbdunn.nimbus.api.network.jackson.ObjectMapperSingleton;
 import com.kbdunn.nimbus.api.network.util.HmacUtil;
 import com.kbdunn.nimbus.api.network.util.UriUtil;
 import com.kbdunn.nimbus.common.util.DateUtil;
 
 @Provider
-@Priority(1) // Execute first
+@Priority(2)
 public class HmacClientResponseFilter implements ClientResponseFilter {
 
 	private static final Logger log = LoggerFactory.getLogger(HmacClientResponseFilter.class.getName());
@@ -38,6 +39,10 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 	
 	@Override
 	public void filter(ClientRequestContext requestContext, ClientResponseContext responseContext) throws IOException {
+		// Ignore redirects
+		if (responseContext.getStatusInfo().getFamily() == Response.Status.Family.REDIRECTION)
+	         return;
+		
 		Map<String, String> headers = UriUtil.toSingleValuedStringMap(responseContext.getHeaders());
 		NimbusHttpHeaders nmbHeaders = NimbusHttpHeaders.fromMap(headers).coalesce(headers);
 		
@@ -63,13 +68,13 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 			}
 		} 
 		
-		/*log.debug("Nimbus API Response:");
+		log.debug("Nimbus API Response:");
 		log.debug("    status: " + status);
 		log.debug("    requestor: " + nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
 		log.debug("    timestamp: " + nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP));
 		log.debug("    signature: " + nmbHeaders.get(NimbusHttpHeaders.Key.SIGNATURE));
 		log.debug("    content: " + content);
-		log.debug("    content type: " + contentType);*/
+		log.debug("    content type: " + contentType);
 		
 		try {
 			// Check required parameters are present
@@ -109,7 +114,7 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 			final NimbusError err = new NimbusError(e.getMessage());
 			String errjson = ObjectMapperSingleton.getMapper().writeValueAsString(err);
 			responseContext.setEntityStream(new ByteArrayInputStream(errjson.getBytes()));
-			responseContext.setStatus(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+			responseContext.setStatus(responseContext.getStatus());
 			log.error("Error encountered during HMAC validation", e);
 			/*throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
 					.entity(new NimbusError(e.getMessage()))

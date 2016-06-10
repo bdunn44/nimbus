@@ -34,6 +34,8 @@ public interface PropertiesService {
 
 	Integer getHttpsPort();
 
+	Integer getExternalHttpsPort();
+
 	String getNimbusVersion();
 	
 	boolean isAutoScan();

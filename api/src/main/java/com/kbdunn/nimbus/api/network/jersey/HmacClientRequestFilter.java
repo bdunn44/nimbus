@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
 import com.kbdunn.nimbus.api.network.NimbusRequest;
+import com.kbdunn.nimbus.api.network.jackson.ObjectMapperSingleton;
 import com.kbdunn.nimbus.api.network.util.HmacUtil;
 import com.kbdunn.nimbus.api.network.util.UriUtil;
 

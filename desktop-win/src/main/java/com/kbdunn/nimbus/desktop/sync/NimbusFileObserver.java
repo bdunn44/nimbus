@@ -1,8 +1,7 @@
 package com.kbdunn.nimbus.desktop.sync;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
 
 import org.apache.commons.io.monitor.FileAlterationListener;
 import org.apache.commons.io.monitor.FileAlterationMonitor;
@@ -50,6 +49,11 @@ public class NimbusFileObserver {
 			isRunning = false;
 		}
 	}
+	
+	/*public void dispose() throws Exception {
+		stop();
+		observer.destroy();
+	}*/
 
 	public void addFileObserverListener(FileAlterationListener listener) {
 		observer.addListener(listener);
@@ -59,13 +63,10 @@ public class NimbusFileObserver {
 		observer.removeListener(listener);
 	}
 
-	public List<FileAlterationListener> getFileObserverListeners() {
-		List<FileAlterationListener> listeners = new ArrayList<>();
-
-		for (FileAlterationListener listener : observer.getListeners()) {
-			listeners.add(listener);
+	public void removeAllFileObserverListeners() {
+		for (Iterator<FileAlterationListener> it = observer.getListeners().iterator(); it.hasNext();) {
+			it.remove();
 		}
-		return listeners;
 	}
 
 	public long getInterval() {

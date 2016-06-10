@@ -1,5 +1,7 @@
 package com.kbdunn.nimbus.api.network;
 
+import java.net.URI;
+
 import com.kbdunn.nimbus.api.client.model.NimbusError;
 
 public class NimbusResponse<T> {
@@ -7,17 +9,29 @@ public class NimbusResponse<T> {
 	private final int status;
 	private final T entity;
 	private final NimbusError error;
+	private final URI redirectURI;
 	
 	public NimbusResponse(int status, T entity) { 
 		this.status = status; 
 		this.entity = entity;
 		this.error = null;
+		this.redirectURI = null;
 	}
 	
 	public NimbusResponse(int status, NimbusError error) {
 		this.status = status;
 		this.entity = null;
 		this.error = error;
+		this.redirectURI = null;
+	}
+	
+	public NimbusResponse(int status, URI redirectURI) {
+		this.status = status;
+		this.entity = null;
+		this.error = null;
+		this.redirectURI = redirectURI;
+		if (!this.redirected()) 
+			throw new IllegalArgumentException("Only HTTP 3xx status codes are allow for redirections");
 	}
 
 	public int getStatus() {
@@ -26,6 +40,14 @@ public class NimbusResponse<T> {
 
 	public boolean succeeded() {
 		return (int) Math.floor(status/100) == 2;
+	}
+	
+	public boolean redirected() {
+		return (int) Math.floor(status/100) == 3;
+	}
+	
+	public URI getRedirectURI() {
+		return redirectURI;
 	}
 	
 	public String getMessage() {

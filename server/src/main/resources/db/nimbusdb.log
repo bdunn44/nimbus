@@ -1,17 +1,78 @@
 /*C2*/SET SCHEMA NIMBUS
 SET SCHEMA NIMBUS
-DELETE FROM FILE WHERE ID=25
-INSERT INTO FILE VALUES(25,0,'/media/nimbus-123456/NimbusUser-Bryson/Home','Home','/media/nimbus-123456/NimbusUser-Bryson',0,TRUE,TRUE,1464992745071,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1464737427771,'2016-06-03 15:56:50.00-6:00','2016-06-03 16:26:48.00-6:00')
+DELETE FROM USER WHERE ID=0
+INSERT INTO USER VALUES(0,'Bryson','bryson@cloudnimbus.org','1000:934c26f1f0f8d03bcf4af7c3ab1fe1755a8e3d8c2e1ccdfc:7736a5ac51ccf0466c641a52e79cf1882cbfa4b674c45d52','d6c48e3208bfed94c100b0d5aa7232793f60c2630816d15fc35895a65c18992b',FALSE,TRUE,NULL,NULL,NULL,FALSE,NULL,NULL,'2016-06-10 12:19:39.00-6:00','2016-06-10 13:39:21.00-6:00')
 COMMIT
-INSERT INTO FILE VALUES(124,0,'/media/nimbus-123456/NimbusUser-Bryson/Home.7z','Home.7z','/media/nimbus-123456/NimbusUser-Bryson',3597474718,FALSE,FALSE,0,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1464288176046,'2016-06-03 16:26:48.00-6:00','2016-06-03 16:26:48.00-6:00')
+DELETE FROM USER WHERE ID=0
+INSERT INTO USER VALUES(0,'Bryson','bryson@cloudnimbus.org','1000:934c26f1f0f8d03bcf4af7c3ab1fe1755a8e3d8c2e1ccdfc:7736a5ac51ccf0466c641a52e79cf1882cbfa4b674c45d52','d6c48e3208bfed94c100b0d5aa7232793f60c2630816d15fc35895a65c18992b',FALSE,TRUE,NULL,NULL,NULL,FALSE,NULL,NULL,'2016-06-10 12:19:39.00-6:00','2016-06-10 13:39:21.00-6:00')
 COMMIT
-INSERT INTO FILE VALUES(125,0,'/media/nimbus-123456/NimbusUser-Bryson','NimbusUser-Bryson','/media/nimbus-123456',0,TRUE,TRUE,1464992808813,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1464287767938,'2016-06-03 16:26:48.00-6:00','2016-06-03 16:26:48.00-6:00')
+DELETE FROM USER_STORAGE WHERE ID=0
+DELETE FROM USER_STORAGE WHERE ID=1
+INSERT INTO USER_STORAGE VALUES(0,0,0,FALSE,'2016-06-10 12:19:41.00-6:00','2016-06-10 13:39:21.00-6:00')
+INSERT INTO USER_STORAGE VALUES(1,0,1,TRUE,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:21.00-6:00')
 COMMIT
-DELETE FROM FILE WHERE ID=3
-INSERT INTO FILE VALUES(3,0,'/media/nimbus-123456/NimbusUser-Bryson/Home/COPY (1).java','COPY (1).java','/media/nimbus-123456/NimbusUser-Bryson/Home',135,FALSE,FALSE,0,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,'7D4362E6C772ECC177BCFFE8FE6C5EB3',1464991010159,1464987361096,'2016-06-03 15:56:50.00-6:00','2016-06-03 16:26:57.00-6:00')
+DELETE FROM STORAGE WHERE ID=1
+INSERT INTO STORAGE VALUES(1,'FS','FS Location','/media/nimbus-fsloc',NULL,NULL,NULL,NULL,NULL,FALSE,TRUE,NULL,NULL,'2016-06-10 12:19:41.00-6:00','2016-06-10 13:39:21.00-6:00')
 COMMIT
-DELETE FROM FILE WHERE ID=3
-INSERT INTO FILE VALUES(3,0,'/media/nimbus-123456/NimbusUser-Bryson/Home/COPY (1).java','COPY (1).java','/media/nimbus-123456/NimbusUser-Bryson/Home',136,FALSE,FALSE,0,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,'2E9DDA46BDB4479ED9138E48D057589E',1464992817774,1464992817769,'2016-06-03 15:56:50.00-6:00','2016-06-03 16:26:57.00-6:00')
+DELETE FROM FILE WHERE ID=27
+DELETE FROM FILE WHERE ID=29
+DELETE FROM FILE WHERE ID=28
+DELETE FROM FILE WHERE ID=31
+DELETE FROM FILE WHERE ID=30
+DELETE FROM FILE WHERE ID=56
+DELETE FROM FILE WHERE ID=26
+INSERT INTO FILE VALUES(27,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Documents','Documents','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,FALSE,1465583566702,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1465502970509,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:21.00-6:00')
+INSERT INTO FILE VALUES(29,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Pictures','Pictures','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,FALSE,1465583566711,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928325,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:21.00-6:00')
+INSERT INTO FILE VALUES(28,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Music','Music','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,FALSE,1465583566708,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928311,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:21.00-6:00')
+INSERT INTO FILE VALUES(31,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home','Home','/media/nimbus-fsloc/NimbusUser-Bryson',0,TRUE,FALSE,1465583566679,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1465502983410,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:21.00-6:00')
+INSERT INTO FILE VALUES(30,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Videos','Videos','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,FALSE,1465583566718,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928317,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:21.00-6:00')
+INSERT INTO FILE VALUES(56,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Documents/Avnet - Final Cutover Open Severity 4&5 Defects.xlsx','Avnet - Final Cutover Open Severity 4&5 Defects.xlsx','/media/nimbus-fsloc/NimbusUser-Bryson/Home/Documents',12667,FALSE,FALSE,0,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,'33FE23C79D4F7EC8D05AE41E585393ED',1465582939796,1465582939793,'2016-06-10 12:22:11.00-6:00','2016-06-10 13:39:21.00-6:00')
+INSERT INTO FILE VALUES(26,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Avnet - Final Cutover Open Severity 4&5 Defects.xlsx','Avnet - Final Cutover Open Severity 4&5 Defects.xlsx','/media/nimbus-fsloc/NimbusUser-Bryson/Home',12667,FALSE,FALSE,0,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,'33FE23C79D4F7EC8D05AE41E585393ED',1465582939774,1465582939771,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:21.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=26
+INSERT INTO FILE VALUES(26,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Avnet - Final Cutover Open Severity 4&5 Defects.xlsx','Avnet - Final Cutover Open Severity 4&5 Defects.xlsx','/media/nimbus-fsloc/NimbusUser-Bryson/Home',12667,FALSE,FALSE,0,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,'33FE23C79D4F7EC8D05AE41E585393ED',1465582939774,1465582939771,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
 COMMIT
 /*C3*/SET SCHEMA NIMBUS
 SET SCHEMA NIMBUS
+/*C2*/DELETE FROM FILE WHERE ID=27
+INSERT INTO FILE VALUES(27,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Documents','Documents','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,FALSE,1465583566702,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1465502970509,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=28
+INSERT INTO FILE VALUES(28,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Music','Music','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,FALSE,1465583566708,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928311,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=29
+INSERT INTO FILE VALUES(29,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Pictures','Pictures','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,FALSE,1465583566711,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928325,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=30
+INSERT INTO FILE VALUES(30,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Videos','Videos','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,FALSE,1465583566718,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928317,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=31
+INSERT INTO FILE VALUES(31,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home','Home','/media/nimbus-fsloc/NimbusUser-Bryson',0,TRUE,TRUE,1465587563263,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1465502983410,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=56
+INSERT INTO FILE VALUES(56,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Documents/Avnet - Final Cutover Open Severity 4&5 Defects.xlsx','Avnet - Final Cutover Open Severity 4&5 Defects.xlsx','/media/nimbus-fsloc/NimbusUser-Bryson/Home/Documents',12667,FALSE,FALSE,0,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,'33FE23C79D4F7EC8D05AE41E585393ED',1465582939796,1465582939793,'2016-06-10 12:22:11.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=27
+INSERT INTO FILE VALUES(27,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Documents','Documents','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,TRUE,1465587563280,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1465502970509,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=28
+INSERT INTO FILE VALUES(28,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Music','Music','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,TRUE,1465587563287,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928311,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=29
+INSERT INTO FILE VALUES(29,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Pictures','Pictures','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,TRUE,1465587563289,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928325,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM FILE WHERE ID=30
+INSERT INTO FILE VALUES(30,1,'/media/nimbus-fsloc/NimbusUser-Bryson/Home/Videos','Videos','/media/nimbus-fsloc/NimbusUser-Bryson/Home',0,TRUE,TRUE,1465587563292,FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL,NULL,NULL,FALSE,NULL,0,1459017928317,'2016-06-10 12:19:42.00-6:00','2016-06-10 13:39:23.00-6:00')
+COMMIT
+DELETE FROM SHARE_BLOCK WHERE ID=0
+INSERT INTO SHARE_BLOCK VALUES(0,0,TRUE,TRUE,'kVyVPMge82','My Share','This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. Th',1,NULL,NULL,'2016-06-10 12:19:42.00-6:00','2016-06-10 12:19:42.00-6:00')
+COMMIT
+DELETE FROM SHARE_BLOCK WHERE ID=0
+INSERT INTO SHARE_BLOCK VALUES(0,0,TRUE,TRUE,'kVyVPMge82','My Share','This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. Th',2,NULL,NULL,'2016-06-10 12:19:42.00-6:00','2016-06-10 12:19:42.00-6:00')
+COMMIT
+DELETE FROM SHARE_BLOCK WHERE ID=0
+INSERT INTO SHARE_BLOCK VALUES(0,0,TRUE,TRUE,'kVyVPMge82','My Share','This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. Th',3,NULL,NULL,'2016-06-10 12:19:42.00-6:00','2016-06-10 12:19:42.00-6:00')
+COMMIT
+DELETE FROM SHARE_BLOCK WHERE ID=0
+INSERT INTO SHARE_BLOCK VALUES(0,0,TRUE,TRUE,'kVyVPMge82','My Share','This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. This is a really long message. Th',4,NULL,NULL,'2016-06-10 12:19:42.00-6:00','2016-06-10 12:19:42.00-6:00')
+COMMIT

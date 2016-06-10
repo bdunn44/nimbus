@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -24,15 +23,18 @@ import com.kbdunn.nimbus.api.client.model.FileEvent;
 import com.kbdunn.nimbus.api.client.model.FileMoveEvent;
 import com.kbdunn.nimbus.api.client.model.FileUpdateEvent;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
+import com.kbdunn.nimbus.api.client.model.SyncRootChangeEvent;
 import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.common.exception.FileConflictException;
 import com.kbdunn.nimbus.common.model.FileConflict;
 import com.kbdunn.nimbus.common.model.NimbusFile;
 import com.kbdunn.nimbus.common.model.NimbusUser;
+import com.kbdunn.nimbus.common.model.StorageDevice;
 import com.kbdunn.nimbus.common.sync.HashUtil;
 import com.kbdunn.nimbus.common.util.ComparatorUtil;
 import com.kbdunn.nimbus.common.util.FileUtil;
 import com.kbdunn.nimbus.common.util.StringUtil;
+import com.kbdunn.nimbus.common.util.TrackedExecutorWrapper;
 import com.kbdunn.nimbus.server.NimbusContext;
 import com.kbdunn.nimbus.server.api.async.EventBus;
 import com.kbdunn.nimbus.server.dao.NimbusFileDAO;
@@ -41,19 +43,23 @@ public class FileSyncService {
 
 	private static final Logger log = LogManager.getLogger(FileSyncService.class);
 	
-	private final ExecutorService hashExecutor;
+	private final TrackedExecutorWrapper hashExecutor;
 	private final ConcurrentHashMap<String, Future<?>> hashJobs;
 	private LocalUserService userService;
 	private LocalFileService fileService;
 	
 	public FileSyncService() { 
-		hashExecutor = Executors.newSingleThreadExecutor();
+		hashExecutor = new TrackedExecutorWrapper(Executors.newSingleThreadScheduledExecutor());
 		hashJobs = new ConcurrentHashMap<>();
 	}
 	
 	public void initialize(NimbusContext context) {
 		userService = context.getUserService();
 		fileService = context.getFileService();
+	}
+	
+	public void publishRootChangeEvent(NimbusUser user, StorageDevice oldRoot, StorageDevice newRoot) {
+		EventBus.pushRootChangeEvent(user, new SyncRootChangeEvent(user, oldRoot, newRoot));
 	}
 	
 	private void publishFileEvent(NimbusUser user, FileEvent event) {
@@ -176,11 +182,41 @@ public class FileSyncService {
 	public List<SyncFile> getSyncFileList(NimbusUser user) throws IOException {
 		final List<SyncFile> syncFiles = new ArrayList<>();
 		final NimbusFile syncRoot = userService.getSyncRootFolder(user);
+		if (syncRoot == null) return syncFiles;
 		List<NimbusFile> nimbusFiles = fileService.getRecursiveFolderContents(syncRoot);
 		awaitHashJobsFinished(nimbusFiles);
 		nimbusFiles = fileService.getRecursiveFolderContents(syncRoot); // refresh
+		List<NimbusFile> missedHashes = new ArrayList<>();
 		for (NimbusFile file : nimbusFiles) {
-			syncFiles.add(SyncFileUtil.toSyncFile(syncRoot, file));
+			if (!file.isDirectory() && (file.getMd5() == null || file.getMd5().isEmpty())) {
+				// This only happens in one known scenario, when the sync root folder changes 
+				// to a non-autonomous drive which is already reconciled. This is inefficient.
+				// UPDATE: Switching sync roots now flips reconciliation flags, however this still occasionally happens
+				// for an unknown reason
+				log.warn("MD5 calculation was missed for " + file);
+				missedHashes.add(file);
+				hashJobs.put(file.getPath(), hashExecutor.submit(() -> {
+					try {
+						if (!hashIfNeeded(file)) {
+							throw new IllegalStateException("File was not hashed");
+						}
+					} catch (Exception e) {
+						log.error("Failed to process a missed MD5 calculation", e);
+					}
+				}));
+			} else {
+				syncFiles.add(SyncFileUtil.toSyncFile(syncRoot, file));
+			}
+		}
+		// Add the missed hashes
+		awaitHashJobsFinished(missedHashes);
+		for (NimbusFile file : missedHashes) {
+			file = fileService.getFileByPath(file.getPath()); // refresh
+			if (fileService.fileExistsOnDisk(file)) { // It may have been deleted in the meantime
+				if (file.getMd5() == null || file.getMd5().isEmpty()) 
+					throw new IllegalStateException("Could not calculate hash for sync file during list process: " + file);
+				syncFiles.add(SyncFileUtil.toSyncFile(syncRoot, file));
+			}
 		}
 		
 		return syncFiles;
@@ -313,6 +349,8 @@ public class FileSyncService {
 	
 	// Returns true if the hash was updated AND changed
 	private boolean hashIfNeeded(NimbusFile file) throws IOException {
+		// Refresh the file - it may have changed
+		file = fileService.getFileByPath(file.getPath());
 		if (!fileService.fileExistsOnDisk(file)) {
 			// File has been moved/deleted since hashing was scheduled
 			return false;
@@ -340,7 +378,7 @@ public class FileSyncService {
 			file.setLastHashed(System.currentTimeMillis());
 			file.setLastModified(modified);
 			NimbusFileDAO.updateMd5(file);
-			//log.debug("MD5 Updated for " + file.getPath() + ": " + oldMd5 + " vs. " + file.getMd5() + " (" + ComparatorUtil.nullSafeStringComparator(file.getMd5(), oldMd5) + ")");
+			//log.debug("MD5 Updated for " + file.getPath() + ": " + lastMd5 + " vs. " + file.getMd5() + " (" + ComparatorUtil.nullSafeStringComparator(file.getMd5(), lastMd5) + ")");
 		}
 		return ComparatorUtil.nullSafeStringComparator(file.getMd5(), lastMd5) != 0;
 	}
@@ -349,8 +387,14 @@ public class FileSyncService {
 		return userService.getUserById(nf.getUserId());
 	}
 	
+	public boolean userHasSyncRoot(NimbusUser user) {
+		return userService.getSyncRootFolder(user) != null;
+	}
+	
 	public boolean isTrackedFile(NimbusUser user, NimbusFile file) {
 		final NimbusFile syncRoot = userService.getSyncRootFolder(user);
+		if (syncRoot == null) return false;
+		log.debug("Checking if file " + file.getName() + " is tracked");
 		return fileService.fileIsChildOf(file, syncRoot);
 	}
 	
@@ -370,6 +414,7 @@ public class FileSyncService {
 	
 	public NimbusFile toNimbusFile(NimbusUser user, String path) {
 		final NimbusFile syncRoot = userService.getSyncRootFolder(user);
+		if (syncRoot == null) return null;
 		NimbusFile result = fileService.resolveRelativePath(syncRoot, path);
 		if (result == null) {
 			// File doesn't currently exist on the server
@@ -380,6 +425,7 @@ public class FileSyncService {
 	
 	public NimbusFile toNimbusFile(NimbusUser user, SyncFile file) {
 		final NimbusFile syncRoot = userService.getSyncRootFolder(user);
+		if (syncRoot == null) return null;
 		NimbusFile result = fileService.resolveRelativePath(syncRoot, file.getPath());
 		if (result == null) {
 			// File doesn't currently exist on the server

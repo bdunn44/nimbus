@@ -60,4 +60,8 @@ public interface UserService {
 	
 	EmailTransport getEmailTransport(NimbusUser user);
 
+	NimbusFile getSyncRootFolder(NimbusUser user);
+
+	String getSyncRootFolderPath(NimbusUser user);
+
 }

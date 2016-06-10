@@ -1,13 +1,10 @@
 package com.kbdunn.nimbus.api.client.model;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
-
-@JsonTypeInfo(use=JsonTypeInfo.Id.MINIMAL_CLASS, include=As.PROPERTY, property="@type")
-public abstract class FileEvent {
+//@JsonTypeInfo(use=JsonTypeInfo.Id.MINIMAL_CLASS, include=As.PROPERTY, property="@type")
+public abstract class FileEvent extends SyncEvent {
 	
 	private SyncFile file;
-	private String originationId;
+	//private String originationId;
 	
 	public FileEvent() {  }
 	
@@ -19,16 +16,16 @@ public abstract class FileEvent {
 		return file;
 	}
 	
-	public String getOriginationId() {
+	/*public String getOriginationId() {
 		return originationId;
 	}
 	
 	public void setOriginationId(String originationId) {
 		this.originationId = originationId;
-	}
+	}*/
 
 	@Override
 	public String toString() {
-		return "FileEvent [" + file + ", originationId=" + originationId + "]";
+		return "FileEvent [" + file + ", originationId=" + getOriginationId() + "]";
 	}
 }

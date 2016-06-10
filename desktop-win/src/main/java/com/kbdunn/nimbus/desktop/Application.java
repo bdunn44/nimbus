@@ -8,7 +8,6 @@ import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.swt.widgets.Display;
@@ -16,11 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gwt.thirdparty.guava.common.util.concurrent.ThreadFactoryBuilder;
-import com.kbdunn.nimbus.desktop.sync.DesktopSyncManager;
-import com.kbdunn.nimbus.desktop.sync.SyncPreferences;
-import com.kbdunn.nimbus.desktop.sync.SyncStateCache;
-import com.kbdunn.nimbus.desktop.ui.ApplicationResources;
+import com.kbdunn.nimbus.common.util.TrackedExecutorWrapper;
+import com.kbdunn.nimbus.desktop.sync.SyncManager;
+import com.kbdunn.nimbus.desktop.sync.data.SyncPreferences;
+import com.kbdunn.nimbus.desktop.sync.data.SyncStateCache;
 import com.kbdunn.nimbus.desktop.ui.TrayMenu;
+import com.kbdunn.nimbus.desktop.ui.resources.ApplicationResources;
 
 public class Application {
 	
@@ -39,25 +39,19 @@ public class Application {
 			System.exit(1);
 		}
 	}
-	
-	public static void exit() {
-		if (instance == null) return;
-		Application.pause();
-		instance.trayMenu.dispose();
-	}
 
 	private final Display display;
 	private final Properties appProperties;
-	private final ScheduledExecutorService backgroundExecutor;
+	private final TrackedExecutorWrapper backgroundExecutor;
 	
 	private TrayMenu trayMenu;
-	private DesktopSyncManager syncManager;
+	private SyncManager syncManager;
 	
 	private Application() {
 		display = new Display();
 		appProperties = new Properties();
-		backgroundExecutor = Executors.newSingleThreadScheduledExecutor(
-				new ThreadFactoryBuilder().setNameFormat("App Background Thread #%d").build());
+		backgroundExecutor = new TrackedExecutorWrapper(Executors.newScheduledThreadPool(3, //Executors.newSingleThreadScheduledExecutor(
+				new ThreadFactoryBuilder().setNameFormat("App Background Thread #%d").build()));
 		try (final InputStream in = getClass().getResourceAsStream("/nimbus-desktop.properties")) {
 			appProperties.load(in);
 		} catch (IOException e) {
@@ -71,7 +65,7 @@ public class Application {
 		log.info("Sync root directory is {}", SyncPreferences.getSyncDirectory());
 		
 		// Create system tray item and menu
-		syncManager = new DesktopSyncManager();
+		syncManager = new SyncManager();
 		trayMenu = new TrayMenu(display);
 		
 		// Initialize sync cache
@@ -117,25 +111,35 @@ public class Application {
 		}
 	}
 	
-	public static DesktopSyncManager getSyncManager() {
+	public static SyncManager getSyncManager() {
 		return instance.syncManager;
 	}
 	
-	public static DesktopSyncManager.Status getSyncStatus() {
+	public static SyncManager.Status getSyncStatus() {
 		synchronized(instance) {
 			return instance.syncManager.getSyncStatus();
 		}
 	}
 	
 	public synchronized static void updateSyncStatus() {
+		if (!instance.trayMenu.isDisposed()) {
+			access(() -> {
+				instance.trayMenu.setStatus(
+						instance.syncManager.getSyncStatus(),
+						instance.syncManager.getSyncTaskCount());
+			});
+		}
+	}
+	
+	public static void showNotification(String notification) {
 		access(() -> {
-			instance.trayMenu.setStatus(instance.syncManager.getSyncStatus());
+			instance.trayMenu.showNotification(notification);
 		});
 	}
 	
 	public static boolean connect() throws UnknownHostException {
 		if (instance.syncManager.connect()) {
-			//resume();
+			resume();
 			return true;
 		}
 		return false;
@@ -159,8 +163,24 @@ public class Application {
 	public static void resume() {
 		synchronized(instance) {
 			instance.syncManager.resume();
-			instance.trayMenu.showNotification("File synchronization resumed");
+			access(() -> {
+				instance.trayMenu.showNotification("File synchronization resumed");
+			});
 		}
+	}
+	
+	public static void triggerBatchSync() {
+		synchronized(instance) {
+			// Pause and resume, don't show notifications
+			instance.syncManager.pause();
+			instance.syncManager.resume();
+		}
+	}
+	
+	public static void exit() {
+		if (instance == null) return;
+		pause();
+		instance.trayMenu.dispose();
 	}
 	
 	public static <T> Future<T> asyncExec(Callable<T> task) {

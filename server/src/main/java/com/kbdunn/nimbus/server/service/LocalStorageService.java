@@ -136,6 +136,25 @@ public class LocalStorageService implements StorageService {
 	}
 	
 	@Override
+	public StorageDevice getSyncRootStorageDevice(NimbusUser user) {
+		if (user.getId() == null) throw new NullPointerException("User ID cannot be null");
+		return StorageDAO.getSyncRootDevice(user.getId());
+	}
+	
+	@Override
+	public void setSyncRootStorageDevice(NimbusUser user, StorageDevice device) {
+		if (user.getId() == null) throw new NullPointerException("User ID cannot be null");
+		// Device can be set to null, but if it's not-null it should have an ID
+		if (device != null && device.getId() == null) throw new NullPointerException("Storage Device ID cannot be null");
+		final StorageDevice oldRoot = getSyncRootStorageDevice(user);
+		if (device == null || !device.equals(oldRoot)) {
+			NimbusContext.instance().getFileSyncService().publishRootChangeEvent(user, oldRoot, device);
+			StorageDAO.setSyncRootDevice(user.getId(), device == null ? null : device.getId());
+			if (device != null) StorageDAO.resetReconciliation(device.getId());
+		}
+	}
+	
+	@Override
 	public boolean delete(StorageDevice device) {
 		if (device.getId() == null) throw new NullPointerException("Device ID cannot be null");
 		return StorageDAO.delete(device.getId());
@@ -398,6 +417,12 @@ public class LocalStorageService implements StorageService {
 		}
 		
 		log.info("Done.");
+	}
+	
+	@Override
+	public void resetReconciliation(StorageDevice device) {
+		if (device.getId() == null) throw new NullPointerException("Storage Device ID cannot be null");
+		StorageDAO.resetReconciliation(device.getId());
 	}
 	
 	@Override

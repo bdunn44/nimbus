@@ -8,15 +8,15 @@ ext.vaadinVersion = vaadinVersion
 def jettyVersion = '9.2.15.v20160210'
 
 // ProGuard breaks push as of 0.6.1
-/*buildscript {
+buildscript {
 	repositories {
-		flatDir dirs: '../proguard5.2.1/lib'
+		//flatDir dirs: '../proguard5.2.1/lib'
 	}
 	
 	dependencies {
-		classpath ':proguard'
+		//classpath ':proguard'
 	}
-}*/
+}
 
 allprojects {
 	apply plugin: 'java'
@@ -39,7 +39,7 @@ subprojects {
 	dependencies {
 		compile 'log4j:log4j:1.2.17'
 	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
-	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
+	    compile 'com.github.scribejava:scribejava-apis:2.7.3'
 	    
 		//  Java Mail 
 		compile 'com.sun.mail:javax.mail:1.5.5'
@@ -223,6 +223,8 @@ project(':server') {
 
 project(':desktop-win') {
 	
+	//apply plugin: 'multiplatform'
+	
 	dependencies {
 	    compile project(':common')
 	    compile project(':api')
@@ -233,6 +235,28 @@ project(':desktop-win') {
 		compile 'org.jsoup:jsoup:1.8.3'
 	    compile fileTree(dir: 'lib', include: '*.jar')
 	}
+	
+	/*multiplatform {
+		version = project.version
+		
+		runner {
+			mainClassName = 'com.kbdunn.nimbus.desktop.Application'
+			//workingDir = '???'
+		}
+		
+		// Files required for all platforms
+		coreFiles = project.copySpec {
+			into('resources') {
+				from('src/main/resources')
+			}
+		}
+		
+		// Platform-specific dependencies
+		installation('win32', FAMILY_WINDOWS, ARCH_X86_64) {
+			nsisSetupScript = 'src/main/nsis/win32.nsi'
+			overrideDir = file('lib/win32')
+		}
+	}*/
 }
 
 project(':api') {

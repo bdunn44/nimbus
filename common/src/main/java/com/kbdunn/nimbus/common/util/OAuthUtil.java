@@ -1,5 +1,7 @@
 package com.kbdunn.nimbus.common.util;
 
+import java.io.IOException;
+
 import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.model.OAuth1AccessToken;
 import com.github.scribejava.core.model.OAuth2AccessToken;
@@ -29,7 +31,7 @@ public final class OAuthUtil {
 			);
 	}
 	
-	public static OAuth2AccessToken refreshAccessToken(OAuth20API service) {
+	public static OAuth2AccessToken refreshAccessToken(OAuth20API service) throws IOException {
 		final OAuthService scribeService = getScribeOAuthService(service);
 		return ((OAuth20Service) scribeService).refreshAccessToken(service.getOAuthCredential().getRefreshToken());
 	}

@@ -1,6 +1,5 @@
 package com.kbdunn.nimbus.desktop.sync.data;
 
-import java.io.File;
 import java.util.Map;
 import java.util.prefs.Preferences;
 
@@ -8,7 +7,7 @@ import com.kbdunn.nimbus.desktop.model.SyncCredentials;
 
 public class SyncPreferences {
 	
-	private static final String PREF_NODE = "/" + SyncPreferences.class.getPackage().getName().replace(".", "/");
+	private static final String PREF_NODE = "/nimbus/sync";
 	private static Preferences prefs;
 	
 	static {
@@ -19,7 +18,6 @@ public class SyncPreferences {
 		CREDENTIALS,
 		URL,
 		NODE_NAME,
-		SYNC_DIR,
 	}
 	
 	private static String getPreference(Key key) {
@@ -69,19 +67,5 @@ public class SyncPreferences {
 			nodeName = getDefaultNodeName();
 		}
 		setPreference(Key.NODE_NAME, nodeName);
-	}
-	
-	public static String getSyncDirectoryPath() {
-		String dir = getPreference(Key.SYNC_DIR);
-		if (dir == null || dir.isEmpty()) {
-			dir = System.getProperty("user.home") + File.separator + "Nimbus Sync";
-			setPreference(Key.SYNC_DIR, dir);
-		}
-		
-		return dir;
-	}
-	
-	public static File getSyncDirectory() {
-		return new File(getSyncDirectoryPath());
 	}
 }

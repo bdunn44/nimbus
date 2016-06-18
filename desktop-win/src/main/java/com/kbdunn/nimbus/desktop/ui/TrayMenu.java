@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.desktop.Application;
+import com.kbdunn.nimbus.desktop.ApplicationProperties;
 import com.kbdunn.nimbus.desktop.sync.SyncManager;
 import com.kbdunn.nimbus.desktop.sync.data.SyncPreferences;
 import com.kbdunn.nimbus.desktop.ui.resources.ApplicationResources;
@@ -45,6 +46,7 @@ public class TrayMenu {
 	
 	public TrayMenu(Display display) {
 		this.shell = new Shell(display);
+		shell.setImage(ApplicationResources.getSmallIcon(display));
 		createTrayItem(display);
 		createMenu();
 	}
@@ -58,7 +60,7 @@ public class TrayMenu {
 		// Create Tray Item
 		trayItem = new TrayItem(tray, SWT.NONE);
 		trayItem.setToolTipText("Nimbus Sync");
-		trayItem.setImage(ApplicationResources.getIcon(display));
+		trayItem.setImage(ApplicationResources.getSmallIcon(display));
 		// Display menu on click
 		trayItem.addListener(SWT.MenuDetect, new Listener() {
 			@Override
@@ -170,12 +172,12 @@ public class TrayMenu {
 	
 	private void onOpenSyncFolderClick(Event event) {
 		try {
-			Desktop.getDesktop().open(SyncPreferences.getSyncDirectory());
+			Desktop.getDesktop().open(ApplicationProperties.instance().getSyncDirectory());
 		} catch (IOException e) {
-			log.error("Failed to open sync folder {}", SyncPreferences.getSyncDirectory(), e);
+			log.error("Failed to open sync folder {}", ApplicationProperties.instance().getSyncDirectory(), e);
 		}
 	}
-
+	
 	private void onOpenWebAppClick(Event event) {
 		String url = SyncPreferences.getUrl();
 		if (!url.startsWith("http")) {
@@ -210,6 +212,10 @@ public class TrayMenu {
 	}
 	
 	private void onOpenSettingsClick(Event event) {
+		openSettingsWindow();
+	}
+	
+	public void openSettingsWindow() {
 		if (windowOpen) {
 			settingsWindow.getShell().forceFocus();
 		}

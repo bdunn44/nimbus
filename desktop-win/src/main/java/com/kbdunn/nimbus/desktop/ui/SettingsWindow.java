@@ -27,10 +27,6 @@ public class SettingsWindow extends AbstractWindow {
 	private ConnectForm connectForm;
 	private StatusPane statusPane;
 	
-	public static void main(String[] args) {
-		Application.main(args);
-	}
-	
 	public SettingsWindow(Display display) {
 		super(display, SWT.CLOSE | SWT.TITLE | SWT.MIN); // Fixed size, can be minimized
 		buildWindow();

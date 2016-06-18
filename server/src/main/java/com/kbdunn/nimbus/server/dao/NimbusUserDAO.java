@@ -89,48 +89,6 @@ public abstract class NimbusUserDAO {
 		return user;
 	}
 	
-	// Get user by API Token
-	public static NimbusUser getByApiToken(String apiToken) {
-		log.trace("Getting user by API token " + apiToken);
-		NimbusUser user = null;
-		
-		Connection con = null;
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		
-		try {
-			con = HikariConnectionPool.getConnection();
-			// Query the database for the username. Grabs matches for email or name
-			ps = con.prepareStatement(
-					"SELECT u.*, " +
-					// Check if owner
-					"(CASE u.CREATE_DATE WHEN (SELECT MIN(CREATE_DATE) FROM USER) THEN TRUE ELSE FALSE END) IS_OWNER " +
-					"FROM USER u " +
-					"WHERE API_TOKEN=?");
-			ps.setString(1, apiToken);
-			rs = ps.executeQuery();
-			
-			if (!rs.next()) {
-				log.warn("User not found!");
-				return null;
-			}
-			return toNimbusUser(rs);
-			
-		} catch (SQLException e) {
-			log.error(e, e);
-		} finally {
-			try {
-				if (con != null) con.close();
-				if (ps != null) ps.close();
-				if (rs != null) rs.close();
-			} catch (SQLException e) {
-				log.error(e, e);
-			}
-		}
-		
-		return user;
-	}
-	
 	// Retrieves a user by ID
 	public static NimbusUser getById(Long id) {
 		log.trace("Getting user with ID " + id);
@@ -327,20 +285,19 @@ public abstract class NimbusUserDAO {
 			con = HikariConnectionPool.getConnection();
 			ps = con.prepareStatement(
 					"INSERT INTO USER "
-					+ "(NAME, EMAIL, PW_DIGEST, HAS_TEMP_PW, IS_ADMIN, HMAC_KEY, API_TOKEN, OAUTH_EMAIL_SERVICE_NAME, CREATE_DATE, LAST_UPDATE_DATE)"
+					+ "(NAME, EMAIL, PW_DIGEST, HAS_TEMP_PW, IS_ADMIN, API_TOKEN, OAUTH_EMAIL_SERVICE_NAME, CREATE_DATE, LAST_UPDATE_DATE)"
 					+ "VALUES"
-					+ "(?, ?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE);");
+					+ "(?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE);");
 			ps.setString(1, user.getName());
 			ps.setString(2, user.getEmail());
 			ps.setString(3, user.getPasswordDigest());
 			ps.setBoolean(4, user.isPasswordTemporary());
 			ps.setBoolean(5, user.isAdministrator());
-			ps.setString(6, user.getHmacKey());
-			ps.setString(7, user.getApiToken());
+			ps.setString(6, user.getApiToken());
 			if (user.getEmailServiceName() != null) {
-				ps.setString(8, user.getEmailServiceName().toString());
+				ps.setString(7, user.getEmailServiceName().toString());
 			} else {
-				ps.setNull(8, Types.VARCHAR);
+				ps.setNull(7, Types.VARCHAR);
 			}
 			if (ps.executeUpdate() != 1) throw new SQLException("Insert of USER record failed");
 		} catch (SQLException e) {
@@ -372,7 +329,6 @@ public abstract class NimbusUserDAO {
 					+ "PW_DIGEST = ?, "
 					+ "HAS_TEMP_PW = ?, "
 					+ "IS_ADMIN = ?, "
-					+ "HMAC_KEY = ?, "
 					+ "API_TOKEN = ?, "
 					+ "OAUTH_EMAIL_SERVICE_NAME = ?, "
 					+ "LAST_UPDATE_DATE = SYSDATE "
@@ -382,14 +338,13 @@ public abstract class NimbusUserDAO {
 			ps.setString(3, user.getPasswordDigest());
 			ps.setBoolean(4, user.isPasswordTemporary());
 			ps.setBoolean(5, user.isAdministrator());
-			ps.setString(6, user.getHmacKey());
-			ps.setString(7, user.getApiToken());
+			ps.setString(6, user.getApiToken());
 			if (user.getEmailServiceName() != null) {
-				ps.setString(8, user.getEmailServiceName().toString());
+				ps.setString(7, user.getEmailServiceName().toString());
 			} else {
-				ps.setNull(8, Types.VARCHAR);
+				ps.setNull(7, Types.VARCHAR);
 			}
-			ps.setLong(9, user.getId());
+			ps.setLong(8, user.getId());
 			
 			if (ps.executeUpdate() != 1) throw new SQLException("Update of USER record failed");
 		} catch (SQLException e) {
@@ -488,7 +443,7 @@ public abstract class NimbusUserDAO {
 					+ "WHERE ID = ?;");
 			ps.setString(1, smtpSettings.getSmtpServer());
 			ps.setString(2, smtpSettings.getSmtpPort());
-			ps.setBoolean(3, smtpSettings.isSSLEnabled());
+			ps.setBoolean(3, smtpSettings.isSslEnabled());
 			ps.setString(4, smtpSettings.getSslPort());
 			ps.setString(5, smtpSettings.getUsername());
 			ps.setString(6, smtpSettings.getPassword());
@@ -527,7 +482,6 @@ public abstract class NimbusUserDAO {
 			String email = row.getString("EMAIL");
 			String passwordDigest = row.getString("PW_DIGEST");
 			String apiToken = row.getString("API_TOKEN");
-			String hmacKey = row.getString("HMAC_KEY");
 			Boolean isPasswordTemporary = row.getBoolean("HAS_TEMP_PW");
 			Boolean isAdministrator = row.getBoolean("IS_ADMIN");
 			Boolean isOwner = row.getBoolean("IS_OWNER");
@@ -536,7 +490,7 @@ public abstract class NimbusUserDAO {
 			Date created = row.getTimestamp("CREATE_DATE");
 			Date updated = row.getTimestamp("LAST_UPDATE_DATE");
 			
-			return new NimbusUser(id, name, email, passwordDigest, apiToken, hmacKey, 
+			return new NimbusUser(id, name, email, passwordDigest, apiToken,
 					isPasswordTemporary, isAdministrator, isOwner, oAuthEmailService, created, updated);
 		} catch (SQLException e) {
 			log.error(e, e);

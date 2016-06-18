@@ -1,5 +1,8 @@
 package com.kbdunn.nimbus.common.util;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 public class ComparatorUtil {
@@ -13,7 +16,11 @@ public class ComparatorUtil {
 	        return 0;
 	    }
 	    
-	    return one.compareTo(two);
+	    ZoneId zone = ZoneId.systemDefault();
+	    LocalDateTime ldt1 = LocalDateTime.ofInstant(one.toInstant(), zone).truncatedTo(ChronoUnit.SECONDS);
+	    LocalDateTime ldt2 = LocalDateTime.ofInstant(two.toInstant(), zone).truncatedTo(ChronoUnit.SECONDS);
+	    return ldt1.compareTo(ldt2);
+	    //return one.compareTo(two);
 	}
 	
 	public static int nullSafeLongComparator(final Long one, final Long two) {

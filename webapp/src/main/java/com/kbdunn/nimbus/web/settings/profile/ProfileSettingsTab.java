@@ -4,6 +4,7 @@ import com.kbdunn.nimbus.web.NimbusUI;
 import com.kbdunn.nimbus.web.settings.SettingsTab;
 import com.kbdunn.nimbus.web.settings.SettingsTabController;
 import com.vaadin.event.ShortcutAction.KeyCode;
+import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -19,9 +20,10 @@ public class ProfileSettingsTab extends VerticalLayout implements SettingsTab, C
 	public static final String FRAGMENT = "profile";
 	
 	private ProfileController controller;
-	private HorizontalLayout panelLayout;
 	private UserProfileForm profileForm;
 	private EmailSettingsForm emailForm;
+	private ApiTokenForm apiForm;
+	private SyncForm syncForm;
 	
 	public ProfileSettingsTab(ProfileController controller) {
 		this.controller = controller;
@@ -48,6 +50,8 @@ public class ProfileSettingsTab extends VerticalLayout implements SettingsTab, C
 		controller.refreshUser();
 		profileForm.refresh();
 		emailForm.refresh();
+		apiForm.refresh();
+		syncForm.refresh();
 	}
 
 	@Override
@@ -58,40 +62,38 @@ public class ProfileSettingsTab extends VerticalLayout implements SettingsTab, C
 	private void buildLayout() {
 		setMargin(true);
 		setSpacing(true);
-		setSizeUndefined();
+		setSizeFull();
 		
 		Label title = new Label("Edit Your Profile");
 		title.addStyleName(ValoTheme.LABEL_H2);
 		title.addStyleName(ValoTheme.LABEL_NO_MARGIN);
 		addComponent(title);
 		
-		panelLayout = new HorizontalLayout();
-		panelLayout.setSpacing(true);
-		panelLayout.addStyleName(ValoTheme.LAYOUT_HORIZONTAL_WRAPPING);
-		addComponent(panelLayout);
-		
 		profileForm = new UserProfileForm(controller);
-		profileForm.setWidth("400px");
-		profileForm.setCaption("Profile");
-		panelLayout.addComponent(profileForm);
-		panelLayout.setComponentAlignment(profileForm, Alignment.TOP_LEFT);
+		addComponent(profileForm);
 		
 		emailForm = new EmailSettingsForm(controller);
-		emailForm.setWidth("400px");
-		emailForm.setCaption("Email Account");
-		panelLayout.addComponent(emailForm);
-		panelLayout.setComponentAlignment(emailForm, Alignment.TOP_LEFT);
+		addComponent(emailForm);
+		
+		apiForm = new ApiTokenForm(controller);
+		addComponent(apiForm);
+		
+		syncForm = new SyncForm(controller);
+		addComponent(syncForm);
 		
 		HorizontalLayout buttonLayout = new HorizontalLayout();
-		//buttonLayout.setMargin(true);
+		buttonLayout.setMargin(new MarginInfo(true, false, false, false));
 		buttonLayout.setSpacing(true);
 		Button submit = new Button("Save", this);
+		submit.addStyleName(ValoTheme.BUTTON_FRIENDLY);
 		submit.setClickShortcut(KeyCode.ENTER);
 		buttonLayout.addComponent(submit);
-		buttonLayout.addComponent(new Button("Cancel", e -> {
-				controller.refreshUser();
-				refresh();
-			}));
+		Button cancel = new Button("Cancel", e -> {
+			controller.refreshUser();
+			refresh();
+		});
+		cancel.addStyleName(ValoTheme.BUTTON_QUIET);
+		buttonLayout.addComponent(cancel);
 		
 		addComponent(buttonLayout);
 		setComponentAlignment(buttonLayout, Alignment.MIDDLE_RIGHT);
@@ -103,6 +105,10 @@ public class ProfileSettingsTab extends VerticalLayout implements SettingsTab, C
 	
 	EmailSettingsForm getEmailForm() {
 		return emailForm;
+	}
+	
+	SyncForm getSyncForm() {
+		return syncForm;
 	}
 	
 	@Override

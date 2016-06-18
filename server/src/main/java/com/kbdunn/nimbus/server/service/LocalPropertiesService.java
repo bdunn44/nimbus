@@ -37,6 +37,7 @@ public class LocalPropertiesService implements PropertiesService {
 	private static String truststorePassword;
 	private static String keyManagerPassword;
 	private static Integer httpsPort;
+	private static Integer externalHttpsPort;
 	
 	private boolean autoScan;
 	
@@ -44,10 +45,9 @@ public class LocalPropertiesService implements PropertiesService {
 		// Static properties
 		nimbusHome = System.getProperty("nimbus.home");
 		if (nimbusHome == null) {
-			nimbusHome = System.getProperty("user.dir");
+			nimbusHome = System.getProperty("user.dir").replace("C:", "").replace("\\", "/");
 			if (!nimbusHome.endsWith("nimbus")) {
-				System.out.println(nimbusHome);
-				nimbusHome = nimbusHome.substring(0, nimbusHome.lastIndexOf(File.separator));
+				nimbusHome = nimbusHome.substring(0, nimbusHome.lastIndexOf("/"));
 			}
 			System.setProperty("nimbus.home", nimbusHome); // DEV Mode - set to Eclipse project home dir
 			DEV_MODE = true;
@@ -70,11 +70,10 @@ public class LocalPropertiesService implements PropertiesService {
 		truststorePassword = getStringProperty(props, "nimbus.ssl.truststore.password");
 		keyManagerPassword = getStringProperty(props, "nimbus.ssl.keymanager.password");
 		httpsPort = getIntegerProperty(props, "nimbus.ssl.https.port");
-
+		externalHttpsPort = getIntegerProperty(props, "nimbus.ssl.https.external.port");
+		
 		if (DEV_MODE) {
 			dbConnectString = "jdbc:hsqldb:file:" + nimbusHome + "/server/src/main/resources/db/nimbusdb;ifexists=true;shutdown=true;hsqldb.write_delay=false;";
-		//} else if (DEMO_MODE) {
-		//	dbConnectString = "jdbc:hsqldb:file:/nimbus/db/nimbusdb;ifexists=true;shutdown=true;hsqldb.write_delay=false;";
 		} else {
 			dbConnectString = "jdbc:hsqldb:file:" + nimbusHome + "/data/nimbusdb;ifexists=true;shutdown=true;hsqldb.write_delay=false;";
 		}
@@ -117,17 +116,11 @@ public class LocalPropertiesService implements PropertiesService {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#isDevMode()
-	 */
 	@Override
 	public boolean isDevMode() {
 		return DEV_MODE;
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#isDemoMode()
-	 */
 	@Override
 	public boolean isDemoMode() {
 		return DEMO_MODE;
@@ -138,108 +131,74 @@ public class LocalPropertiesService implements PropertiesService {
 		return "DemoUser";
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getNimbusHome()
-	 */
 	@Override
 	public String getNimbusHome() {
 		return nimbusHome;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getDbDriver()
-	 */
 	@Override
 	public String getDbDriver() {
 		return dbDriver;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getDbConnectString()
-	 */
 	@Override
 	public String getDbConnectString() {
 		return dbConnectString;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getDbUser()
-	 */
 	@Override
 	public String getDbUser() {
 		return dbUser;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getDbPassword()
-	 */
 	@Override
 	public String getDbPassword() {
 		return dbPassword;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getHttpPort()
-	 */
 	@Override
 	public Integer getHttpPort() {
 		return httpPort;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#isSslEnabled()
-	 */
 	@Override
 	public Boolean isSslEnabled() {
 		return sslEnabled;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getKeystorePassword()
-	 */
 	@Override
 	public String getKeystorePassword() {
 		return keystorePassword;
 	}
-
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getKeystorePath()
-	 */
+	
 	@Override
 	public String getKeystorePath() {
 		return keystorePath;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getTruststorePath()
-	 */
 	@Override
 	public String getTruststorePath() {
 		return truststorePath;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getTruststorePassword()
-	 */
 	@Override
 	public String getTruststorePassword() {
 		return truststorePassword;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getKeyManagerPassword()
-	 */
 	@Override
 	public String getKeyManagerPassword() {
 		return keyManagerPassword;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#getHttpsPort()
-	 */
 	@Override
 	public Integer getHttpsPort() {
 		return httpsPort;
+	}
+
+	@Override
+	public Integer getExternalHttpsPort() {
+		return externalHttpsPort;
 	}
 	
 	@Override
@@ -249,18 +208,12 @@ public class LocalPropertiesService implements PropertiesService {
 	
 	/* MODIFYABLE PROPERTIES */
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#isAutoScan()
-	 */
 	@Override
 	public boolean isAutoScan() {
 		autoScan = NimbusSystemDAO.getIsAutoScan();
 		return autoScan;
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.server.util.PropertiesService#setAutoScan(boolean)
-	 */
 	@Override
 	public void setAutoScan(boolean autoScan) {
 		this.autoScan = autoScan;

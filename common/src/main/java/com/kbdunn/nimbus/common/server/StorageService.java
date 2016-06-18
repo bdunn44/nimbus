@@ -66,4 +66,10 @@ public interface StorageService {
 
 	MemoryInformation getSystemMemoryInformation();
 
+	StorageDevice getSyncRootStorageDevice(NimbusUser user);
+
+	void setSyncRootStorageDevice(NimbusUser user, StorageDevice device);
+
+	void resetReconciliation(StorageDevice device);
+
 }

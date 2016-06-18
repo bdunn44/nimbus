@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PACKAGES="ntfs-3g pmount avahi-daemon avahi-discover libnss-mdns hwinfo"
+PACKAGES="ntfs-3g pmount avahi-daemon avahi-discover libnss-mdns hwinfo openssl"
 
 if [ "$(id -u)" != '0' ]; then
 	echo "This script must be run as root." 1>&2

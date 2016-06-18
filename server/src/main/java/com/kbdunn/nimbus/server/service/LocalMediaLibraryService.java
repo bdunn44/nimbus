@@ -1,7 +1,6 @@
 package com.kbdunn.nimbus.server.service;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
@@ -10,21 +9,18 @@ import org.apache.log4j.Logger;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.AudioHeader;
-import org.jaudiotagger.audio.exceptions.CannotReadException;
-import org.jaudiotagger.audio.exceptions.CannotWriteException;
-import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
-import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
-import org.jaudiotagger.tag.TagException;
 
 import com.kbdunn.nimbus.common.model.Album;
 import com.kbdunn.nimbus.common.model.Artist;
+import com.kbdunn.nimbus.common.model.NimbusFile;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.common.model.Playlist;
 import com.kbdunn.nimbus.common.model.Song;
 import com.kbdunn.nimbus.common.model.Video;
 import com.kbdunn.nimbus.common.server.MediaLibraryService;
+import com.kbdunn.nimbus.common.util.ComparatorUtil;
 import com.kbdunn.nimbus.server.NimbusContext;
 import com.kbdunn.nimbus.server.dao.MediaLibraryDAO;
 import com.kbdunn.nimbus.server.dao.NimbusFileDAO;
@@ -47,9 +43,6 @@ public class LocalMediaLibraryService implements MediaLibraryService {
 	 * 
 	 */
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalMediaLibraryService#setSongAttributes(com.kbdunn.nimbus.common.bean.Song)
-	 */
 	@Override
 	public void setSongAttributes(Song song) {
 		log.debug("Setting song attributes for " + song);
@@ -67,13 +60,22 @@ public class LocalMediaLibraryService implements MediaLibraryService {
 			AudioHeader header = f.getAudioHeader();
 			Tag tag = f.getTag();
 			if (tag != null) {
-				art = tag.getFirst(FieldKey.ARTIST);
-				alb = tag.getFirst(FieldKey.ALBUM);
-				tit = tag.getFirst(FieldKey.TITLE);
-				yr = tag.getFirst(FieldKey.YEAR);
+				// Do this field-by-field, ignoring missing attributes
+				try {
+					art = tag.getFirst(FieldKey.ARTIST);
+				} catch(Exception e) {  }
+				try {
+					alb = tag.getFirst(FieldKey.ALBUM);
+				} catch(Exception e) {  }
+				try {
+					tit = tag.getFirst(FieldKey.TITLE);
+				} catch(Exception e) {  }
+				try {
+					yr = tag.getFirst(FieldKey.YEAR);
+				} catch(Exception e) {  }
 				try {
 					trk = Integer.parseInt(tag.getFirst(FieldKey.TRACK));
-				} catch (NumberFormatException nfe) {  }
+				} catch (Exception e) {  }
 			}
 			if (header != null) {
 				len = header.getTrackLength();
@@ -90,129 +92,87 @@ public class LocalMediaLibraryService implements MediaLibraryService {
 			//artist.addAlbum(album);
 		} catch (Exception e) {
 			log.warn(e.getMessage());
-		} finally {
-			
 		}
-		
-		// BeagleBuddy
-		/*MP3 mp3 = null;
-		try {
-			mp3 = new MP3(song.getPath());
-			
-			if (mp3.getAudioDuration() == 0)       // if the length of the song hasn't been specified,
-				mp3.setAudioDuration();             // then calculate it from the mpeg audio frames
-		} catch (IOException e) {
-			if (!e.getMessage().contains("An ID3v2.2 tag was found in the mp3 file but that version is not currently supported"))
-				log.error(e.getMessage());
-		} finally {
-			String art = null;
-			String alb = null;
-			String tit = null;
-			String yr = null;
-			Integer trk = null;
-			Integer len = null;
-			
-			if (mp3 != null) {
-				log.debug("audio duration.....: " + mp3.getAudioDuration()                  + " s\n"      +
-				"audio size.........: " + mp3.getAudioSize()                      + " bytes\n"  +
-				"album..............: " + mp3.getAlbum()                          + "\n"        +
-				"artist.............: " + mp3.getBand()                           + "\n"        +
-				"contributing artist: " + mp3.getLeadPerformer()                  + "\n"        +
-				"lyrics by..........: " + mp3.getLyricsBy()                       + "\n"        +
-				"music by...........: " + mp3.getMusicBy()                        + "\n"        +
-				"picture............: " + mp3.getPicture(PictureType.FRONT_COVER) + "\n"        +
-				"publisher..........: " + mp3.getPublisher()                      + "\n"        +
-				"rating.............: " + mp3.getRating()                         + "\n"        +
-				"title..............: " + mp3.getTitle()                          + "\n"        +
-				"track #............: " + mp3.getTrack()                          + "\n"        +
-				"year recorded......: " + mp3.getYear()                           + "\n"        +
-				"lyrics.............: " + mp3.getLyrics()                         + "\n");
-				art = mp3.getBand();
-				alb = mp3.getAlbum();
-				tit = mp3.getTitle();
-				yr = String.valueOf(mp3.getYear());
-				trk = mp3.getTrack();
-				len = mp3.getAudioDuration();
-			}
-			
-			song.setArtist(art);
-			song.setAlbum(alb);
-			song.setTitle(tit);
-			song.setAlbumYear(yr);
-			song.setTrackNumber(trk);
-			song.setLength(len);
-		}*/
 	}
 	
 	private void saveId3(Song song) {
-		// BeagleBuddy
-		/*MP3 mp3 = null;
-		try {
-			mp3 = new MP3(song.getPath());
-		} catch (IOException e) {
-			if (!e.getMessage().contains("An ID3v2.2 tag was found in the mp3 file but that version is not currently supported"))
-				log.error(e.getMessage());
-		} finally {
-			if (mp3 != null) {
-				if (song.getArtist() != null && !song.getArtist().equals(Artist.UNKNOWN)) 
-					mp3.setBand(song.getArtist());
-				if (song.getAlbum() != null && !song.getAlbum().equals(Album.UNKNOWN)) 
-					mp3.setAlbum(song.getAlbum());
-				if (song.getTitle() != null && !song.getTitle().equals(song.getName())) 
-					mp3.setTitle(song.getTitle());
-				if (song.getTrackNumber() != null)
-					mp3.setTrack(song.getTrackNumber());
-				try {
-					Integer y = Integer.valueOf(song.getAlbumYear());
-					if (y != null && !y.equals(0)) mp3.setYear(y);
-				} catch (NumberFormatException e) {
-					// Ignore
-				}
-				try {
-					mp3.save();
-				} catch (IllegalStateException | IOException e) {
-					log.error(e, e);
-				}
-				//mp3.setMusicType(Genre.HARD_ROCK);
-				//mp3.setAudioDuration(310);
-				//mp3.setRating(240);
-				//mp3.setLyrics("I'm rolling thunder\npouring rain.\nI'm coming on like a hurricane\n...");
-				//mp3.setPicture(PictureType.FRONT_COVER, new File("c:/images/ac_dc/back_in_black.jpg"));
-			}
-		}*/
-		
 		// JAudioTagger
+		// Save as incrementally as possible
+		
+		// Copy the song
+		Song song2 = new Song(song);
+		setSongAttributes(song2);
+		boolean changed = false;
+
 		try {
-			AudioFile f = AudioFileIO.read(new File(song.getPath()));
+			final File songFile = new File(song.getPath());
+			AudioFile f = AudioFileIO.read(songFile);
 			Tag tag = f.getTag();
-			tag.setField(FieldKey.ARTIST, song.getArtist());
-			tag.setField(FieldKey.ALBUM, song.getAlbum());
-			tag.setField(FieldKey.TITLE, song.getTitle());
-			tag.setField(FieldKey.TRACK, String.valueOf(song.getTrackNumber()));
-			tag.setField(FieldKey.YEAR, song.getAlbumYear());
-			f.commit();
-		} catch (CannotReadException | IOException | TagException
-				| ReadOnlyFileException | InvalidAudioFrameException | CannotWriteException e) {
-			log.warn(e.getMessage());
+			
+			if (ComparatorUtil.nullSafeStringComparator(song.getArtist(), song2.getArtist()) != 0) {
+				try {
+					tag.setField(FieldKey.ARTIST, song.getArtist());
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.ARTIST + " on ID3");
+				}
+			}
+			if (ComparatorUtil.nullSafeStringComparator(song.getAlbum(), song2.getAlbum()) != 0) {
+				try {
+					tag.setField(FieldKey.ALBUM, song.getAlbum());
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.ALBUM + " on ID3");
+				}
+			}
+			if (ComparatorUtil.nullSafeStringComparator(song.getTitle(), song2.getTitle()) != 0) {
+				try {
+					tag.setField(FieldKey.TITLE, song.getTitle());
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.TITLE + " on ID3");
+				}
+			}
+			if (ComparatorUtil.nullSafeStringComparator(String.valueOf(song.getTrackNumber()), 
+					String.valueOf(song2.getTrackNumber())) != 0) {
+				try {
+					tag.setField(FieldKey.TRACK, String.valueOf(song.getTrackNumber()));
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.TRACK + " on ID3");
+				}
+			}
+			if (ComparatorUtil.nullSafeStringComparator(song.getAlbumYear(), song2.getAlbumYear()) != 0) {
+				try {
+					tag.setField(FieldKey.YEAR, song.getAlbumYear());
+					changed = true;
+				} catch (Exception e) {
+					log.warn("Error setting " + FieldKey.YEAR + " on ID3");
+				}
+			}
+			if (changed) f.commit();
+		} catch (Exception e) {
+			log.error("Error saving ID3: " + e.getMessage());
 		}
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.kbdunn.nimbus.core.service.LocalMediaLibraryService#save(com.kbdunn.nimbus.common.bean.Song)
-	 */
 	@Override
 	public boolean save(Song song) {
+		return save(song, null, false, null);
+	}
+	
+	public boolean save(Song song, NimbusFile copySource, boolean moved, String originationId) {
 		if (song.getUserId() == null) throw new NullPointerException("User ID cannot be null");
 		if (song.getStorageDeviceId() == null) throw new NullPointerException("Drive ID cannot be null");
 		saveId3(song); // Don't stop if this fails
 		if (song.getId() == null) {
-			if (!fileService.insert(song)) return false;
+			if (!fileService.insert(song, copySource, originationId)) return false;
 			Song dbs = (Song) NimbusFileDAO.getByPath(song.getPath());
 			song.setId(dbs.getId());
 			song.setCreated(dbs.getCreated());
 			song.setUpdated(dbs.getUpdated());
 		} else {
-			if (!fileService.update(song)) return false;
+			if (!fileService.update(song, copySource, moved, originationId)) return false;
 			song.setUpdated(new Date()); // close enough
 		}
 		

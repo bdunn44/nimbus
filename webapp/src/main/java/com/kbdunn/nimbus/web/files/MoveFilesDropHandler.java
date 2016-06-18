@@ -109,7 +109,7 @@ public class MoveFilesDropHandler implements DropHandler, ResolutionListener {
 					
 					for (NimbusFile source : sources) {
 						try {
-							success = NimbusUI.getFileService().moveFileTo(source, targetFolder) ? success : false;
+							success = NimbusUI.getFileService().moveFileTo(source, targetFolder) != null ? success : false;
 						} catch (Exception e) {
 							log.error(e, e);
 						}

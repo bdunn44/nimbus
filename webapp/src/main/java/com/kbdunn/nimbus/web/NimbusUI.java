@@ -1,7 +1,12 @@
 package com.kbdunn.nimbus.web;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
 import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.common.server.AsyncService;
@@ -112,6 +117,19 @@ public class NimbusUI extends UI {
 		final Object o = VaadinSession.getCurrent().getAttribute("ip");
 		if (o == null) return null;
 		return (String) o;
+	}
+	
+	public static boolean isLocationAccessible() {
+		String url = "http://isup.me/";
+		try {
+			url += URLEncoder.encode(Page.getCurrent().getLocation().getAuthority(), "UTF-8");
+			Document html = Jsoup.connect(url).get();
+			String desc = html.getElementById("container").ownText();
+			return desc.contains("It's just you.");
+		} catch (IOException e) {
+			log.error("Error determining if current location (" + url + ") is accessible", e);
+			return false;
+		}
 	}
 	
 	public EventRouter getEventRouter() {

@@ -588,6 +588,66 @@ public abstract class StorageDAO {
 		}
 	}
 	
+	public static StorageDevice getSyncRootDevice(long userId) {
+		log.trace("getSyncRootDevice() called");
+		
+		Connection con = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		
+		try {
+			con = HikariConnectionPool.getConnection();
+			ps = con.prepareStatement(
+					"SELECT DISTINCT d.* FROM STORAGE d JOIN USER_STORAGE ud ON d.ID = ud.STORAGE_ID "
+					+ "WHERE SYNC_ROOT = true;");
+			rs = ps.executeQuery();
+			if (!rs.next()) return null;
+			return toStorageDevice(rs);
+		} catch (SQLException e) {
+			log.error(e, e);
+			return null;
+		} finally {
+			try {
+				if (con != null) con.close();
+				if (ps != null) ps.close();
+				if (rs != null) rs.close();
+			} catch (SQLException e) {
+				log.error(e, e);
+			}
+		}
+	}
+	
+	public static void setSyncRootDevice(Long userId, Long driveId) {
+		if (driveId == null) driveId = -1l;
+		
+		log.debug("Setting sync root device for User ID " + userId + " to Drive ID " + driveId);
+		
+		Connection con = null;
+		PreparedStatement ps = null;
+		
+		try {
+			con = HikariConnectionPool.getConnection();
+
+			ps = con.prepareStatement(
+					"UPDATE NIMBUS.USER_STORAGE "
+					+ "SET SYNC_ROOT = CASE WHEN STORAGE_ID = ? THEN TRUE ELSE FALSE END, "
+					+ "LAST_UPDATE_DATE = SYSDATE "
+					+ "WHERE USER_ID = ?");
+			ps.setLong(1, driveId);
+			ps.setLong(2, userId);
+			if (ps.executeUpdate() == 0) throw new SQLException("No USER_STORAGE records updated.");
+		} catch (SQLException e) {
+			log.error(e, e);
+		} finally {
+			try {
+				if (con != null) con.close();
+				if (ps != null) ps.close();
+			} catch (SQLException e) {
+				log.error(e, e);
+			}
+		}
+	}
+	
 	/*public static List<StorageDevice> getActiveUserStorageDevices() {
 		log.trace("getActiveAssigned() called");
 		
@@ -925,16 +985,14 @@ public abstract class StorageDAO {
 	}
 	
 	public static boolean resetReconciliation() {
-		
 		Connection con = null;
 		
 		try {
 			con = HikariConnectionPool.getConnection();
 			con.prepareStatement(
-					"UPDATE STORAGE SET IS_RECONCILED = FALSE, LAST_UPDATE_DATE = SYSDATE;").executeUpdate();
+					"UPDATE STORAGE SET IS_RECONCILED = FALSE, LAST_UPDATE_DATE = SYSDATE;");
 			con.prepareStatement(
-					"UPDATE FILE SET IS_RECONCILED = FALSE, LAST_UPDATE_DATE = SYSDATE;").executeUpdate();
-			
+					"UPDATE FILE SET IS_RECONCILED = FALSE, LAST_UPDATE_DATE = SYSDATE;");
 			return true;
 		} catch (SQLException e) {
 			log.error(e, e);
@@ -942,6 +1000,37 @@ public abstract class StorageDAO {
 		} finally {
 			try {
 				if (con != null) con.close();
+			} catch (SQLException e) {
+				log.error(e, e);
+			}
+		}
+	}
+
+	public static void resetReconciliation(Long id) {
+		log.debug("Resetting reconcillation for storage device ID " + id);
+		Connection con = null;
+		PreparedStatement ps1 = null;
+		PreparedStatement ps2 = null;
+		
+		try {
+			con = HikariConnectionPool.getConnection();
+			ps1 = con.prepareStatement(
+					"UPDATE STORAGE SET IS_RECONCILED = FALSE, LAST_UPDATE_DATE = SYSDATE WHERE ID = ?;");
+			ps1.setLong(1, id);
+			if (ps1.executeUpdate() == 0) throw new SQLException("No storage device records were updated");
+			
+			ps2 = con.prepareStatement(
+					"UPDATE FILE f SET f.IS_RECONCILED = FALSE, f.LAST_UPDATE_DATE = SYSDATE "
+					+ "WHERE f.USER_STORAGE_ID IN (SELECT ID FROM USER_STORAGE WHERE STORAGE_ID = ?);");
+			ps2.setLong(1, id);
+			ps2.executeUpdate();
+		} catch (SQLException e) {
+			log.error(e, e);
+		} finally {
+			try {
+				if (con != null) con.close();
+				if (ps1 != null) ps1.close();
+				if (ps2 != null) ps2.close();
 			} catch (SQLException e) {
 				log.error(e, e);
 			}

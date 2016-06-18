@@ -234,7 +234,7 @@ public class FileManagerLayout extends VerticalLayout implements ItemClickListen
 		if (!layoutBuilt) return;
 		driveSelect.removeValueChangeListener(this);
 		driveSelect.refresh();
-		driveSelect.select(controller.getCurrentRootFileContainer());
+		driveSelect.select(controller.getRootContainer());
 		driveSelect.addValueChangeListener(this);
 	}
 	

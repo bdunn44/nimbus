@@ -1,9 +1,11 @@
 package com.kbdunn.nimbus.web.settings.profile;
 
+import org.vaadin.addon.oauthpopup.OAuthListener;
 import org.vaadin.addon.oauthpopup.OAuthPopupButton;
 import org.vaadin.addon.oauthpopup.buttons.GoogleButton;
 
-import com.github.scribejava.core.model.OAuthConfig;
+import com.github.scribejava.core.builder.ServiceBuilder;
+import com.github.scribejava.core.model.Token;
 import com.kbdunn.nimbus.common.model.SMTPSettings;
 import com.kbdunn.nimbus.common.security.OAuthAPIService;
 import com.kbdunn.nimbus.web.NimbusUI;
@@ -13,6 +15,7 @@ import com.kbdunn.vaadin.addons.fontawesome.FontAwesome;
 import com.vaadin.data.validator.EmailValidator;
 import com.vaadin.data.validator.RegexpValidator;
 import com.vaadin.data.validator.StringLengthValidator;
+import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.CheckBox;
@@ -20,12 +23,14 @@ import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
-import com.vaadin.ui.Panel;
+import com.vaadin.ui.Notification;
 import com.vaadin.ui.PasswordField;
 import com.vaadin.ui.TextField;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ValoTheme;
 
-public class EmailSettingsForm extends Panel {
+public class EmailSettingsForm extends VerticalLayout {
 
 	private static final long serialVersionUID = 7955932787157764033L;
 	
@@ -35,6 +40,7 @@ public class EmailSettingsForm extends Panel {
 	private SMTPSettings savedSettings;
 	
 	private FormLayout smtpFormLayout;
+	private HorizontalLayout buttonLayout;
 	private ComboBox mailServices;
 	private TextField email, smtpServer, smtpPort, sslPort, oAuthToken;
 	private CheckBox sslEnabled;
@@ -49,11 +55,22 @@ public class EmailSettingsForm extends Panel {
 	}
 	
 	private void buildLayout() {
+		setSizeFull();
+		setSpacing(true);
+		
 		smtpFormLayout = new FormLayout();
-		smtpFormLayout.setSizeFull();
-		smtpFormLayout.setSpacing(true);
+		smtpFormLayout.setMargin(new MarginInfo(false, false, false, false));
 		smtpFormLayout.addStyleName(ValoTheme.FORMLAYOUT_LIGHT);
-		setContent(smtpFormLayout);
+		addComponent(smtpFormLayout);
+
+		Label title = new Label("Email Settings");
+		title.addStyleName(ValoTheme.LABEL_H3);
+		smtpFormLayout.addComponent(title);
+		
+		buttonLayout = new HorizontalLayout();
+		buttonLayout.setSpacing(true);
+		addComponent(buttonLayout);
+		
 		buildSmtpLayout();
 	}
 	
@@ -125,8 +142,8 @@ public class EmailSettingsForm extends Panel {
 		return oAuthToken.getValue();
 	}
 	
-	OAuthConfig getScribeOAuthConfig() {
-		return oAuthAuthenticateButton.getOAuthPopupConfig().asScribeConfig();
+	ServiceBuilder getScribeServiceBuilder() {
+		return oAuthAuthenticateButton.getOAuthPopupConfig().createScribeServiceBuilder();
 	}
 	
 	boolean isSMTPService() {
@@ -199,10 +216,15 @@ public class EmailSettingsForm extends Panel {
 		if (service == EmailService.GMAIL) {
 			b = new GoogleButton(OAuthAPIService.Type.GOOGLE.getClientKey(), 
 					OAuthAPIService.Type.GOOGLE.getClientSecret(), OAuthAPIService.Type.GOOGLE.getEmailScope());
-			//b.addOAuthListener(new NimbusOAuthListener(OAuthAPIService.Type.GOOGLE));
-			// Have to copy/paste token for GMAIL b/c non-public redirect URIs are not allowed
-			// https://groups.google.com/forum/#!topic/oauth2-dev/egJ5ai0QI70
-			b.getOAuthPopupConfig().setCallbackUrl("urn:ietf:wg:oauth:2.0:oob");
+			/*if (NimbusUI.isLocationAccessible()) {
+				// Automatically set token and close window
+				// this wasn't working - redirect_uri_mismatch error
+				b.addOAuthListener(new NimbusOAuthListener(OAuthAPIService.Type.GOOGLE));
+			} else {*/
+				// Have to copy/paste token for GMAIL b/c non-public redirect URIs are not allowed
+				// https://groups.google.com/forum/#!topic/oauth2-dev/egJ5ai0QI70
+				b.getOAuthPopupConfig().setCallbackUrl("urn:ietf:wg:oauth:2.0:oob");
+			//}
 			oAuthToken.setValue("");
 			b.addClickListener(e -> {
 				oAuthToken.setVisible(true);
@@ -211,7 +233,7 @@ public class EmailSettingsForm extends Panel {
 		if (b == null) throw new IllegalStateException("OAuth authentication button for " + service.getName() + " is not configured");
 		b.setPopupWindowFeatures("resizable,width=500,height=520");
 		b.setCaption("Authenticate with " + service.getName());
-		smtpFormLayout.replaceComponent(oAuthAuthenticateButton, b);
+		buttonLayout.replaceComponent(oAuthAuthenticateButton, b);
 		this.oAuthAuthenticateButton = b;
 		
 		if (NimbusUI.getOAuthService().getOAuthCredential(controller.getCurrentUser(), service.getOAuthServiceType()) != null) {
@@ -223,19 +245,19 @@ public class EmailSettingsForm extends Panel {
 	private void setSavedSmtpValues() {
 		smtpServer.setValue(savedSettings.getSmtpServer());
 		smtpPort.setValue(savedSettings.getSmtpPort());
-		sslEnabled.setValue(savedSettings.isSSLEnabled());
+		sslEnabled.setValue(savedSettings.isSslEnabled());
 		sslPort.setValue(savedSettings.getSslPort());
 		password.setValue(savedSettings.getPassword());
 	}
 	
 	private void setTestSuccessful(boolean success) {
 		if (success) {
-			testResult.setCaption("Success!");
+			testResult.setCaption("Success");
 			testResult.setIcon(FontAwesome.CHECK);
 			testResult.addStyleName(NimbusTheme.LABEL_SUCCESS_COLOR);
 			testResult.removeStyleName(NimbusTheme.LABEL_ERROR_COLOR);
 		} else {
-			testResult.setCaption("Failure!");
+			testResult.setCaption("Failure");
 			testResult.setIcon(FontAwesome.WARNING);
 			testResult.removeStyleName(NimbusTheme.LABEL_SUCCESS_COLOR);
 			testResult.addStyleName(NimbusTheme.LABEL_ERROR_COLOR);
@@ -308,12 +330,8 @@ public class EmailSettingsForm extends Panel {
 		smtpFormLayout.addComponent(sslEnabled);
 		smtpFormLayout.addComponent(sslPort);
 		smtpFormLayout.addComponent(password);
-		smtpFormLayout.addComponent(oAuthAuthenticateButton);
 		smtpFormLayout.addComponent(oAuthToken);
 		
-		final HorizontalLayout testLayout = new HorizontalLayout();
-		testLayout.setSpacing(true);
-		smtpFormLayout.addComponent(testLayout);
 		test = new Button("Test");
 		test.setDisableOnClick(true);
 		test.addClickListener(e -> {
@@ -335,9 +353,10 @@ public class EmailSettingsForm extends Panel {
 		testResult = new Label();
 		testResult.addStyleName(NimbusTheme.LABEL_CAPTION_ONLY);
 		testResult.addStyleName(ValoTheme.LABEL_LARGE);
-		testLayout.addComponent(test);
-		testLayout.addComponent(testResult);
-		testLayout.setComponentAlignment(testResult, Alignment.MIDDLE_LEFT);
+		buttonLayout.addComponent(oAuthAuthenticateButton);
+		buttonLayout.addComponent(test);
+		buttonLayout.addComponent(testResult);
+		buttonLayout.setComponentAlignment(testResult, Alignment.MIDDLE_RIGHT);
 		
 		mailServices.select(EmailService.GMAIL);
 	}
@@ -347,16 +366,15 @@ public class EmailSettingsForm extends Panel {
 		oAuthToken.setVisible(false);
 	}
 	
-	// Can't do this for Google, need to copy/paste token due to local redirect URL limitation
-	// https://groups.google.com/forum/#!topic/oauth2-dev/egJ5ai0QI70
-	/*private class NimbusOAuthListener implements OAuthListener {
+	@SuppressWarnings("unused")
+	private class NimbusOAuthListener implements OAuthListener {
 		
 		private OAuthAPIService.Type type;
 		
 		private NimbusOAuthListener(OAuthAPIService.Type type) {
 			this.type = type;
 		}
-
+		
 		@Override
 		public void authSuccessful(Token token, boolean isOAuth20) {
 			UI.getCurrent().access(() -> {
@@ -366,10 +384,10 @@ public class EmailSettingsForm extends Panel {
 				UI.getCurrent().push();
 			});
 		}
-
+		
 		@Override
 		public void authDenied(String reason) {
 			Notification.show("Authorization failed!", Notification.Type.ERROR_MESSAGE);
 		}
-	}*/
+	}
 }

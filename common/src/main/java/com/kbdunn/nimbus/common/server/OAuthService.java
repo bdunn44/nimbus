@@ -1,5 +1,6 @@
 package com.kbdunn.nimbus.common.server;
 
+import java.io.IOException;
 import java.util.List;
 
 import com.github.scribejava.core.model.OAuth2AccessToken;
@@ -13,7 +14,7 @@ public interface OAuthService {
 	OAuthCredential getOAuthCredential(NimbusUser user, OAuthAPIService.Type type);
 	List<OAuthCredential> getOAuthCredentials(NimbusUser user);
 	OAuthAPIService getOAuthAPIService(NimbusUser user, OAuthAPIService.Type type);
-	OAuth2AccessToken refreshAccessToken(OAuth20API api);
+	OAuth2AccessToken refreshAccessToken(OAuth20API api) throws IOException;
 	boolean save(OAuthCredential credential);
 	boolean delete(OAuthCredential credential);
 	boolean delete(NimbusUser user, Type type);

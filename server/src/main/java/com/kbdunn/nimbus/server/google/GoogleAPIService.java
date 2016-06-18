@@ -78,7 +78,11 @@ public class GoogleAPIService extends OAuth20API implements EmailTransport {
 
 	@Override
 	public void send(Email email) throws NimbusException {
-		super.refreshAccessTokenIfNeeded();
+		try {
+			super.refreshAccessTokenIfNeeded();
+		} catch (IOException e) {
+			throw new NimbusException("Error refreshing OAuth access token", e);
+		}
 		
 		// Build a new authorized API client service.
         log.info("Sending Gmail email");
@@ -99,7 +103,11 @@ public class GoogleAPIService extends OAuth20API implements EmailTransport {
         OAuthUtil.signOAuthRequest(request, this);
         final Response response = request.send();
         if (Math.floorDiv(response.getCode(), 100) != 2) {
-        	log.debug("send() recieved HTTP " + response.getCode() + ". Raw response: \n" + response.getBody());
+        	try {
+				log.debug("send() recieved HTTP " + response.getCode() + ". Raw response: \n" + response.getBody());
+			} catch (IOException e) {
+				log.error("Error reading response body", e);
+			}
         	throw new NimbusException("Error sending email through Gmail!");
         }
         log.info("Sent email. Response code " + response.getCode());
@@ -126,14 +134,22 @@ public class GoogleAPIService extends OAuth20API implements EmailTransport {
 
 	@Override
 	public String getEmailAddress() throws NimbusException {
-		super.refreshAccessTokenIfNeeded();
+		try {
+			super.refreshAccessTokenIfNeeded();
+		} catch (IOException e) {
+			throw new NimbusException("Error refreshing OAuth access token", e);
+		}
 		
         final OAuth20Service service = (OAuth20Service) OAuthUtil.getScribeOAuthService(this);
         final OAuthRequest request = new OAuthRequest(Verb.GET, GMAIL_PROFILE_ENDPOINT, service);
         OAuthUtil.signOAuthRequest(request, this);
         final Response response = request.send();
         if (Math.floorDiv(response.getCode(), 100) != 2) {
-        	log.debug("getEmailAddress() recieved HTTP " + response.getCode() + ". Raw response: \n" + response.getBody());
+        	try {
+				log.debug("getEmailAddress() recieved HTTP " + response.getCode() + ". Raw response: \n" + response.getBody());
+			} catch (IOException e) {
+				log.error("Error reading response body", e);
+			}
         	throw new OAuthAuthenticationException(credential.getUserId(), credential.getServiceName());
         }
         try {

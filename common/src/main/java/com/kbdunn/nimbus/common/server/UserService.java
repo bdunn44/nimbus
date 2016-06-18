@@ -20,8 +20,6 @@ public interface UserService {
 	NimbusUser getUserById(Long id);
 
 	NimbusUser getUserByNameOrEmail(String name);
-
-	NimbusUser getUserByApiToken(String apiToken);
 	
 	// TODO: Implement all FileContainer methods?
 	NimbusFile resolveRelativePath(NimbusUser user, StorageDevice device, String relativePath);
@@ -49,6 +47,8 @@ public interface UserService {
 	Boolean hasDuplicateName(NimbusUser user);
 
 	String generateTemporaryPassword();
+	
+	void resetApiToken(NimbusUser user) throws UsernameConflictException, EmailConflictException, FileConflictException;
 
 	String getDigestedPassword(String clearTextPassword);
 	
@@ -59,5 +59,9 @@ public interface UserService {
 	boolean delete(NimbusUser user);
 	
 	EmailTransport getEmailTransport(NimbusUser user);
+
+	NimbusFile getSyncRootFolder(NimbusUser user);
+
+	String getSyncRootFolderPath(NimbusUser user);
 
 }

@@ -4,19 +4,19 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.vaadin.data.validator.StringLengthValidator;
+import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
-import com.vaadin.ui.Panel;
 import com.vaadin.ui.PasswordField;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.themes.ValoTheme;
 
-public class UserProfileForm extends Panel {
+public class UserProfileForm extends FormLayout {
 
 	private static final long serialVersionUID = 7955932787157764033L;
 	
 	private final ProfileController controller;
-	private FormLayout profileForm;
 	private TextField name;
 	private PasswordField password;
 	
@@ -26,11 +26,14 @@ public class UserProfileForm extends Panel {
 	}
 	
 	private void buildLayout() {
-		profileForm = new FormLayout();
-		profileForm.setSizeFull();
-		profileForm.setSpacing(true);
-		profileForm.addStyleName(ValoTheme.FORMLAYOUT_LIGHT);
-		setContent(profileForm);
+		setSizeFull();
+		setSpacing(true);
+		setMargin(new MarginInfo(false, false, false, false));
+		addStyleName(ValoTheme.FORMLAYOUT_LIGHT);
+		
+		Label title = new Label("User Information");
+		title.addStyleName(ValoTheme.LABEL_H3);
+		addComponent(title);
 		
 		name = new TextField("Name");
 		name.addValidator(new StringLengthValidator("Name must be between 4 and 50 characters long", 4, 50, false));
@@ -39,8 +42,8 @@ public class UserProfileForm extends Panel {
 		password.addValidator(new StringLengthValidator("Passwords must be at least 6 characters long", 
 				6, null, false));
 
-		profileForm.addComponent(name);
-		profileForm.addComponent(password);
+		addComponent(name);
+		addComponent(password);
 	}
 	
 	void refresh() {

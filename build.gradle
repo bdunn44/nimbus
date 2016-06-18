@@ -1,25 +1,29 @@
 apply plugin: 'base'
 apply plugin: 'distribution'
 
-def vaadinVersion = '7.6.4'
+import org.apache.tools.ant.filters.FixCrLfFilter
+
+def vaadinVersion = '7.6.6'
 ext.vaadinVersion = vaadinVersion
 def jettyVersion = '9.2.15.v20160210'
 
+def NIMBUS_TASK_GROUP = 'nimbus'
+
 // ProGuard breaks push as of 0.6.1
-/*buildscript {
+buildscript {
 	repositories {
-		flatDir dirs: '../proguard5.2.1/lib'
+		//flatDir dirs: '../proguard5.2.1/lib'
 	}
 	
 	dependencies {
-		classpath ':proguard'
+		//classpath ':proguard'
 	}
-}*/
+}
 
 allprojects {
 	apply plugin: 'java'
 	group = 'com.kbdunn.nimbus'
-	version = '0.6.1'
+	version = '0.6.2'
 	
 	javadoc {
 		enabled = false;
@@ -32,13 +36,14 @@ subprojects {
 	repositories {
 		mavenCentral()
 		mavenLocal()
+		maven { url 'http://maven.vaadin.com/vaadin-addons' }
+		
 	}
 	
 	dependencies {
 		compile 'log4j:log4j:1.2.17'
-	    compile 'com.vaadin:vaadin-server:' + vaadinVersion
+		//compile 'org.slf4j:slf4j-api:1.7.21' // TODO: Switch to SLF4J everywhere
 	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
-	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
 	    
 		//  Java Mail 
 		compile 'com.sun.mail:javax.mail:1.5.5'
@@ -67,9 +72,10 @@ subprojects {
 								'Implementation-Version': version + '.' + buildNumber + ' (' + new Date().format('MMM dd yyyy') + ')',
 								'Implementation-Vendor': 'Bryson Dunn'
 			
-			if (!configurations.runtime.isEmpty()) {
-				manifest.attributes('Class-Path': configurations.runtime.collect { it.getName() }.join(' '));
-			}
+			// Move to individual projects
+			//if (!configurations.runtime.isEmpty()) {
+			//	manifest.attributes('Class-Path': configurations.runtime.collect { it.getName() }.join(' '));
+			//}
 		}
 	}
 	
@@ -115,7 +121,7 @@ project(':common') {
 	dependencies {
 		compile 'com.vaadin:vaadin-server:' + vaadinVersion
 	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
-	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
+	    compile 'com.github.scribejava:scribejava-apis:2.7.3'
 	    
 		//  Java Mail 
 		compile 'com.sun.mail:javax.mail:1.5.5'//'javax.mail:mail:1.5.5'
@@ -135,10 +141,11 @@ project(':server') {
 	    compile fileTree(dir: 'lib', include: '*.jar')
 	    compile project(':common')
 	    compile project(':webapp')
+	    compile project(':api')
 	    
 	    // Vaadin
 		compile 'com.vaadin:vaadin-server:' + vaadinVersion
-		compile 'com.vaadin:vaadin-push:' + vaadinVersion
+		compile('com.vaadin:vaadin-push:' + vaadinVersion)
 		
 		// Jetty 
 		compile 'org.eclipse.jetty:jetty-annotations:' + jettyVersion
@@ -169,7 +176,7 @@ project(':server') {
 		compile 'com.sun.mail:javax.mail:1.5.5'//'javax.mail:mail:1.5.5'
 		
 		// Scribe Java
-	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
+	    compile 'com.github.scribejava:scribejava-apis:2.7.3'
 		
 		// Gmail API
 		compile 'com.google.api-client:google-api-client:1.20.0'
@@ -181,11 +188,12 @@ project(':server') {
 		compile 'org.slf4j:jul-to-slf4j:1.7.10'
 		//compile 'org.slf4j:jcl-over-slf4j:1.7.10'
 		 
-		//  Jersey 
-		compile 'org.glassfish.jersey.core:jersey-server:2.22.1'
-		compile 'org.glassfish.jersey.containers:jersey-container-servlet-core:2.22.1' 
-		compile 'org.glassfish.jersey.containers:jersey-container-jetty-http:2.22.1' 
-		compile 'org.glassfish.jersey.media:jersey-media-json-jackson:2.22.1'
+		//  Jersey
+		compile 'org.glassfish.jersey.core:jersey-server:2.22.2'
+		compile 'org.glassfish.jersey.containers:jersey-container-servlet-core:2.22.2' 
+		compile 'org.glassfish.jersey.containers:jersey-container-jetty-http:2.22.2' 
+		compile 'org.glassfish.jersey.media:jersey-media-json-jackson:2.22.2'
+		compile 'org.glassfish.jersey.media:jersey-media-multipart:2.22.2'
 		
 		// Joda Time 
 		compile 'joda-time:joda-time:2.3'
@@ -193,19 +201,107 @@ project(':server') {
 	
 	jar.doFirst {
 		manifest.attributes 'Main-Class': 'com.kbdunn.nimbus.server.Launcher'
+		manifest.attributes('Class-Path': configurations.runtime.collect { it.getName() }.join(' '))
 	}
 	
 	task launch(type: JavaExec) {
 		classpath = sourceSets.main.runtimeClasspath
 		main = 'com.kbdunn.nimbus.server.Launcher'
 	}
+	launch.group = NIMBUS_TASK_GROUP
+	launch.description = 'Launch Nimbus (Jetty).'
 	
 	task cleanDatabase(type: JavaExec) {
 		classpath = sourceSets.main.runtimeClasspath
 		main = 'com.kbdunn.nimbus.server.util.DatabaseCleaner'
 	}
+	cleanDatabase.group = NIMBUS_TASK_GROUP
+	cleanDatabase.description = 'Clean the database embedded in the project.'
 	
 	assemble.dependsOn(cleanDatabase)
+}
+
+project(':desktop-win') {
+	
+	configurations.compile.exclude group: 'com.vaadin'
+	configurations.compile.exclude group: 'com.github.scribejava'
+	
+	dependencies {
+	    compile project(':common')
+	    compile project(':api')
+		compile 'org.atmosphere:wasync:2.1.2'
+		compile 'org.slf4j:slf4j-api:1.7.10'
+		compile 'org.slf4j:slf4j-log4j12:1.7.10'
+		compile 'commons-io:commons-io:2.4'
+		compile 'org.jsoup:jsoup:1.8.3'
+		compile 'com.google.guava:guava:19.0'
+	    compile fileTree(dir: 'lib', include: '*.jar')
+	}
+	
+	jar {
+		exclude('dev') // src/main/resources/dev
+		doFirst {
+			manifest.attributes 'Main-Class': 'com.kbdunn.nimbus.desktop.Launcher'
+			// Remove SWT jars, which are dynamically loaded
+			manifest.attributes('Class-Path': configurations.runtime
+					.findAll { !it.getName().contains('swt') }
+					.collect { it.getName() }.join(' '));
+		}
+	}
+	
+	task deleteLibs(type: Delete) {
+		delete fileTree('build/dependency-cache') {
+			include '*'
+		}
+	}
+	
+	task copyLibs(type: Copy) {
+		into 'build/dependency-cache'
+		from configurations.runtime
+	}
+	
+	jar.dependsOn(deleteLibs);
+	jar.finalizedBy(copyLibs);
+	
+	task buildLauncher(type: Exec) {
+		executable 'C:\\Program Files (x86)\\NSIS\\makensis.exe'
+		args "/DVERSION=" + project.version + "-BETA"
+		args "dist/win32_launcher.nsi"
+	}
+	
+	task buildInstaller(type: Exec) {
+		executable 'C:\\Program Files (x86)\\NSIS\\makensisw.exe'
+		args "/DVERSION=" + project.version + "-BETA"
+		args "dist/win32_installer.nsi"
+	}
+	buildInstaller.group = NIMBUS_TASK_GROUP
+	buildInstaller.description = 'Build the installer for the Nimbus Destop application.'
+	buildInstaller.dependsOn(build)
+	buildInstaller.dependsOn(buildLauncher)
+}
+
+project(':api') {
+	repositories {
+		maven { url 'http://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient' }
+		maven { url 'http://mvnrepository.com/artifact/org.glassfish.jersey.connectors/jersey-apache-connector' }
+	}
+
+	dependencies {
+	    compile project(':common')
+		//  Jersey
+		compile 'org.glassfish.jersey.core:jersey-client:2.22.1' 
+		compile 'org.glassfish.jersey.media:jersey-media-json-jackson:2.22.1'
+		compile 'org.glassfish.jersey.media:jersey-media-multipart:2.22.2'
+		// Apache Connection Pooling for Jersey
+		compile 'org.apache.httpcomponents:httpclient:4.5.2' 
+		compile 'org.glassfish.jersey.connectors:jersey-apache-connector:2.22.2'
+		// SLF4J
+		compile 'org.slf4j:slf4j-api:1.7.10'
+		runtime 'org.slf4j:slf4j-log4j12:1.7.10'
+		// wAsync
+		compile 'org.atmosphere:wasync:2.1.2'
+		
+	}
 }
 
 def readBuildNumber() {
@@ -239,7 +335,7 @@ def bumpBuildNumber() {
 	mapFile.createNewFile()
 }*/
 
-task nimbusDistTar (type: Tar) {
+task createDistribution (type: Tar) {
 	includeEmptyDirs = true
 	compression = Compression.GZIP
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -252,8 +348,16 @@ task nimbusDistTar (type: Tar) {
 		exclude('*.sh')
 	}
 	from ('dist') {
+		// Scripts
 		include('*.sh')
+		// Make them executable
 		fileMode 0755
+		// Ensure Unix line endings, remove EOF characters
+		filter(FixCrLfFilter,
+			eol: FixCrLfFilter.CrLf.newInstance('lf'),
+			tab: FixCrLfFilter.AddAsisRemove.newInstance('asis'),
+			eof: FixCrLfFilter.AddAsisRemove.newInstance('remove'),
+			fixlast: true)
 	}
 	into ('lib') {
 		from project(':common').configurations.runtime
@@ -293,13 +397,16 @@ task nimbusDistTar (type: Tar) {
 	}
 	
 }
+createDistribution.group = NIMBUS_TASK_GROUP
+createDistribution.description = 'Build the distributed .tar.gz file to install Nimbus.'
 
-nimbusDistTar.doFirst {
+createDistribution.doFirst {
 	bumpBuildNumber()
 }
 
 //assemble.dependsOn(prepProguard) // ProGuard breaks push as of 0.6.1
-nimbusDistTar.dependsOn ':common:assemble'
-nimbusDistTar.dependsOn ':webapp:assemble'
-nimbusDistTar.dependsOn ':server:assemble'
-assemble.finalizedBy(nimbusDistTar)
+createDistribution.dependsOn(build)
+//createDistribution.dependsOn ':common:assemble'
+//createDistribution.dependsOn ':webapp:assemble'
+//createDistribution.dependsOn ':server:assemble'
+assemble.finalizedBy(createDistribution)

@@ -13,7 +13,7 @@ public class CopyOperation extends AsyncServerOperation {
 
 	protected List<NimbusFile> sources;
 	protected NimbusFile targetFolder;
-	private List<FileConflict> resolutions;
+	protected List<FileConflict> resolutions;
 
 	public CopyOperation(AsyncConfiguration config, NimbusFile source, NimbusFile targetFolder) {
 		super(config);
@@ -69,5 +69,6 @@ public class CopyOperation extends AsyncServerOperation {
 			setProgress(.8f);
 		}
 		super.setSucceeded(succeeded);
+		super.setProgress(1f);
 	}
 }

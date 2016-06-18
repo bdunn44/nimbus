@@ -15,21 +15,21 @@ public class FilesystemLocation implements StorageDevice, NimbusRecord {
 	private Long id;
 	private String name;
 	private String path;
-	private Boolean isReconciled;
-	private Boolean isAutonomous;
+	private Boolean reconciled;
+	private Boolean autonomous;
 	private Date created;
 	private Date updated;
 	
 	public FilesystemLocation() {
-		isAutonomous = true; // default to true
+		autonomous = true; // default to true
 	}
 	
-	public FilesystemLocation(Long id, String name, String path, Boolean isReconciled, Boolean isAutonomous, Date createDate, Date lastUpdateDate) {
+	public FilesystemLocation(Long id, String name, String path, Boolean reconciled, Boolean autonomous, Date createDate, Date lastUpdateDate) {
 		this.id = id;
 		this.name = name;
 		this.path = path;
-		this.isReconciled = isReconciled;
-		this.isAutonomous = isAutonomous == null ? true : isAutonomous; // default to true
+		this.reconciled = reconciled;
+		this.autonomous = autonomous == null ? true : autonomous; // default to true
 		this.created = createDate;
 		this.updated = lastUpdateDate;
 	}
@@ -71,22 +71,22 @@ public class FilesystemLocation implements StorageDevice, NimbusRecord {
 	
 	@Override
 	public boolean isReconciled() {
-		return isReconciled != null && isReconciled;
+		return reconciled != null && reconciled;
 	}
 	
 	@Override
 	public void setReconciled(boolean isReconciled) {
-		this.isReconciled = isReconciled;
+		this.reconciled = isReconciled;
 	}
 	
 	@Override
 	public boolean isAutonomous() {
-		return isAutonomous != null && isAutonomous;
+		return autonomous != null && autonomous;
 	}
 	
 	@Override
 	public void setAutonomous(boolean isAutonomous) {
-		this.isAutonomous = isAutonomous;
+		this.autonomous = isAutonomous;
 	}
 
 	@Override
@@ -115,7 +115,7 @@ public class FilesystemLocation implements StorageDevice, NimbusRecord {
 		int result = 1;
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
-				+ ((isReconciled == null) ? 0 : isReconciled.hashCode());
+				+ ((reconciled == null) ? 0 : reconciled.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
 		return result;
@@ -135,10 +135,10 @@ public class FilesystemLocation implements StorageDevice, NimbusRecord {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (isReconciled == null) {
-			if (other.isReconciled != null)
+		if (reconciled == null) {
+			if (other.reconciled != null)
 				return false;
-		} else if (!isReconciled.equals(other.isReconciled))
+		} else if (!reconciled.equals(other.reconciled))
 			return false;
 		if (name == null) {
 			if (other.name != null)
@@ -156,8 +156,8 @@ public class FilesystemLocation implements StorageDevice, NimbusRecord {
 	@Override
 	public String toString() {
 		return "FilesystemLocation [id=" + id + ", name=" + name + ", path="
-				+ path + ", isReconciled=" + isReconciled + ", isAutonomous="
-				+ isAutonomous + "]";
+				+ path + ", isReconciled=" + reconciled + ", isAutonomous="
+				+ autonomous + "]";
 	}
 
 	@Override

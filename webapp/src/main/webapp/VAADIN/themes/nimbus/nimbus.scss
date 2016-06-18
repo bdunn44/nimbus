@@ -67,7 +67,7 @@ $v-layout-margin-right: 24px; */
 		bottom: 11px;
 	}
 	
-	/* Hidde the "hidden" layout */
+	/* Hide the "hidden" layout */
 	.hidden-layout {
 		display: none;
 		visibility: hidden;
@@ -294,6 +294,28 @@ $v-layout-margin-right: 24px; */
 	.video-player-panel {
 		padding: 10px 20px !important;
 		margin-bottom: 10px;
+	}
+	
+	/* Custom Styles */
+	.v-slot.v-slot-n-display-none {
+		display: none;
+	}
+	.v-slot.v-slot-n-display-none + .v-spacing {
+		display: none;
+	}
+	.v-textfield-n-copy-input-merge {
+		border-top-right-radius: 0 !important;
+		border-bottom-right-radius: 0 !important;
+	}
+	.n-copy-input-merge button {
+		margin-left: -$v-layout-spacing-horizontal;
+		top: -2px; /* Fix for text fields without caption */
+		border-top-left-radius: 0 !important;
+		border-bottom-left-radius: 0 !important;
+		border-left-width: 0 !important;
+		font-size: 0 !important;
+		background: url("images/clippy.svg") no-repeat center;
+		background-size: 14px;
 	}
 	
 	/* MediaElement.js Players */

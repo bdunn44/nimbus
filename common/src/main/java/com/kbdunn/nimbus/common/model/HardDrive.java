@@ -17,10 +17,10 @@ public class HardDrive implements StorageDevice, NimbusRecord {
 	private String devicePath;
 	private String label;
 	private String uuid;
-	private Boolean isConnected;
-	private Boolean isMounted;
-	private Boolean isReconciled;
-	private Boolean isAutonomous;
+	private Boolean connected;
+	private Boolean mounted;
+	private Boolean reconciled;
+	private Boolean autonomous;
 	private String type;
 	private Long size;
 	private Long used;
@@ -28,11 +28,11 @@ public class HardDrive implements StorageDevice, NimbusRecord {
 	private Date updated;
 	
 	public HardDrive() { 
-		isAutonomous = false; // default to false
+		autonomous = false; // default to false
 	}
 	
-	public HardDrive(Long id, String name, String path, String devicePath, String label, String uuid, String type, Boolean isConnected, 
-			Boolean isMounted, Boolean isReconciled, Boolean isAutonomous, Long size, Long used, Date createDate, Date lastUpdateDate) {
+	public HardDrive(Long id, String name, String path, String devicePath, String label, String uuid, String type, Boolean connected, 
+			Boolean mounted, Boolean reconciled, Boolean autonomous, Long size, Long used, Date createDate, Date lastUpdateDate) {
 		this.id = id;
 		this.name = name;
 		this.path = path;
@@ -40,10 +40,10 @@ public class HardDrive implements StorageDevice, NimbusRecord {
 		this.label = label;
 		this.uuid = uuid;
 		this.type = type;
-		this.isConnected = isConnected;
-		this.isMounted = isMounted;
-		this.isReconciled = isReconciled;
-		this.isAutonomous = isAutonomous == null ? false : isAutonomous; // default to false
+		this.connected = connected;
+		this.mounted = mounted;
+		this.reconciled = reconciled;
+		this.autonomous = autonomous == null ? false : autonomous; // default to false
 		this.size = size;
 		this.used = used;
 		this.created = createDate;
@@ -105,39 +105,39 @@ public class HardDrive implements StorageDevice, NimbusRecord {
 	}
 	
 	public boolean isConnected() {
-		return isConnected != null && isConnected;
+		return connected != null && connected;
 	}
 	
 	public void setConnected(Boolean isConnected) {
-		this.isConnected = isConnected;
+		this.connected = isConnected;
 	}
 	
 	public boolean isMounted() {
-		return isMounted != null && isMounted;
+		return mounted != null && mounted;
 	}
 	
 	public void setMounted(Boolean isMounted) {
-		this.isMounted = isMounted;
+		this.mounted = isMounted;
 	}
 	
 	@Override
 	public boolean isReconciled() {
-		return isReconciled != null && isReconciled;
+		return reconciled != null && reconciled;
 	}
 	
 	@Override
 	public void setReconciled(boolean isReconciled) {
-		this.isReconciled = isReconciled;
+		this.reconciled = isReconciled;
 	}
 	
 	@Override
 	public boolean isAutonomous() {
-		return isAutonomous != null && isAutonomous;
+		return autonomous != null && autonomous;
 	}
 	
 	@Override
 	public void setAutonomous(boolean isAutonomous) {
-		this.isAutonomous = isAutonomous;
+		this.autonomous = isAutonomous;
 	}
 	
 	@Override
@@ -201,11 +201,11 @@ public class HardDrive implements StorageDevice, NimbusRecord {
 				+ ((devicePath == null) ? 0 : devicePath.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
-				+ ((isConnected == null) ? 0 : isConnected.hashCode());
+				+ ((connected == null) ? 0 : connected.hashCode());
 		result = prime * result
-				+ ((isMounted == null) ? 0 : isMounted.hashCode());
+				+ ((mounted == null) ? 0 : mounted.hashCode());
 		result = prime * result
-				+ ((isReconciled == null) ? 0 : isReconciled.hashCode());
+				+ ((reconciled == null) ? 0 : reconciled.hashCode());
 		result = prime * result + ((label == null) ? 0 : label.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
@@ -235,20 +235,20 @@ public class HardDrive implements StorageDevice, NimbusRecord {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (isConnected == null) {
-			if (other.isConnected != null)
+		if (connected == null) {
+			if (other.connected != null)
 				return false;
-		} else if (!isConnected.equals(other.isConnected))
+		} else if (!connected.equals(other.connected))
 			return false;
-		if (isMounted == null) {
-			if (other.isMounted != null)
+		if (mounted == null) {
+			if (other.mounted != null)
 				return false;
-		} else if (!isMounted.equals(other.isMounted))
+		} else if (!mounted.equals(other.mounted))
 			return false;
-		if (isReconciled == null) {
-			if (other.isReconciled != null)
+		if (reconciled == null) {
+			if (other.reconciled != null)
 				return false;
-		} else if (!isReconciled.equals(other.isReconciled))
+		} else if (!reconciled.equals(other.reconciled))
 			return false;
 		if (label == null) {
 			if (other.label != null)
@@ -292,9 +292,9 @@ public class HardDrive implements StorageDevice, NimbusRecord {
 	public String toString() {
 		return "HardDrive [id=" + id + ", name=" + name + ", path=" + path
 				+ ", devicePath=" + devicePath + ", label=" + label + ", uuid="
-				+ uuid + ", isConnected=" + isConnected + ", isMounted="
-				+ isMounted + ", isReconciled=" + isReconciled
-				+ ", isAutonomous=" + isAutonomous + ", type=" + type
+				+ uuid + ", connected=" + connected + ", mounted="
+				+ mounted + ", reconciled=" + reconciled
+				+ ", autonomous=" + autonomous + ", type=" + type
 				+ ", size=" + size + ", used=" + used + "]";
 	}
 	

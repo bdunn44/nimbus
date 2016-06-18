@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.desktop.Application;
-import com.kbdunn.nimbus.desktop.sync.data.SyncPreferences;
+import com.kbdunn.nimbus.desktop.ApplicationProperties;
 import com.kbdunn.nimbus.desktop.sync.data.SyncStateCache;
 import com.kbdunn.nimbus.desktop.sync.workers.SyncEventHandler;
 
@@ -55,7 +55,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	public void onDirectoryDelete(File directory) {
 		if (directory.isHidden()) return; // This doesn't work
 		try {
-			SyncFile syncFile = SyncFileUtil.toSyncFile(SyncPreferences.getSyncDirectory(), directory, true);
+			SyncFile syncFile = SyncFileUtil.toSyncFile(ApplicationProperties.instance().getSyncDirectory(), directory, true);
 			//SyncStateCache.instance().delete(syncFile);
 			handler.handleLocalFileDelete(syncFile);
 		} catch (IOException e) {
@@ -105,7 +105,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	public void onFileDelete(File file) {
 		if (file.isHidden()) return; // This doesn't work
 		try {
-			SyncFile syncFile = SyncFileUtil.toSyncFile(SyncPreferences.getSyncDirectory(), file, false);
+			SyncFile syncFile = SyncFileUtil.toSyncFile(ApplicationProperties.instance().getSyncDirectory(), file, false);
 			//SyncStateCache.instance().delete(syncFile);
 			handler.handleLocalFileDelete(syncFile);
 		} catch (IOException e) {

@@ -18,6 +18,7 @@ import com.kbdunn.nimbus.api.client.model.FileMoveEvent;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.desktop.Application;
+import com.kbdunn.nimbus.desktop.ApplicationProperties;
 import com.kbdunn.nimbus.desktop.sync.SyncManager;
 import com.kbdunn.nimbus.desktop.sync.RemoteFileManager;
 import com.kbdunn.nimbus.desktop.sync.data.LocalFileEventBuffer;
@@ -259,13 +260,13 @@ public class SyncEventHandler {
 		logChangeEvent(file, "has a remote version conflict");
 		try {
 			// Rename the local file
-			File local = new File(SyncPreferences.getSyncDirectory(), file.getPath());
+			File local = new File(ApplicationProperties.instance().getSyncDirectory(), file.getPath());
 			String localName = local.getName();
 			String rename = localName.substring(0, localName.lastIndexOf(".")) 
 					+ " - " + SyncPreferences.getNodeName()
 					+ localName.substring(localName.lastIndexOf("."));
 			log.info("Renaming local file {} to {}", local.getAbsolutePath(), rename);
-			if (!local.renameTo(new File(SyncPreferences.getSyncDirectory(), rename))) {
+			if (!local.renameTo(new File(ApplicationProperties.instance().getSyncDirectory(), rename))) {
 				log.warn("Unable to rename file {}", local.getAbsolutePath());
 				// TODO sync error icon on file
 				return;

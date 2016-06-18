@@ -16,13 +16,14 @@ import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gwt.thirdparty.guava.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.common.sync.HashUtil;
 import com.kbdunn.nimbus.common.util.ComparatorUtil;
 import com.kbdunn.nimbus.common.util.StringUtil;
 import com.kbdunn.nimbus.desktop.Application;
+import com.kbdunn.nimbus.desktop.ApplicationProperties;
 import com.kbdunn.nimbus.desktop.sync.util.DesktopSyncFileUtil;
 
 public class SyncStateCache {
@@ -91,7 +92,7 @@ public class SyncStateCache {
 	}
 	
 	public SyncFile update(File file, boolean isDirectory) throws IOException {
-		File syncRootDir = SyncPreferences.getSyncDirectory();
+		File syncRootDir = ApplicationProperties.instance().getSyncDirectory();
 		SyncFile syncFile = new SyncFile(SyncFileUtil.getRelativeSyncFilePath(syncRootDir, file), "", isDirectory);
 		if (!file.exists()) {
 			delete(syncFile);
@@ -105,7 +106,7 @@ public class SyncStateCache {
 	}
 	
 	public SyncFile getUpdatedSyncFile(File file, boolean isDirectory) throws IOException {
-		File syncRootDir = SyncPreferences.getSyncDirectory();
+		File syncRootDir = ApplicationProperties.instance().getSyncDirectory();
 		SyncFile syncFile = new SyncFile(SyncFileUtil.getRelativeSyncFilePath(syncRootDir, file), "", isDirectory);
 		if (!file.exists()) {
 			return null;
@@ -224,7 +225,7 @@ public class SyncStateCache {
 		long start = System.nanoTime();
 		log.info("Building current local sync state");
 		List<SyncFile> currentState = new ArrayList<>();
-		final File root = SyncPreferences.getSyncDirectory();
+		final File root = ApplicationProperties.instance().getSyncDirectory();
 		Iterator<File> files = FileUtils.iterateFilesAndDirs(root, TrueFileFilter.TRUE, TrueFileFilter.TRUE);
 		while (files.hasNext()) {
 			File file = files.next();
@@ -257,6 +258,6 @@ public class SyncStateCache {
 	}
 	
 	private static File getCachePersistenceFile() {
-		return new File(Application.getInstallationDirectory(), "sync-state.dat");
+		return new File(ApplicationProperties.instance().getInstallDirectory(), "data/sync-state.dat");
 	}
 }

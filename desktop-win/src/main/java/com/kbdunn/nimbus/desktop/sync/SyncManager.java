@@ -8,11 +8,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gwt.thirdparty.guava.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.kbdunn.nimbus.api.client.NimbusClient;
 import com.kbdunn.nimbus.api.exception.TransportException;
 import com.kbdunn.nimbus.common.util.TrackedExecutorWrapper;
 import com.kbdunn.nimbus.desktop.Application;
+import com.kbdunn.nimbus.desktop.ApplicationProperties;
 import com.kbdunn.nimbus.desktop.model.SyncCredentials;
 import com.kbdunn.nimbus.desktop.sync.data.SyncPreferences;
 import com.kbdunn.nimbus.desktop.sync.data.SyncStateCache;
@@ -109,6 +110,7 @@ public class SyncManager {
 		if (creds.equals(SyncCredentials.empty()) || url == null || url.isEmpty()) {
 			// Don't even try
 			Application.showNotification("Log in to your cloud to synchronize your files");
+			Application.openSettingsWindow();
 			status = Status.DISCONNECTED;
 		} else {
 			log.info("Connecting to Nimbus at {}...", url);
@@ -140,7 +142,7 @@ public class SyncManager {
 				syncEventHandler = new SyncEventHandler(fileManager, this);
 				remoteEventListener = new RemoteFileEventListener(syncEventHandler);
 				if (fileObserver == null) {
-					fileObserver = new NimbusFileObserver(SyncPreferences.getSyncDirectory());
+					fileObserver = new NimbusFileObserver(ApplicationProperties.instance().getSyncDirectory());
 				}
 				if (localEventListener == null) {
 					localEventListener = new LocalFileEventListener(syncEventHandler);

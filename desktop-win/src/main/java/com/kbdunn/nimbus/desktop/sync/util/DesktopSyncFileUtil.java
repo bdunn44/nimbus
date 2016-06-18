@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.kbdunn.nimbus.api.client.model.SyncFile;
-import com.kbdunn.nimbus.desktop.sync.data.SyncPreferences;
+import com.kbdunn.nimbus.desktop.ApplicationProperties;
 
 public final class DesktopSyncFileUtil {
 	
@@ -18,7 +18,7 @@ public final class DesktopSyncFileUtil {
 	private DesktopSyncFileUtil() {  }
 	
 	public static File toFile(SyncFile syncFile) {
-		File syncDir = SyncPreferences.getSyncDirectory();
+		File syncDir = ApplicationProperties.instance().getSyncDirectory();
 		if (!syncDir.isDirectory()) throw new IllegalStateException("Sync root directory does not exist: " + syncDir);
 		return new File(syncDir, syncFile.getPath());
 	}

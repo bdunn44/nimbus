@@ -1,0 +1,3 @@
+src/main/resources/db/nimbusdb.lck
+src/main/resources/db/nimbusdb.log
+src/main/resources/db/nimbusdb.properties

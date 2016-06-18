@@ -3,9 +3,11 @@ apply plugin: 'distribution'
 
 import org.apache.tools.ant.filters.FixCrLfFilter
 
-def vaadinVersion = '7.6.4'
+def vaadinVersion = '7.6.6'
 ext.vaadinVersion = vaadinVersion
 def jettyVersion = '9.2.15.v20160210'
+
+def NIMBUS_TASK_GROUP = 'nimbus'
 
 // ProGuard breaks push as of 0.6.1
 buildscript {
@@ -34,12 +36,14 @@ subprojects {
 	repositories {
 		mavenCentral()
 		mavenLocal()
+		maven { url 'http://maven.vaadin.com/vaadin-addons' }
+		
 	}
 	
 	dependencies {
 		compile 'log4j:log4j:1.2.17'
+		//compile 'org.slf4j:slf4j-api:1.7.21' // TODO: Switch to SLF4J everywhere
 	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
-	    compile 'com.github.scribejava:scribejava-apis:2.7.3'
 	    
 		//  Java Mail 
 		compile 'com.sun.mail:javax.mail:1.5.5'
@@ -68,9 +72,10 @@ subprojects {
 								'Implementation-Version': version + '.' + buildNumber + ' (' + new Date().format('MMM dd yyyy') + ')',
 								'Implementation-Vendor': 'Bryson Dunn'
 			
-			if (!configurations.runtime.isEmpty()) {
-				manifest.attributes('Class-Path': configurations.runtime.collect { it.getName() }.join(' '));
-			}
+			// Move to individual projects
+			//if (!configurations.runtime.isEmpty()) {
+			//	manifest.attributes('Class-Path': configurations.runtime.collect { it.getName() }.join(' '));
+			//}
 		}
 	}
 	
@@ -116,7 +121,7 @@ project(':common') {
 	dependencies {
 		compile 'com.vaadin:vaadin-server:' + vaadinVersion
 	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
-	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
+	    compile 'com.github.scribejava:scribejava-apis:2.7.3'
 	    
 		//  Java Mail 
 		compile 'com.sun.mail:javax.mail:1.5.5'//'javax.mail:mail:1.5.5'
@@ -140,17 +145,7 @@ project(':server') {
 	    
 	    // Vaadin
 		compile 'com.vaadin:vaadin-server:' + vaadinVersion
-		compile('com.vaadin:vaadin-push:' + vaadinVersion) //{
-		//	exclude group: 'com.vaadin.external.atmosphere'
-		//}
-		
-		// Atmosphere - Jersey
-		//compile 'org.atmosphere:atmosphere-runtime:2.2.9' // 2.2.9 is compatible with Vaadin 7
-		//compile 'org.atmosphere:atmosphere-jersey:2.4.3'
-		// Use the same Atmosphere version as Vaadin
-		//compile('org.atmosphere:atmosphere-jersey:2.2.7') {
-		//	exclude group: 'com.sun.jersey'
-		//}
+		compile('com.vaadin:vaadin-push:' + vaadinVersion)
 		
 		// Jetty 
 		compile 'org.eclipse.jetty:jetty-annotations:' + jettyVersion
@@ -181,7 +176,7 @@ project(':server') {
 		compile 'com.sun.mail:javax.mail:1.5.5'//'javax.mail:mail:1.5.5'
 		
 		// Scribe Java
-	    compile 'com.github.scribejava:scribejava-apis:2.4.0'
+	    compile 'com.github.scribejava:scribejava-apis:2.7.3'
 		
 		// Gmail API
 		compile 'com.google.api-client:google-api-client:1.20.0'
@@ -206,24 +201,30 @@ project(':server') {
 	
 	jar.doFirst {
 		manifest.attributes 'Main-Class': 'com.kbdunn.nimbus.server.Launcher'
+		manifest.attributes('Class-Path': configurations.runtime.collect { it.getName() }.join(' '))
 	}
 	
 	task launch(type: JavaExec) {
 		classpath = sourceSets.main.runtimeClasspath
 		main = 'com.kbdunn.nimbus.server.Launcher'
 	}
+	launch.group = NIMBUS_TASK_GROUP
+	launch.description = 'Launch Nimbus (Jetty).'
 	
 	task cleanDatabase(type: JavaExec) {
 		classpath = sourceSets.main.runtimeClasspath
 		main = 'com.kbdunn.nimbus.server.util.DatabaseCleaner'
 	}
+	cleanDatabase.group = NIMBUS_TASK_GROUP
+	cleanDatabase.description = 'Clean the database embedded in the project.'
 	
 	assemble.dependsOn(cleanDatabase)
 }
 
 project(':desktop-win') {
 	
-	//apply plugin: 'multiplatform'
+	configurations.compile.exclude group: 'com.vaadin'
+	configurations.compile.exclude group: 'com.github.scribejava'
 	
 	dependencies {
 	    compile project(':common')
@@ -233,30 +234,50 @@ project(':desktop-win') {
 		compile 'org.slf4j:slf4j-log4j12:1.7.10'
 		compile 'commons-io:commons-io:2.4'
 		compile 'org.jsoup:jsoup:1.8.3'
+		compile 'com.google.guava:guava:19.0'
 	    compile fileTree(dir: 'lib', include: '*.jar')
 	}
 	
-	/*multiplatform {
-		version = project.version
-		
-		runner {
-			mainClassName = 'com.kbdunn.nimbus.desktop.Application'
-			//workingDir = '???'
+	jar {
+		exclude('dev') // src/main/resources/dev
+		doFirst {
+			manifest.attributes 'Main-Class': 'com.kbdunn.nimbus.desktop.Launcher'
+			// Remove SWT jars, which are dynamically loaded
+			manifest.attributes('Class-Path': configurations.runtime
+					.findAll { !it.getName().contains('swt') }
+					.collect { it.getName() }.join(' '));
 		}
-		
-		// Files required for all platforms
-		coreFiles = project.copySpec {
-			into('resources') {
-				from('src/main/resources')
-			}
+	}
+	
+	task deleteLibs(type: Delete) {
+		delete fileTree('build/dependency-cache') {
+			include '*'
 		}
-		
-		// Platform-specific dependencies
-		installation('win32', FAMILY_WINDOWS, ARCH_X86_64) {
-			nsisSetupScript = 'src/main/nsis/win32.nsi'
-			overrideDir = file('lib/win32')
-		}
-	}*/
+	}
+	
+	task copyLibs(type: Copy) {
+		into 'build/dependency-cache'
+		from configurations.runtime
+	}
+	
+	jar.dependsOn(deleteLibs);
+	jar.finalizedBy(copyLibs);
+	
+	task buildLauncher(type: Exec) {
+		executable 'C:\\Program Files (x86)\\NSIS\\makensis.exe'
+		args "/DVERSION=" + project.version + "-BETA"
+		args "dist/win32_launcher.nsi"
+	}
+	
+	task buildInstaller(type: Exec) {
+		executable 'C:\\Program Files (x86)\\NSIS\\makensisw.exe'
+		args "/DVERSION=" + project.version + "-BETA"
+		args "dist/win32_installer.nsi"
+	}
+	buildInstaller.group = NIMBUS_TASK_GROUP
+	buildInstaller.description = 'Build the installer for the Nimbus Destop application.'
+	buildInstaller.dependsOn(build)
+	buildInstaller.dependsOn(buildLauncher)
 }
 
 project(':api') {
@@ -314,7 +335,7 @@ def bumpBuildNumber() {
 	mapFile.createNewFile()
 }*/
 
-task nimbusDistTar (type: Tar) {
+task createDistribution (type: Tar) {
 	includeEmptyDirs = true
 	compression = Compression.GZIP
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -376,13 +397,16 @@ task nimbusDistTar (type: Tar) {
 	}
 	
 }
+createDistribution.group = NIMBUS_TASK_GROUP
+createDistribution.description = 'Build the distributed .tar.gz file to install Nimbus.'
 
-nimbusDistTar.doFirst {
+createDistribution.doFirst {
 	bumpBuildNumber()
 }
 
 //assemble.dependsOn(prepProguard) // ProGuard breaks push as of 0.6.1
-nimbusDistTar.dependsOn ':common:assemble'
-nimbusDistTar.dependsOn ':webapp:assemble'
-nimbusDistTar.dependsOn ':server:assemble'
-assemble.finalizedBy(nimbusDistTar)
+createDistribution.dependsOn(build)
+//createDistribution.dependsOn ':common:assemble'
+//createDistribution.dependsOn ':webapp:assemble'
+//createDistribution.dependsOn ':server:assemble'
+assemble.finalizedBy(createDistribution)

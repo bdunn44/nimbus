@@ -4,7 +4,7 @@ import org.vaadin.addon.oauthpopup.OAuthListener;
 import org.vaadin.addon.oauthpopup.OAuthPopupButton;
 import org.vaadin.addon.oauthpopup.buttons.GoogleButton;
 
-import com.github.scribejava.core.model.OAuthConfig;
+import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.model.Token;
 import com.kbdunn.nimbus.common.model.SMTPSettings;
 import com.kbdunn.nimbus.common.security.OAuthAPIService;
@@ -142,8 +142,8 @@ public class EmailSettingsForm extends VerticalLayout {
 		return oAuthToken.getValue();
 	}
 	
-	OAuthConfig getScribeOAuthConfig() {
-		return oAuthAuthenticateButton.getOAuthPopupConfig().asScribeConfig();
+	ServiceBuilder getScribeServiceBuilder() {
+		return oAuthAuthenticateButton.getOAuthPopupConfig().createScribeServiceBuilder();
 	}
 	
 	boolean isSMTPService() {

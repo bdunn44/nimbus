@@ -1,4 +1,5 @@
 #!/bin/sh
+SCRIPT_VERSION=2 # DO NOT MODIFY!
 
 TS=`date +'%Y%m%d%M%S'`
 SCRIPT_DIR=$(readlink -f "$0")
@@ -14,11 +15,11 @@ fi
 # Exit if Nimbus JAR wasn't located
 if [ ! -f "$NIMBUS_JAR" ]
 then
-	echo "Could not find the Nimbus installation. The Nimbus home directory ('$NIMBUS_HOME') may be incorrect."
+	echo "Could not find a Nimbus installation at '$NIMBUS_HOME'. Please ensure this script is run from the Nimbus installation directory."
 	exit 1
 fi
 
-# Check if upgrade is supported (older than 0.6.1)
+# Check if upgrade is supported (not older than 0.6.1)
 MAJOR=`echo $NIMBUS_VER | cut -d '.' -f 1`
 MINOR=`echo $NIMBUS_VER | cut -d '.' -f 2`
 DOT=`echo $NIMBUS_VER | cut -d '.' -f 3`
@@ -104,7 +105,7 @@ then
 	read -p "Enter the path to the new Nimbus distribution file: " SRC_NIMBUS_DIST
 fi
 
-echo -n "Checking the target Nimbus distribution file... "
+echo -n "Checking the target Nimbus distribution... "
 do_dist_check
 [ "$?" != "0" ] && exit 1
 do_dist_extract
@@ -123,7 +124,7 @@ echo "Done"
 echo "Your current Nimbus installation at '$NIMBUS_HOME' has been archived to $NIMBUS_HOME/logs/$BKP"
 
 # Do the upgrade
-java -Dnimbus.home=$NIMBUS_HOME -cp $SRC_NIMBUS_JAR com.kbdunn.nimbus.server.upgrade.UpgradeRunner "$SRC_NIMBUS_HOME" "$NIMBUS_HOME"
+java -Dnimbus.home=$NIMBUS_HOME -Dscript.version=$SCRIPT_VERSION -cp $SRC_NIMBUS_JAR com.kbdunn.nimbus.server.upgrade.UpgradeRunner "$SRC_NIMBUS_HOME" "$NIMBUS_HOME"
 
 # Check for upgrade failure
 if [ "$?" = "2" ]

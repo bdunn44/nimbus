@@ -101,7 +101,7 @@ public class MediaBrowserUri implements NimbusUri {
 		}
 		isValid = true;
 		
-		uri = StringUtil.encodeUriUtf8(uri);
+		uri = StringUtil.encodeFragmentUtf8(uri);
 	}
 	
 	private void parse() {

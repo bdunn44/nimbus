@@ -42,10 +42,11 @@ import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.common.util.StringUtil;
 import com.kbdunn.nimbus.server.NimbusContext;
 import com.kbdunn.nimbus.server.service.FileSyncService;
+import com.kbdunn.nimbus.server.service.LocalFileService;
 import com.kbdunn.nimbus.server.service.LocalUserService;
 
 @Path("/sync")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
 public class FileSyncResource {
 	
 	private static final Logger log = LogManager.getLogger(FileSyncResource.class);
@@ -57,10 +58,12 @@ public class FileSyncResource {
 	private String originationId;
 	
 	private final FileSyncService syncService;
+	private final LocalFileService fileService;
 	private final LocalUserService userService;
 	
 	public FileSyncResource() {
 		syncService = NimbusContext.instance().getFileSyncService();
+		fileService = NimbusContext.instance().getFileService();
 		userService = NimbusContext.instance().getUserService();
 	}
 	
@@ -85,7 +88,6 @@ public class FileSyncResource {
 	@GET
 	@Path("/files/{path:.+}")
 	public Response getSyncFile(@PathParam("path") String path) {
-		path = StringUtil.decodeUriUtf8(path);
 		NimbusUser user = getUser();
 		try {
 			SyncFile file = syncService.toSyncFile(user, path);
@@ -105,7 +107,6 @@ public class FileSyncResource {
 	@Path("/files/{path:.+}")
 	public Response createDirectory(@PathParam("path") String path, FileAddEvent addEvent) {
 		if (addEvent.getOriginationId() == null) addEvent.setOriginationId(originationId);
-		path = StringUtil.decodeUriUtf8(path);
 		final NimbusUser user = getUser();
 		if (!syncService.userHasSyncRoot(user)) {
 			return Response.status(Status.BAD_REQUEST)
@@ -129,22 +130,22 @@ public class FileSyncResource {
 	@DELETE
 	@Path("/files/{path:.+}")
 	public Response deleteFile(@PathParam("path") String path) {
-		path = StringUtil.decodeUriUtf8(path);
 		final NimbusUser user = getUser();
 		if (!syncService.userHasSyncRoot(user)) {
 			return Response.status(Status.BAD_REQUEST)
 					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
 					.build();
 		}
+		final NimbusFile file = syncService.toNimbusFile(user, path);
+		if (!fileService.fileExistsOnDisk(file) || !syncService.isTrackedFile(user, file)) {
+			return Response.status(Status.NOT_FOUND)
+					.entity(new NimbusError("File '" + path + "' does not exist."))
+					.build();
+		}
 		log.info("Processing delete " + path + " for " + getUser());
 		try {
-			if (syncService.processFileDelete(user, path, originationId)) {
-				return Response.ok().build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new NimbusError("File does not exist"))
-						.build();
-			}
+			syncService.processFileDelete(user, file, originationId);
+			return Response.ok().build();
 		} catch (Exception e) {
 			log.error("Error processing delete request", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -207,7 +208,6 @@ public class FileSyncResource {
 					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
 					.build();
 		}
-		path = StringUtil.decodeUriUtf8(path);
 		try {
 			syncService.processFileUpload(user, path, originationId, in);
 		} catch (Exception e) {
@@ -229,7 +229,6 @@ public class FileSyncResource {
 					.entity(new NimbusError("User '" + user.getName() + "' does not have file synchronization configured."))
 					.build();
 		}
-		path = StringUtil.decodeUriUtf8(path);
 		try {
 			final NimbusFile file = syncService.toNimbusFile(getUser(), path);
 			if (file.isDirectory()) {
@@ -267,6 +266,6 @@ public class FileSyncResource {
 	}
 	
 	private String getUri(NimbusFile file) throws IOException {
-		return "sync/files" + StringUtil.encodeUriUtf8(syncService.toSyncFile(file).getPath());
+		return "sync/files" + StringUtil.encodePathUtf8(syncService.toSyncFile(file).getPath());
 	}
 }

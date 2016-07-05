@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -13,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.kbdunn.nimbus.common.util.TrackedExecutorWrapper;
+import com.kbdunn.nimbus.common.util.TrackedScheduledThreadPoolExecutor;
 import com.kbdunn.nimbus.desktop.sync.SyncManager;
 import com.kbdunn.nimbus.desktop.sync.data.SyncStateCache;
 import com.kbdunn.nimbus.desktop.ui.TrayMenu;
@@ -25,7 +24,7 @@ public class Application {
 	private static Application instance;
 	
 	private final Display display;
-	private final TrackedExecutorWrapper backgroundExecutor;
+	private final TrackedScheduledThreadPoolExecutor backgroundExecutor;
 	
 	private TrayMenu trayMenu;
 	private SyncManager syncManager;
@@ -34,13 +33,17 @@ public class Application {
 		return instance = new Application();
 	}
 	
-	private Application() {
-		display = new Display();
-		backgroundExecutor = new TrackedExecutorWrapper(Executors.newScheduledThreadPool(2,
-				new ThreadFactoryBuilder().setNameFormat("App Background Thread #%d").build()));
+	public static void main(String[] args) {
+		Launcher.main(args);
 	}
 	
-	public void launch() {
+	private Application() {
+		display = new Display();
+		backgroundExecutor = new TrackedScheduledThreadPoolExecutor(2,
+				new ThreadFactoryBuilder().setNameFormat("App Background Thread #%d").build());
+	}
+	
+	public void start() {
 		log.info("Starting Nimbus desktop application");
 		checkSyncRoot();
 		log.info("Sync root directory is {}", ApplicationProperties.instance().getSyncDirectory());
@@ -60,6 +63,12 @@ public class Application {
 				log.error("Error connecting to Nimbus on startup", e);
 			}
 		});
+		
+		// Periodically update status
+		// This is needed because the "active task" count sometimes lags
+		backgroundExecutor.scheduleAtFixedRate(() -> {
+			Application.updateSyncStatus();
+		}, 5, 10, TimeUnit.SECONDS);
 		
 		// Event Loop
 		while (!trayMenu.isDisposed()) {
@@ -112,7 +121,8 @@ public class Application {
 			access(() -> {
 				instance.trayMenu.setStatus(
 						instance.syncManager.getSyncStatus(),
-						instance.syncManager.getSyncTaskCount());
+						instance.syncManager.getSyncTaskCount(),
+						SyncStateCache.instance().getCurrentSyncErrors().size());
 			});
 		}
 	}
@@ -120,6 +130,12 @@ public class Application {
 	public static void showNotification(String notification) {
 		access(() -> {
 			instance.trayMenu.showNotification(notification);
+		});
+	}
+	
+	public static void showWarning(String warning) {
+		access(() -> {
+			instance.trayMenu.showWarning(warning);
 		});
 	}
 	

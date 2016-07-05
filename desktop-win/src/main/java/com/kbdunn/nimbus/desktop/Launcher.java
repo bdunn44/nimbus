@@ -30,7 +30,7 @@ public class Launcher {
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 				Application.shutdown();
 			}));
-			Application.initialize().launch();
+			Application.initialize().start();
 		} catch (Exception e) {
 			log.error("Uncaught error!", e);
 			System.exit(1);
@@ -42,7 +42,7 @@ public class Launcher {
 	        Class.forName("org.eclipse.swt.widgets.Display");
 	        log.warn("An existing classpath entry was found for SWT!");
 	        return;
-	    } catch (ClassNotFoundException e) {
+	    } catch (ClassNotFoundException | UnsatisfiedLinkError e) {
 	        // Expected
 	    }
 	    
@@ -51,7 +51,7 @@ public class Launcher {
 	    
 	    String osPart = 
 	        osName.contains("win") ? "win" :
-	        osName.contains("mac") ? "cocoa" :
+	        osName.contains("mac") ? "osx" :
 	        osName.contains("linux") || osName.contains("nix") ? "gtk" :
 	        null;
 	    
@@ -73,8 +73,8 @@ public class Launcher {
 	        addUrlMethod.setAccessible(true);
 	        URL swtFileUrl = file.toURI().toURL();
 	        addUrlMethod.invoke(classLoader, swtFileUrl);
-	    }
-	    catch (Exception e) {
+	        Class.forName("org.eclipse.swt.widgets.Display"); // Check again
+	    } catch (Exception e) {
 	        throw new RuntimeException("Unable to add the swt jar to the class path: " + file.getAbsoluteFile(), e);
 	    }
 	}

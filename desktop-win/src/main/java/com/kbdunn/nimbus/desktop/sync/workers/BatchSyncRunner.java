@@ -1,9 +1,6 @@
 package com.kbdunn.nimbus.desktop.sync.workers;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -36,13 +33,6 @@ public class BatchSyncRunner {
 		end = System.nanoTime();
 		log.info("Waited {}ms for the sync state cache to be ready", TimeUnit.NANOSECONDS.toMillis(end-start));
 		
-		// Get state snapshots from the cache
-		List<SyncFile> previousFiles = new ArrayList<>(SyncStateCache.instance().getLastPersistedSyncState().values());
-		Map<String, SyncFile> currentState = SyncStateCache.instance().getCurrentSyncState();
-		List<SyncFile> currentFiles = new ArrayList<>(currentState.values());
-		log.info("Took {}ms to access the sync state cache", TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start));
-		end = System.nanoTime();
-		
 		// Get the current list of network files
 		List<SyncFile> networkFiles = null;
 		try {
@@ -51,65 +41,104 @@ public class BatchSyncRunner {
 			log.error("Error encountered while retrieving network file list", e);
 			return false;
 		}
-		log.info("Took {}ms to retrieve the current network file list", TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-end));
-		end = System.nanoTime();
 		
 		// Process sync actions
-		final BatchSyncArbiter arbiter = new BatchSyncArbiter(currentFiles, previousFiles, networkFiles);
+		final BatchSyncArbiter arbiter = new BatchSyncArbiter(
+				SyncStateCache.instance().getCurrentSyncState(), 
+				SyncStateCache.instance().getLastPersistedSyncState(), 
+				networkFiles,
+				SyncStateCache.instance().getCurrentSyncErrors());
 		arbiter.arbitrate();
 		log.info("Took {}ms to make synchronization decisions", TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-end));
 		end = System.nanoTime();
-		try {
-			// Add remote files
-			for (SyncFile file : arbiter.getFilesToAddRemotely()) {
+		int errors = 0;
+		
+		// Add remote files
+		for (SyncFile file : arbiter.getFilesToAddRemotely()) {
+			try {
 				handler.processLocalFileAddOrUpdate(file);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing remote file add {}", file, e);
 			}
-			// Update remote files 
-			for (SyncFile file : arbiter.getFilesToUpdateRemotely()) {
+		}
+		// Update remote files 
+		for (SyncFile file : arbiter.getFilesToUpdateRemotely()) {
+			try {
 				handler.processLocalFileAddOrUpdate(file);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing remote file update {}", file, e);
 			}
-			// Add local files
-			for (SyncFile file : arbiter.getFilesToAddLocally()) {
+		}
+		// Add local files
+		for (SyncFile file : arbiter.getFilesToAddLocally()) {
+			try {
 				handler.processRemoteFileAdd(file);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing local file add {}", file, e);
 			}
-			// Update local files
-			for (SyncFile file : arbiter.getFilesToUpdateLocally()) {
+		}
+		// Update local files
+		for (SyncFile file : arbiter.getFilesToUpdateLocally()) {
+			try {
 				handler.processRemoteFileUpdate(file);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing local file update {}", file, e);
 			}
-			// Copy Remote Files
-			for (FileCopyEvent event : arbiter.getFilesToCopyRemotely()) {
+		}
+		// Copy Remote Files
+		for (FileCopyEvent event : arbiter.getFilesToCopyRemotely()) {
+			try {
 				handler.processLocalFileCopy(event);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing remote file copy {}", event, e);
 			}
-			// Copy Local Files
-			for (FileCopyEvent event : arbiter.getFilesToCopyLocally()) {
+		}
+		// Copy Local Files
+		for (FileCopyEvent event : arbiter.getFilesToCopyLocally()) {
+			try {
 				handler.processRemoteFileCopy(event);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing local file copy {}", event, e);
 			}
-			// Delete local files
-			for (SyncFile file : arbiter.getFilesToDeleteLocally()) {
+		}
+		// Delete local files
+		for (SyncFile file : arbiter.getFilesToDeleteLocally()) {
+			try {
 				handler.processRemoteFileDelete(file);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing local file delete {}", file, e);
 			}
-			// Delete remote files
-			for (SyncFile file : arbiter.getFilesToDeleteRemotely()) {
+		}
+		// Delete remote files
+		for (SyncFile file : arbiter.getFilesToDeleteRemotely()) {
+			try {
 				handler.processLocalFileDelete(file);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing remote file delete {}", file, e);
 			}
-			// Handle sync conflicts
-			for (SyncFile file : arbiter.getSyncConflicts()) {
+		}
+		// Handle sync conflicts
+		for (SyncFile file : arbiter.getSyncConflicts()) {
+			try {
 				handler.processRemoteVersionConfict(file);
+			} catch (Exception e) {
+				errors++;
+				log.error("Error processing sync conflict {}", file, e);
 			}
-		} catch (Exception e) {
-			log.error("Encountered a synchronization error.", e);
-			return false;
 		}
 		
-		// Persist the processed sync state
-		try {
-			SyncStateCache.instance().persist(currentState);
-		} catch (IOException e) {
-			log.error("Error encountered while persisting the sync state", e);
-			return false;
+		if (errors > 0) {
+			log.warn("{} batch sync error(s) were encountered", errors);
 		}
-		
 		log.info("Finished batch synchronization in {}ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start));
-		return true;
+		return errors == 0;
 	}
 }

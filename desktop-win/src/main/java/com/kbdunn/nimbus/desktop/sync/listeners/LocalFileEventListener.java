@@ -53,7 +53,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 
 	@Override
 	public void onDirectoryDelete(File directory) {
-		if (directory.isHidden()) return; // This doesn't work
+		if (directory.isHidden()) return; // This doesn't work - can't check if a deleted file is hidden
 		try {
 			SyncFile syncFile = SyncFileUtil.toSyncFile(ApplicationProperties.instance().getSyncDirectory(), directory, true);
 			//SyncStateCache.instance().delete(syncFile);
@@ -84,7 +84,8 @@ public class LocalFileEventListener implements FileAlterationListener {
 	
 	@Override
 	public void onFileChange(File file) {
-		if (file.isHidden()) return;
+		if (file.isHidden()) return; // Not tracking hidden files
+		if (file.isDirectory()) return; // Weird thing - this get's triggered on Windows 10, and is not readable
 		try {
 			if (file.canRead()) {
 				//handler.handleLocalFileUpdate(SyncStateCache.instance().update(file, false));
@@ -103,7 +104,7 @@ public class LocalFileEventListener implements FileAlterationListener {
 	
 	@Override
 	public void onFileDelete(File file) {
-		if (file.isHidden()) return; // This doesn't work
+		if (file.isHidden()) return; // This doesn't work - can't check if a deleted file is hidden
 		try {
 			SyncFile syncFile = SyncFileUtil.toSyncFile(ApplicationProperties.instance().getSyncDirectory(), file, false);
 			//SyncStateCache.instance().delete(syncFile);

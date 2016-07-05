@@ -73,11 +73,12 @@ do_start()
 	fi
 	
 	# Calculate max memory allocation as 75% of total
-	MEM=`cat /proc/meminfo | grep MemTotal | awk '{printf "%d",$2*.75}'`
+	MB_MEM=`free -m | grep 'buffers/cache' | awk '{printf "%d",$4*.75}'`
+	#MB_MEM=`cat /proc/meminfo | grep MemTotal | awk '{printf "%d",$2*.75}'`
 
 	# Define the startup command and arguments
 	DAEMON="sudo -u $NIMBUS_USER $NIMBUS_JAVA"
-	DAEMON_ARGS="-ea -Djava.security.egd=file:/dev/urandom -Dprogram.name=Nimbus -Dnimbus.home=$NIMBUS_HOME -Xms64m -Xmx${MEM}k -Xss500k -jar $NIMBUS_JAR"
+	DAEMON_ARGS="-ea -Djava.security.egd=file:/dev/urandom -Dprogram.name=Nimbus -Dnimbus.home=$NIMBUS_HOME -Xms64m -Xmx${MB_MEM}m -Xss500k -jar $NIMBUS_JAR"
 	[ "$2" = '-port' ] && [ "x$3" != 'x' ] && DAEMON_ARGS="$DAEMON_ARGS --httpPort=$3"
 	
 	# Print startup information

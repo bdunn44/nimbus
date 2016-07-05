@@ -90,20 +90,28 @@ public class UpgradeUtil {
 		outln("Done");
 	}
 	
-	public void addLinesToConfigFile(String afterProperty, String... newLines) throws IOException {
-		runner.outLog("Adding new lines to nimbus.properties... ");
-		File file = new File(runner.getUpgradeTgtDir(), "conf/nimbus.properties");
+	public void addLinesToConfigFile(String afterLineStartingWith, String... newLines) throws IOException {
+		addLinesToFile(new File(runner.getUpgradeTgtDir(), "conf/nimbus.properties"), afterLineStartingWith, newLines);
+	}
+	
+	public void addLinesToLog4jFile(String afterLineStartingWith, String... newLines) throws IOException {
+		addLinesToFile(new File(runner.getUpgradeTgtDir(), "conf/log4j.properties"), afterLineStartingWith, newLines);
+	}
+	
+	private void addLinesToFile(File file, String afterLineStartingWith, String... newLines) throws IOException {
+		runner.outLog("Adding new lines to " + file.getAbsolutePath() + "... ");
 		List<String> oldLines = FileUtils.readLines(file);
 		int idx = oldLines.size() - 1;
-		if (afterProperty != null && !afterProperty.isEmpty()) {
+		if (afterLineStartingWith != null && !afterLineStartingWith.isEmpty()) {
 			for (int i = 0; i < oldLines.size(); i++) {
-				if (oldLines.get(i).startsWith(afterProperty)) {
+				if (oldLines.get(i).startsWith(afterLineStartingWith)) {
 					idx = i + 1;
 				}
 			}
 		}
+		if (idx == -1) idx = oldLines.size() - 1; // Add to EOF
 		oldLines.addAll(idx, Arrays.asList(newLines));
-		for (String line : newLines) runner.writeUpgradeLogEntry("\tAdded config line: " + line);
+		for (String line : newLines) runner.writeUpgradeLogEntry("\tInserted entry on line " + ++idx + ": " + line);
 		FileUtils.deleteQuietly(file);
 		FileUtils.writeLines(file, oldLines);
 		outln("Done");

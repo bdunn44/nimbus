@@ -69,12 +69,12 @@ public class DeviceSettingsPopup extends VerticalLayout implements ClickListener
 		final UserService userService = NimbusUI.getUserService();
 		driveUsers.removeAllItems();
 		for (NimbusUser user : userService.getAllUsers()) {
-			driveUsers.addItem(user);
-			driveUsers.setItemCaption(user, user.getName());
-			driveUsers.setItemIcon(user, FontAwesome.USER);
+			driveUsers.addItem(user.getId());
+			driveUsers.setItemCaption(user.getId(), user.getName());
+			driveUsers.setItemIcon(user.getId(), FontAwesome.USER);
 		}
 		for (NimbusUser assigned : driveService.getUsersAssignedToStorageDevice(device)) {
-			driveUsers.select(assigned);
+			driveUsers.select(assigned.getId());
 		}
 		if (device instanceof HardDrive) {
 			if (!((HardDrive) device).isConnected() || !((HardDrive) device).isMounted()) {
@@ -90,7 +90,6 @@ public class DeviceSettingsPopup extends VerticalLayout implements ClickListener
 		popup.open();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void buttonClick(ClickEvent event) {
 		controller.saveDeviceSettings(device, name.getValue(), 
@@ -98,10 +97,14 @@ public class DeviceSettingsPopup extends VerticalLayout implements ClickListener
 		
 		Object value = driveUsers.getValue();
 		List<NimbusUser> selected = null;
-		if (value instanceof NimbusUser) { // Single selection
-			selected = Collections.singletonList((NimbusUser) value); 
+		if (value instanceof Long) { // Single selection
+			selected = Collections.singletonList(NimbusUI.getUserService().getUserById((Long) value));
 		} else if (value instanceof Collection<?>) {
-			selected = new ArrayList<>((Collection<NimbusUser>) value);
+			//selected = new ArrayList<>((Collection<NimbusUser>) value);
+			selected = new ArrayList<>();
+			for (Object item : (Collection<?>) value) {
+				selected.add(NimbusUI.getUserService().getUserById((Long) item));
+			}
 		} else {
 			selected = Collections.emptyList();
 		}

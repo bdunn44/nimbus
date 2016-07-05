@@ -36,7 +36,7 @@ public class SettingsWindow extends AbstractWindow {
 	@Override
 	protected void buildWindow() {
 		super.buildWindow();
-		getShell().setImage(ApplicationResources.getIcon(getDisplay()));
+		getShell().setImages(ApplicationResources.getIcons(getDisplay()));
 		getShell().setText("Nimbus Sync");
 		getShell().setSize(CONTENT_WIDTH, CONTENT_HEIGHT);
 		

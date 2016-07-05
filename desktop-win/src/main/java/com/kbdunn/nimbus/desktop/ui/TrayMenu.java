@@ -27,8 +27,8 @@ import com.kbdunn.nimbus.desktop.ui.resources.ApplicationResources;
 public class TrayMenu {
 
 	private static final Logger log = LoggerFactory.getLogger(TrayMenu.class);
-	private static final String PAUSE_SYNC_TEXT = "Pause Sync";
-	private static final String RESUME_SYNC_TEXT = "Resume Sync";
+	private static final String PAUSE_SYNC_TEXT = "Pause";
+	private static final String RESUME_SYNC_TEXT = "Resume";
 	
 	private Shell shell;
 	private TrayItem trayItem;
@@ -46,7 +46,7 @@ public class TrayMenu {
 	
 	public TrayMenu(Display display) {
 		this.shell = new Shell(display);
-		shell.setImage(ApplicationResources.getSmallIcon(display));
+		shell.setImages(ApplicationResources.getIcons(display));
 		createTrayItem(display);
 		createMenu();
 	}
@@ -60,7 +60,7 @@ public class TrayMenu {
 		// Create Tray Item
 		trayItem = new TrayItem(tray, SWT.NONE);
 		trayItem.setToolTipText("Nimbus Sync");
-		trayItem.setImage(ApplicationResources.getSmallIcon(display));
+		trayItem.setImage(ApplicationResources.getIcons(display)[1]);
 		// Display menu on click
 		trayItem.addListener(SWT.MenuDetect, new Listener() {
 			@Override
@@ -126,12 +126,23 @@ public class TrayMenu {
 		});
 	}
 
-	public void setStatus(SyncManager.Status status, int taskCount) {
+	public void setStatus(SyncManager.Status status, long taskCount, int errorCount) {
 		if (statusItem.isDisposed() || syncControlItem.isDisposed()) return;
-		statusItem.setText(status == SyncManager.Status.SYNCING ? 
-				"Processing " + taskCount + " sync task" + (taskCount > 1 ? "s" : "") + "..." : 
-				status.toString()
-			);
+		if (status == SyncManager.Status.SYNCING) {
+			statusItem.setText(status.toString()
+					.replace("{}", (taskCount + " sync task" + (taskCount > 1 ? "s" : "")))
+				);
+		} else if (status == SyncManager.Status.SYNC_ERROR) {
+			if (errorCount > 0) {
+				statusItem.setText(status.toString()
+						.replace("{}", (errorCount + " file" + (errorCount > 1 ? "s" : "")))
+					);
+			} else {
+				statusItem.setText("Synchronization error");
+			}
+		} else {
+			statusItem.setText(status.toString());
+		}
 		if (status == SyncManager.Status.PAUSED || status == SyncManager.Status.CONNECTED) {
 			syncControlItem.setText(RESUME_SYNC_TEXT);
 		} else {
@@ -154,7 +165,15 @@ public class TrayMenu {
 	}
 	
 	public void showNotification(String content) {
-		ToolTip tt = new ToolTip(shell, SWT.BALLOON | SWT.ICON_INFORMATION);
+		showToolTip(content, SWT.ICON_INFORMATION);
+	}
+	
+	public void showWarning(String content) {
+		showToolTip(content, SWT.ICON_WARNING);
+	}
+	
+	private void showToolTip(String content, int iconStyle) {
+		ToolTip tt = new ToolTip(shell, SWT.BALLOON | iconStyle);
 		tt.setText("Nimbus Sync");
 		tt.setMessage(content);
 		trayItem.setToolTip(tt);
@@ -216,10 +235,7 @@ public class TrayMenu {
 	}
 	
 	public void openSettingsWindow() {
-		if (windowOpen) {
-			settingsWindow.getShell().forceFocus();
-		}
-		else {
+		if (!windowOpen) {
 			settingsWindow = new SettingsWindow(shell.getDisplay());
 			settingsWindow.getShell().addDisposeListener((e) -> {
 				windowOpen = false;
@@ -227,6 +243,7 @@ public class TrayMenu {
 			settingsWindow.open();
 			windowOpen = true;
 		}
+		settingsWindow.getShell().forceFocus();
 	}
 	
 	private void onExitClick(Event event) {

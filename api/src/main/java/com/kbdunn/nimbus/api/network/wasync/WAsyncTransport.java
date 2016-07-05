@@ -107,6 +107,9 @@ public class WAsyncTransport implements PushTransport {
 				public void on(Throwable t) {
 					log.error("Unexpected error encountered during async communication", t);
 					checkConnection();
+					for (PushEventListener listener : listeners) {
+						listener.onError(WAsyncTransport.this, t);
+					}
 				}
 			}).on(Event.CLOSE.name(), new Function<String>() {
 				@Override

@@ -5,14 +5,14 @@ import java.util.Date;
 public class ShareBlockComment extends Message {
 	
 	private Long shareBlockId;
-	private Boolean isAnonymous;
+	private Boolean anonymous;
 	private String anonymousUserIpAddress;
 	
 	public ShareBlockComment(Long id, Long userId, String message, Long shareBlockId,
-			Boolean isAnonymous, String anonymousUserIpAddress, Date createDate, Date lastUpdateDate) {
+			Boolean anonymous, String anonymousUserIpAddress, Date createDate, Date lastUpdateDate) {
 		super(id, userId, message, createDate, lastUpdateDate);
 		this.shareBlockId = shareBlockId;
-		this.isAnonymous = isAnonymous;
+		this.anonymous = anonymous;
 		this.anonymousUserIpAddress = anonymousUserIpAddress;
 	}
 	
@@ -25,11 +25,11 @@ public class ShareBlockComment extends Message {
 	}
 	
 	public boolean getIsAnonymous() {
-		return isAnonymous != null && isAnonymous;
+		return anonymous != null && anonymous;
 	}
 	
 	public void setIsAnonymous(Boolean isAnonymous) {
-		this.isAnonymous = isAnonymous;
+		this.anonymous = isAnonymous;
 	}
 	
 	public String getAnonymousUserIpAddress() {
@@ -43,7 +43,7 @@ public class ShareBlockComment extends Message {
 	@Override
 	public String toString() {
 		return "ShareBlockComment [shareBlockId=" + shareBlockId
-				+ ", isAnonymous=" + isAnonymous + ", anonymousUserIpAddress="
+				+ ", isAnonymous=" + anonymous + ", anonymousUserIpAddress="
 				+ anonymousUserIpAddress + "]";
 	}
 
@@ -56,7 +56,7 @@ public class ShareBlockComment extends Message {
 				+ ((anonymousUserIpAddress == null) ? 0
 						: anonymousUserIpAddress.hashCode());
 		result = prime * result
-				+ ((isAnonymous == null) ? 0 : isAnonymous.hashCode());
+				+ ((anonymous == null) ? 0 : anonymous.hashCode());
 		result = prime * result
 				+ ((shareBlockId == null) ? 0 : shareBlockId.hashCode());
 		return result;
@@ -76,10 +76,10 @@ public class ShareBlockComment extends Message {
 				return false;
 		} else if (!anonymousUserIpAddress.equals(other.anonymousUserIpAddress))
 			return false;
-		if (isAnonymous == null) {
-			if (other.isAnonymous != null)
+		if (anonymous == null) {
+			if (other.anonymous != null)
 				return false;
-		} else if (!isAnonymous.equals(other.isAnonymous))
+		} else if (!anonymous.equals(other.anonymous))
 			return false;
 		if (shareBlockId == null) {
 			if (other.shareBlockId != null)

@@ -1,14 +1,20 @@
 package com.kbdunn.nimbus.server.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.kbdunn.nimbus.api.network.util.HmacUtil;
 import com.kbdunn.nimbus.common.async.EmailTransport;
 import com.kbdunn.nimbus.common.exception.EmailConflictException;
 import com.kbdunn.nimbus.common.exception.FileConflictException;
@@ -17,7 +23,6 @@ import com.kbdunn.nimbus.common.model.NimbusFile;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.common.model.SMTPSettings;
 import com.kbdunn.nimbus.common.model.StorageDevice;
-import com.kbdunn.nimbus.common.rest.HMAC;
 import com.kbdunn.nimbus.common.security.OAuthAPIService;
 import com.kbdunn.nimbus.common.server.UserService;
 import com.kbdunn.nimbus.common.util.StringUtil;
@@ -64,11 +69,6 @@ public class LocalUserService implements UserService {
 	@Override
 	public NimbusUser getUserByNameOrEmail(String name) {
 		return NimbusUserDAO.getByDomainKey(name);	
-	}
-	
-	@Override
-	public NimbusUser getUserByApiToken(String apiToken) {
-		return NimbusUserDAO.getByApiToken(apiToken);	
 	}
 	
 	// TODO: Implement all FileContainer methods?
@@ -144,6 +144,20 @@ public class LocalUserService implements UserService {
 		return result;
 	}
 	
+	@Override
+	public String getSyncRootFolderPath(NimbusUser user) {
+		final StorageDevice rootDevice = storageService.getSyncRootStorageDevice(user);
+		if (rootDevice == null) return null;
+		return getUserHomeFolderPath(user, rootDevice);
+	}
+	
+	@Override
+	public NimbusFile getSyncRootFolder(NimbusUser user) {
+		final String path = getSyncRootFolderPath(user);
+		if (path == null) return null;
+		return fileService.getFileByPath(path);
+	}
+	
 	/*public Boolean userHasDuplicateNaturalKey(NimbusUser user, boolean ignoreSelf) {
 		return userHasDuplicateEmail(user, ignoreSelf) || userHasDuplicateName(user, ignoreSelf);
 	}*/
@@ -196,6 +210,12 @@ public class LocalUserService implements UserService {
 	}
 	
 	@Override
+	public void resetApiToken(NimbusUser user) throws UsernameConflictException, EmailConflictException, FileConflictException {
+		user.setApiToken(HmacUtil.generateSecretKey());
+		save(user);
+	}
+	
+	@Override
 	public boolean save(NimbusUser user) throws UsernameConflictException, EmailConflictException, FileConflictException {
 		if (user.getName() == null || user.getName().isEmpty() 
 				|| user.getEmail() == null || user.getEmail().isEmpty())
@@ -204,8 +224,7 @@ public class LocalUserService implements UserService {
 		if (hasDuplicateName(user)) throw new UsernameConflictException(user.getName());
 		else if (hasDuplicateEmail(user)) throw new EmailConflictException(user.getEmail());
 		
-		if (user.getHmacKey() == null) user.setHmacKey(new HMAC().generateSecretKey());
-		if (user.getApiToken() == null) user.setApiToken(new HMAC().generateSecretKey());
+		if (user.getApiToken() == null) user.setApiToken(HmacUtil.generateSecretKey());
 		
 		if (user.getId() == null)  return insert(user);
 		return update(user);
@@ -228,14 +247,37 @@ public class LocalUserService implements UserService {
 		NimbusUser old = NimbusUserDAO.getById(user.getId());
 		
 		// Check for name change
+		// TODO: Don't hide errors in here. Fix the sloppy handling
 		if (!old.getName().equals(user.getName())) {
 			log.debug("Renaming user's home folder(s)");
-			for (StorageDevice d : storageService.getStorageDevicesAssignedToUser(user)) {
+			for (StorageDevice d : storageService.getStorageDevicesAssignedToUser(old)) {
 				if (storageService.storageDeviceIsAvailable(d)) {
 					NimbusFile oldRoot = getUserRootFolder(old, d);
+					NimbusFile newRoot = fileService.getFileByPath(oldRoot.getPath() +
+							"/" + StringUtil.getFileNameFromPath(getUserRootFolderPath(user, d)));
+					if (fileService.fileExistsOnDisk(newRoot)) {
+						log.warn("User's new root folder already exists: " + newRoot.getPath());
+						String dateString = new SimpleDateFormat("YYYYMMDDHHMI").format(new Date());
+						if (newRoot.getId() != null) {
+								if (fileService.renameFile(newRoot, newRoot.getName() + "-BACKUP" + dateString) == null) {
+									log.error("Failed to rename old user root: " + newRoot.getPath());
+									return false;
+								}
+						} else {
+							// Manually move the untracked file
+							try {
+								Files.move(Paths.get(newRoot.getPath()), Paths.get(newRoot.getPath() + "-BACKUP" + dateString));
+							} catch (IOException e) {
+								log.error("Failed to rename old user root: " + newRoot.getPath(), e);
+								return false;
+							}
+						}
+					}
+					
 					if (fileService.fileExistsOnDisk(oldRoot) 
-							&& !fileService.renameFile(oldRoot, StringUtil.getFileNameFromPath(getUserRootFolderPath(user, d)))) {
-							return false;
+							&& fileService.renameFile(oldRoot, StringUtil.getFileNameFromPath(getUserRootFolderPath(user, d))) == null) {
+						log.error("Failed to rename old root folder: " + oldRoot.getPath());
+						return false;
 					}
 				}
 			}

@@ -25,7 +25,7 @@ dependencies {
 	compile 'commons-io:commons-io:2.4' // Apache Commons IO
 	compile 'commons-lang:commons-lang:2.3' // Apache Commons Lang
 	compile 'joda-time:joda-time:2.3' // Joda Time
-	compile 'org.vaadin.addon:oauthpopup:0.0.5-SNAPSHOT' // OAuthPopup addon
+	compile 'org.vaadin.addon.oauthpopup:oauthpopup:0.1.0' // Includes ScribeJava
 }
 
 eclipse {

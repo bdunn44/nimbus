@@ -19,22 +19,21 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 	protected String email;
 	protected String passwordDigest;
 	protected String apiToken;
-	protected String hmacKey;
-	protected Boolean isPasswordTemporary;
-	protected Boolean isAdministrator;
-	protected Boolean isOwner;
+	protected Boolean passwordTemporary;
+	protected Boolean administrator;
+	protected Boolean owner;
 	private OAuthAPIService.Type oAuthEmailService;
 	private Date created;
 	private Date updated;
 	
 	public NimbusUser() {
-		isPasswordTemporary = false;
-		isAdministrator = false;
-		isOwner = false;
+		passwordTemporary = false;
+		administrator = false;
+		owner = false;
 	}
 
-	public NimbusUser(Long id, String name, String email, String passwordDigest, String apiToken, String hmacKey,
-			Boolean isPasswordTemporary, Boolean isAdministrator, Boolean isOwner, Type oAuthEmailService, Date created,
+	public NimbusUser(Long id, String name, String email, String passwordDigest, String apiToken,
+			Boolean passwordTemporary, Boolean administrator, Boolean owner, Type oAuthEmailService, Date created,
 			Date updated) {
 		super();
 		this.id = id;
@@ -42,10 +41,9 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 		this.email = email;
 		this.passwordDigest = passwordDigest;
 		this.apiToken = apiToken;
-		this.hmacKey = hmacKey;
-		this.isPasswordTemporary = isPasswordTemporary;
-		this.isAdministrator = isAdministrator;
-		this.isOwner = isOwner;
+		this.passwordTemporary = passwordTemporary;
+		this.administrator = administrator;
+		this.owner = owner;
 		this.oAuthEmailService = oAuthEmailService;
 		this.created = created;
 		this.updated = updated;
@@ -57,10 +55,9 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 		this.email = user.email;
 		this.passwordDigest = user.passwordDigest;
 		this.apiToken = user.apiToken;
-		this.hmacKey = user.hmacKey;
-		this.isPasswordTemporary = user.isPasswordTemporary;
-		this.isAdministrator = user.isAdministrator;
-		this.isOwner = user.isOwner;
+		this.passwordTemporary = user.passwordTemporary;
+		this.administrator = user.administrator;
+		this.owner = user.owner;
 		this.oAuthEmailService = user.oAuthEmailService;
 		this.created = user.created;
 		this.updated = user.updated;
@@ -92,14 +89,6 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 		this.email = email;
 	}
 	
-	public String getHmacKey() {
-		return hmacKey;
-	}
-	
-	public void setHmacKey(String hmacKey) {
-		this.hmacKey = hmacKey;
-	}
-	
 	public String getApiToken() {
 		return apiToken;
 	}
@@ -117,27 +106,27 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 	}
 	
 	public boolean isPasswordTemporary() {
-		return isPasswordTemporary != null && isPasswordTemporary;
+		return passwordTemporary != null && passwordTemporary;
 	}
 	
 	public void setPasswordTemporary(Boolean isPasswordTemporary) {
-		this.isPasswordTemporary = isPasswordTemporary;
+		this.passwordTemporary = isPasswordTemporary;
 	}
 	
 	public boolean isAdministrator() {
-		return isAdministrator != null && isAdministrator;
+		return administrator != null && administrator;
 	}
 	
 	public void setAdministrator(Boolean isAdmin) {
-		this.isAdministrator = isAdmin;
+		this.administrator = isAdmin;
 	}
 	
 	public boolean isOwner() {
-		return isOwner != null && isOwner;
+		return owner != null && owner;
 	}
 	
 	public void setOwner(Boolean isOwner) {
-		this.isOwner = isOwner;
+		this.owner = isOwner;
 	}
 
 	public OAuthAPIService.Type getEmailServiceName() {
@@ -175,12 +164,12 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 		result = prime * result + ((email == null) ? 0 : email.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
-				+ ((isAdministrator == null) ? 0 : isAdministrator.hashCode());
-		result = prime * result + ((isOwner == null) ? 0 : isOwner.hashCode());
+				+ ((administrator == null) ? 0 : administrator.hashCode());
+		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
 		result = prime * result + ((oAuthEmailService == null) ? 0 : oAuthEmailService.hashCode());
 		result = prime
 				* result
-				+ ((isPasswordTemporary == null) ? 0 : isPasswordTemporary
+				+ ((passwordTemporary == null) ? 0 : passwordTemporary
 						.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
@@ -207,25 +196,25 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (isAdministrator == null) {
-			if (other.isAdministrator != null)
+		if (administrator == null) {
+			if (other.administrator != null)
 				return false;
-		} else if (!isAdministrator.equals(other.isAdministrator))
+		} else if (!administrator.equals(other.administrator))
 			return false;
-		if (isOwner == null) {
-			if (other.isOwner != null)
+		if (owner == null) {
+			if (other.owner != null)
 				return false;
-		} else if (!isOwner.equals(other.isOwner))
+		} else if (!owner.equals(other.owner))
 			return false;
 		if (oAuthEmailService == null) {
 			if (other.oAuthEmailService != null)
 				return false;
 		} else if (!oAuthEmailService.equals(other.oAuthEmailService))
 			return false;
-		if (isPasswordTemporary == null) {
-			if (other.isPasswordTemporary != null)
+		if (passwordTemporary == null) {
+			if (other.passwordTemporary != null)
 				return false;
-		} else if (!isPasswordTemporary.equals(other.isPasswordTemporary))
+		} else if (!passwordTemporary.equals(other.passwordTemporary))
 			return false;
 		if (name == null) {
 			if (other.name != null)
@@ -243,15 +232,15 @@ public class NimbusUser implements NimbusRecord, Comparable<NimbusUser> {
 	@Override
 	public String toString() {
 		return "NimbusUser [id=" + id + ", name=" + name + ", email=" + email
-				+ ", isPasswordTemporary=" + isPasswordTemporary
-				+ ", isAdministrator=" + isAdministrator + ", isOwner="
-				+ isOwner + ", oAuthEmailService=" + oAuthEmailService + "]";
+				+ ", isPasswordTemporary=" + passwordTemporary
+				+ ", isAdministrator=" + administrator + ", isOwner="
+				+ owner + ", oAuthEmailService=" + oAuthEmailService + "]";
 	}
 
 	@Override
 	public int compareTo(NimbusUser o) {
-		int i = ComparatorUtil.nullSafeBooleanComparator(o.isOwner, this.isOwner);
-		i = i == 0 ? ComparatorUtil.nullSafeBooleanComparator(o.isAdministrator, this.isAdministrator) : i;
+		int i = ComparatorUtil.nullSafeBooleanComparator(o.owner, this.owner);
+		i = i == 0 ? ComparatorUtil.nullSafeBooleanComparator(o.administrator, this.administrator) : i;
 		i = i == 0 ? ComparatorUtil.nullSafeStringComparator(this.name, o.name) : i;
 		return i;
 	}

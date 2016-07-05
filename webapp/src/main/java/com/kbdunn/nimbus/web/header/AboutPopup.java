@@ -13,7 +13,7 @@ public class AboutPopup extends VerticalLayout {
 	
 	private PopupWindow popup;
 	private NimbusLogo logo;
-	private Label version, desc, link;
+	private Label version, desc, link, eula;
 	
 	public AboutPopup() {
 		addStyleName("about-popup");
@@ -43,6 +43,12 @@ public class AboutPopup extends VerticalLayout {
 		link.setWidthUndefined();
 		addComponent(link);
 		setComponentAlignment(link, Alignment.MIDDLE_CENTER);
+		
+		eula = new Label("By installing and using Nimbus you agree to our <a href='http://cloudnimbus.org/license/EULA.txt' target='_blank'>End User License Agreement</a>", ContentMode.HTML);
+		eula.addStyleName("nimbus-desc");
+		eula.setWidthUndefined();
+		addComponent(eula);
+		setComponentAlignment(eula, Alignment.MIDDLE_CENTER);
 	}
 	
 	void open() {

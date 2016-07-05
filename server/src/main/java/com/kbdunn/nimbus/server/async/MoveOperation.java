@@ -1,6 +1,5 @@
 package com.kbdunn.nimbus.server.async;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,16 +33,20 @@ public class MoveOperation extends CopyOperation {
 	
 	@Override
 	public void doOperation() throws Exception {
-		super.doOperation(); // copy files
-		if (!super.succeeded()) {
-			return;
-		}
 		LocalFileService fileService = NimbusContext.instance().getFileService();
-		for (NimbusFile nf : sources) {
-			if (!fileService.delete(nf)) {
-				throw new IOException("Unable to delete file " + nf);
+		boolean succeeded = true;
+		if (resolutions == null) {
+			float increment = .8f / sources.size();
+			for (NimbusFile source : sources) {
+				succeeded = fileService.moveFileTo(source, targetFolder) != null ? succeeded : false;
+				setProgress(getProgress() + increment);
 			}
+		} else {
+			setProgress(.2f);
+			succeeded = fileService.batchMove(sources, targetFolder, resolutions);
+			setProgress(.8f);
 		}
+		super.setSucceeded(succeeded);
 		super.setProgress(1f);
 	}
 }

@@ -1,2 +1,2 @@
 
-include 'common', 'webapp', 'server'
+include 'common', 'webapp', 'server', 'api', 'desktop-win'

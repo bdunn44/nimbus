@@ -70,7 +70,7 @@ public enum EmailService {
 			if (s.getType() == Type.SMTP
 					&& s.server.equals(settings.getSmtpServer())
 					&& s.port.equals(settings.getSmtpPort())
-					&& s.sslEnabled == settings.isSSLEnabled()
+					&& s.sslEnabled == settings.isSslEnabled()
 					&& s.sslPort.equals(settings.getSslPort())) {
 				return s;
 			}

@@ -1,16 +1,20 @@
 package com.kbdunn.nimbus.server.upgrade;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import com.kbdunn.nimbus.common.model.NimbusVersion;
 import com.kbdunn.nimbus.common.util.AbstractCommandLineUtility;
+import com.kbdunn.nimbus.server.upgrade.annotations.RequireUpgradeScript;
+import com.kbdunn.nimbus.server.upgrade.exceptions.ScriptVersionException;
+import com.kbdunn.nimbus.server.upgrade.runners.BaseUpgrader;
+import com.kbdunn.nimbus.server.upgrade.runners.Upgrader;
+import com.kbdunn.nimbus.server.upgrade.runners.V061To062Upgrader;
 
 public class UpgradeRunner extends AbstractCommandLineUtility {
 
@@ -32,52 +36,60 @@ public class UpgradeRunner extends AbstractCommandLineUtility {
 			System.exit(1);
 		}
 		try {
-			new UpgradeRunner(upgradeSrcDir, upgradeTgtDir).upgrade();
-		} catch (IllegalArgumentException e) {
-			System.out.println("Error detecting Nimbus version " + e.getMessage());
+			UpgradeRunner runner = null;
+			try {
+				runner = new UpgradeRunner(upgradeSrcDir, upgradeTgtDir);
+			} catch (IllegalArgumentException e) {
+				System.out.println("Error detecting Nimbus version " + e.getMessage());
+				System.exit(1);
+			}
+			runner.start();
+		} catch (ScriptVersionException e) {
+			System.out.println(e.getMessage());
 			System.exit(1);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			System.out.println("Error performing upgrade! " + e.getMessage());
-			System.exit(1);
+			System.exit(2);
 		}
 	}
 	
-	private static final FileFilter nimbusJarFilter = new RegexFileFilter("^nimbus.*\\.jar$");
-	private static final FileFilter nimbusScriptFilter = new RegexFileFilter("^.*\\.sh$");
-	
+	private int scriptVersion = -1;
 	private final File upgradeSrcDir, upgradeTgtDir, logFile;
-	private final NimbusVersion srcVersion, tgtVersion;
+	private final NimbusVersion newVersion, oldVersion;
 	
 	private UpgradeRunner(File upgradeSrcDir, File upgradeTgtDir) throws NumberFormatException, IllegalArgumentException, IOException {
 		this.upgradeSrcDir = upgradeSrcDir;
 		this.upgradeTgtDir = upgradeTgtDir;
-		this.srcVersion = NimbusVersion.fromNimbusInstallation(upgradeSrcDir);
-		this.tgtVersion = NimbusVersion.fromNimbusInstallation(upgradeTgtDir);
+		this.newVersion = NimbusVersion.fromNimbusInstallation(upgradeSrcDir);
+		this.oldVersion = NimbusVersion.fromNimbusInstallation(upgradeTgtDir);
 		this.logFile = new File(upgradeTgtDir, "logs/upgrades.log");
 	}
 	
-	private void upgrade() throws IOException {
+	private void start() throws Exception {
 		try {
-			if (!UpgradeRunner.checkUpgradeable(srcVersion) || !UpgradeRunner.checkUpgradeable(tgtVersion)) {
-				exitWithError("The source or target Nimbus installation is older than 0.6.1 and cannot be upgraded.");
+			// Read script version set by the upgrade script
+			String scriptVersion = System.getProperty("script.version");
+			if (scriptVersion != null && !scriptVersion.isEmpty()) {
+				this.scriptVersion = Integer.valueOf(scriptVersion);
 			}
-			if (srcVersion.compareTo(tgtVersion) < 1) {
+			// Check for upgradeable source & target versions
+			if (!UpgradeRunner.checkUpgradeableVersion(newVersion) || !UpgradeRunner.checkUpgradeableVersion(oldVersion)) {
+				exitWithError("The source or target Nimbus installation is older than 0.6.1 and cannot be upgraded."
+						+ " (" + oldVersion + " -> " + newVersion + ")");
+			}
+			// Check for an upgrade in the right direction
+			if (newVersion.compareTo(oldVersion) < 1) {
 				exitWithError("The version you are upgrading to is equal to or lower than the current installation."
-						+ " (" + tgtVersion + " -> " + srcVersion + ")");
+						+ " (" + oldVersion + " -> " + newVersion + ")");
 			}
-			outln("Nimbus installation at '" + upgradeTgtDir.getAbsolutePath() 
-					+ "' will be upgraded from version " + tgtVersion + " to " + srcVersion);
+			outln("The Nimbus installation at '" + upgradeTgtDir.getAbsolutePath() 
+					+ "' will be upgraded from version " + oldVersion + " to " + newVersion);
 			out("Do you want to proceed? [Y/N]: ");
 			boolean go = affirmative(readln());
 			if (!go) System.exit(0);
-			
-			// Always do this stuff, regardless of source/target version
-			writeUpgradeLogEntry("Nimbus " + tgtVersion + " -> " + srcVersion + " upgrade started");
-			replaceNimbusJars();
-			replaceStaticResources();
-			replaceNimbusScripts();
-			replaceVersionFile();
-			writeUpgradeLogEntry("Nimbus " + tgtVersion + " -> " + srcVersion + " upgrade suceeded!");
+			writeUpgradeLogEntry("Nimbus " + oldVersion + " -> " + newVersion + " upgrade started");
+			doUpgrade();
+			writeUpgradeLogEntry("Nimbus " + oldVersion + " -> " + newVersion + " upgrade suceeded!");
 		} catch (Exception e) {
 			if (logFile != null && logFile.exists()) {
 				writeUpgradeLogEntry(ExceptionUtils.getFullStackTrace(e));
@@ -85,7 +97,37 @@ public class UpgradeRunner extends AbstractCommandLineUtility {
 			throw e;
 		}
 	}
-	
+
+	private void doUpgrade() throws IOException, SQLException {
+		// Get the correct upgrader
+		Upgrader upgrader = null;
+		if (oldVersion.equalsIgnoreBuild(new NimbusVersion(0,6,1))
+				&& newVersion.equalsIgnoreBuild(new NimbusVersion(0,6,2))) {
+			upgrader = new V061To062Upgrader(this);
+		} else {
+			upgrader = new BaseUpgrader(this);
+		}
+		
+		// Check annotations for additional preconditions
+		RequireUpgradeScript requireScript = upgrader.getClass().getAnnotation(RequireUpgradeScript.class);
+		if (requireScript != null) {
+			int minVersion = requireScript.minVersion();
+			if (this.scriptVersion < minVersion) throw new ScriptVersionException(minVersion);
+		}
+		
+		// Do the upgrade
+		upgrader.doUpgrade();
+		replaceVersionFile();
+	}
+
+	public File getUpgradeSrcDir() {
+		return upgradeSrcDir;
+	}
+
+	public File getUpgradeTgtDir() {
+		return upgradeTgtDir;
+	}
+
 	private void replaceVersionFile() throws IOException {
 		File src = new File(upgradeSrcDir, "logs/version.txt");
 		File tgt = new File(upgradeTgtDir, "logs/version.txt");
@@ -93,58 +135,18 @@ public class UpgradeRunner extends AbstractCommandLineUtility {
 		FileUtils.copyFile(src, tgt);
 	}
 	
-	private void replaceNimbusJars() throws IOException {
-		outLog("Upgrading Nimbus libraries... ");
-		File srcLib = new File(upgradeSrcDir, "lib");
-		File tgtLib = new File(upgradeTgtDir, "lib");
-		replaceFiles(srcLib, tgtLib, nimbusJarFilter);
-		outln("Done");
-	}
-	
-	private void replaceNimbusScripts() throws IOException {
-		outLog("Upgrading scripts... ");
-		replaceFiles(upgradeSrcDir, upgradeTgtDir, nimbusScriptFilter);
-		outln("Done");
-		outln("NOTE: Nimbus startup & installation scripts may have changed. "
-				+ "You may need to execute them again.");
-	}
-	
-	private void replaceStaticResources() throws IOException {
-		outLog("Upgrading static resources... ");
-		File src = new File(upgradeSrcDir, "static");
-		File tgt = new File(upgradeTgtDir, "static");
-		writeUpgradeLogEntry("\tDeleting " + tgt);
-		FileUtils.deleteDirectory(tgt);
-		writeUpgradeLogEntry("\tCopying " + src + " to " + tgt);
-		FileUtils.copyDirectory(src, tgt);
-		outln("Done");
-	}
-	
-	private void writeUpgradeLogEntry(String entry) throws IOException {
+	public void writeUpgradeLogEntry(String entry) throws IOException {
 		FileUtils.writeStringToFile(logFile, LocalDateTime.now().toString() + ": " + entry + "\n", true); 
 	}
 	
-	private void outLog(String out) throws IOException {
+	public void outLog(String out) throws IOException {
 		super.out(out);
 		writeUpgradeLogEntry(out);
 	}
-	
-	private void replaceFiles(File srcDir, File tgtDir, FileFilter filter) throws IOException {
-		// Delete old files
-		for (File tgtFile : tgtDir.listFiles(filter)) {
-			writeUpgradeLogEntry("\tDeleting " + tgtFile);
-			FileUtils.forceDelete(tgtFile);
-		}
-		// Copy new files
-		for (File srcFile : srcDir.listFiles(filter)) {
-			writeUpgradeLogEntry("\tCopying " + srcFile + " to " + tgtDir);
-			FileUtils.copyFileToDirectory(srcFile, tgtDir);
-		}
-	}
-	
-	private static boolean checkUpgradeable(NimbusVersion version) {
+
+	private static boolean checkUpgradeableVersion(NimbusVersion version) {
 		return version.getMajor() > 0 
 				|| (version.getMajor() == 0 && version.getMinor() > 6)
-				|| (version.getMajor() == 0 && version.getMinor() == 6 && version.getDot() == 1);
+				|| (version.getMajor() == 0 && version.getMinor() == 6 && version.getDot() >= 1);
 	}
 }

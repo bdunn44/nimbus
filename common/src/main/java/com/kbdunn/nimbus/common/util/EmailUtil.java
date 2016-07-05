@@ -31,7 +31,7 @@ public abstract class EmailUtil {
 		
 		props.put("mail.smtp.host", settings.getSmtpServer());
 		props.put("mail.smtp.port", settings.getSmtpPort());
-		if (settings.isSSLEnabled()) {
+		if (settings.isSslEnabled()) {
 			props.put("mail.smtp.socketFactory.port", settings.getSslPort());
 			props.put("mail.smtp.socketFactory.class",
 					"javax.net.ssl.SSLSocketFactory");

@@ -3,7 +3,7 @@ package com.kbdunn.nimbus.common.server;
 import java.util.List;
 
 import com.kbdunn.nimbus.common.model.LinuxBlock;
-import com.kbdunn.nimbus.common.model.MemoryInformation;
+import com.kbdunn.nimbus.common.model.UsageInformation;
 import com.kbdunn.nimbus.common.model.HardDrive;
 import com.kbdunn.nimbus.common.model.NimbusUser;
 import com.kbdunn.nimbus.common.model.StorageDevice;
@@ -64,6 +64,14 @@ public interface StorageService {
 
 	void resetReconciliation();
 
-	MemoryInformation getSystemMemoryInformation();
+	UsageInformation getSystemMemoryUsage();
+	
+	UsageInformation getSystemDiskUsage();
+
+	StorageDevice getSyncRootStorageDevice(NimbusUser user);
+
+	void setSyncRootStorageDevice(NimbusUser user, StorageDevice device);
+
+	void resetReconciliation(StorageDevice device);
 
 }

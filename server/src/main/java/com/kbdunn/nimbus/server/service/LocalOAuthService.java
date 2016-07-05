@@ -1,5 +1,6 @@
 package com.kbdunn.nimbus.server.service;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.log4j.LogManager;
@@ -102,7 +103,7 @@ public class LocalOAuthService implements OAuthService {
 	}
 
 	@Override
-	public OAuth2AccessToken refreshAccessToken(OAuth20API api) {
+	public OAuth2AccessToken refreshAccessToken(OAuth20API api) throws IOException {
 		if (api == null) throw new IllegalArgumentException("API cannot be null");
 		if (api.getOAuthCredential() == null || api.getOAuthCredential().getRefreshToken() == null) 
 			throw new IllegalArgumentException("OAuth refresh token cannot be null");

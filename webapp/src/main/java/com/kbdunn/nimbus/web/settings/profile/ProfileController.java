@@ -1,5 +1,7 @@
 package com.kbdunn.nimbus.web.settings.profile;
 
+import java.io.IOException;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -98,11 +100,15 @@ public class ProfileController implements SettingsTabController {
 						controller.getCurrentUser(), type
 					);
 				if (api == null) {
-					// Check if the user has pasted a verifier token
-					swapVerifierForAccessToken();
-					api = NimbusUI.getOAuthService().getOAuthAPIService(
-							controller.getCurrentUser(), type
-						);
+					try {
+						// Check if the user has pasted a verifier token
+						swapVerifierForAccessToken();
+						api = NimbusUI.getOAuthService().getOAuthAPIService(
+								controller.getCurrentUser(), type
+							);
+					} catch (IOException e) {
+						log.error("Error swapping verifier token for access token", e);
+					}
 				}
 				if (api != null) setUserEmailService(tab.getEmailForm().getCurrentOAuthServiceType());
 			} catch (NimbusException e) {
@@ -130,6 +136,10 @@ public class ProfileController implements SettingsTabController {
 			}
 			return;
 		}
+		
+		// Update Sync Root
+		NimbusUI.getStorageService().setSyncRootStorageDevice(getCurrentUser(), tab.getSyncForm().getRootSelection());
+		
 		Notification.show("Your profile has been updated");
 		UI.getCurrent().getSession().setAttribute("user", getCurrentUser());
 		NimbusUI.getCurrent().refresh(); // Refresh UI to apply name change (updates controller.getUser() menu)
@@ -139,13 +149,13 @@ public class ProfileController implements SettingsTabController {
 
 	// This currently only works with OAuth2.0, and is specifically needed for GMAIL b/c the verifier token must be manually pasted
 	// This should be called to exchange the verifier token with an access token
-	void swapVerifierForAccessToken() {
+	void swapVerifierForAccessToken() throws IOException {
 		final OAuthAPIService.Type type = tab.getEmailForm().getCurrentOAuthServiceType();
 		final String verifier = tab.getEmailForm().getOAuthToken();
 		if (type == null || verifier == null || verifier.isEmpty()) return; // Nothing to do
 		Token accessToken = null;
 		if (type == OAuthAPIService.Type.GOOGLE) {
-			OAuth20Service scribe = GoogleApi20.instance().createService(tab.getEmailForm().getScribeOAuthConfig());
+			OAuth20Service scribe = tab.getEmailForm().getScribeServiceBuilder().build(GoogleApi20.instance());
 			accessToken = scribe.getAccessToken(verifier);
 		}
 		if (accessToken == null) {
@@ -188,16 +198,20 @@ public class ProfileController implements SettingsTabController {
 			);
 		if (api == null) {
 			// Check if the user has pasted a verifier token
-			swapVerifierForAccessToken();
-			api = NimbusUI.getOAuthService().getOAuthAPIService(
-					controller.getCurrentUser(), type
-				);
+			try {
+				swapVerifierForAccessToken();
+				api = NimbusUI.getOAuthService().getOAuthAPIService(
+						controller.getCurrentUser(), type
+					);
+			} catch (IOException e) {
+				log.error("Error swapping verifier token for access token", e);
+			}
 		}
 		boolean succeeded = false;
 		try {
 			succeeded = api != null && api.getEmailTransport().testConnection();
 		} catch (NimbusException ne) {
-			log.error(ne, ne);
+			log.error("Error testing OAuth email transport", ne);
 		}
 		if (!succeeded) {
 			deleteOAuthCredential(type);
@@ -216,5 +230,13 @@ public class ProfileController implements SettingsTabController {
 			log.error(e, e);
 		}
 		return null;
+	}
+	
+	void generateNewTokens() {
+		try {
+			NimbusUI.getUserService().resetApiToken(getCurrentUser());
+		} catch (UsernameConflictException | EmailConflictException | FileConflictException e) {
+			Notification.show("Unable to generate a new API token!", Notification.Type.ERROR_MESSAGE);
+		}
 	}
 }

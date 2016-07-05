@@ -2,6 +2,10 @@ package com.kbdunn.nimbus.web.theme;
 
 public class NimbusTheme {
 	
+	public static final String DISPLAY_NONE = "n-display-none";
+	
+	public static final String COPY_BUTTON_INPUT_MERGE = "n-copy-input-merge";
+	
 	public static final String MEDIA_ELEMENT_PLAYER = "n-mejs-player";
 	
 	public static final String LABEL_ELLIPSIS_OVERFLOW = "n-label-ellipsis-overflow";

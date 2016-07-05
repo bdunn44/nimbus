@@ -104,13 +104,13 @@ public class FileManagerUri implements NimbusUri {
 					+ "/" + storageDevice.getId() 
 					+ "/" + fileService.getRelativePath(NimbusUI.getUserService().getUserRootFolder(NimbusUI.getCurrentUser(), storageDevice), file);
 		}
-		uri = StringUtil.encodeUriUtf8(uri);
+		uri = StringUtil.encodeFragmentUtf8(uri);
 		log.debug("Composed URI is " + uri);
 	}
 	
 	private void parse() {
 		String tmpuri = uri.startsWith("/") ? uri.substring(1) : uri;
-		tmpuri = StringUtil.decodeUriUtf8(tmpuri);
+		tmpuri = StringUtil.decodeFragmentUtf8(tmpuri);
 
 		this.subject = getUri().startsWith(FileView.NAME) ? Subject.FILES : Subject.SHARE_BLOCK;
 		

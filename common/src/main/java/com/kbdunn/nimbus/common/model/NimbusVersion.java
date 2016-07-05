@@ -10,7 +10,11 @@ public class NimbusVersion implements Comparator<NimbusVersion>, Comparable<Nimb
 	
 	private final int major, minor, dot, build;
 
-	private NimbusVersion(int major, int minor, int dot, int build) {
+	public NimbusVersion(int major, int minor, int dot) {
+		this(major, minor, dot, -1);
+	}
+	
+	public NimbusVersion(int major, int minor, int dot, int build) {
 		this.major = major;
 		this.minor = minor;
 		this.dot = dot;
@@ -38,7 +42,7 @@ public class NimbusVersion implements Comparator<NimbusVersion>, Comparable<Nimb
 		int major = Integer.valueOf(split[0]);
 		int minor = Integer.valueOf(split[1]);
 		int dot = Integer.valueOf(split[2]);
-		int build = Integer.valueOf(split[3]);
+		int build = split.length > 3 ? Integer.valueOf(split[3]) : -1;
 		return new NimbusVersion(major, minor, dot, build);
 	}
 	
@@ -61,6 +65,16 @@ public class NimbusVersion implements Comparator<NimbusVersion>, Comparable<Nimb
 		return result;
 	}
 
+	public boolean equalsIgnoreBuild(NimbusVersion v2) {
+		if (this == v2) 
+			return true;
+		if (v2 == null) 
+			return false;
+		return this.getMajor() == v2.getMajor()
+				&& this.getMinor() == v2.getMinor()
+				&& this.getDot() == v2.getDot();
+	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)

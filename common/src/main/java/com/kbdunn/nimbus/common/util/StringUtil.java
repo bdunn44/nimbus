@@ -7,6 +7,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.regex.Pattern;
 
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
+
 public abstract class StringUtil {
 
 	public static String toDateString(Date date) {
@@ -55,43 +57,42 @@ public abstract class StringUtil {
 		try {
 			return URLEncoder.encode(s, "UTF-8");		
 		} catch (UnsupportedEncodingException e) {
-			return null;
+			throw new RuntimeException("UTF-8 encoding is not supported");
 		}
 	}
 	
-	// Encodes a relative or full URI to UTF-8
-	public static String encodeUriUtf8(String path) {
+	// Encodes a relative or full fragment to UTF-8
+	public static String encodeFragmentUtf8(String fragment) {
 		String encoded = "";
 		try {
-			if (path.contains("/")) {
-				for (String dir : path.split(Pattern.quote("/")))
+			if (fragment.contains("/")) {
+				for (String dir : fragment.split(Pattern.quote("/")))
 					encoded += "/" + URLEncoder.encode(dir, "UTF-8");
 			} else {
-				encoded = URLEncoder.encode(path, "UTF-8");
+				encoded = URLEncoder.encode(fragment, "UTF-8");
 			}
 		} catch (UnsupportedEncodingException e) {
-			return null;
+			throw new RuntimeException("UTF-8 encoding is not supported");
 		}
 		
 		// Trim leading slash if necessary
 		if (encoded.startsWith("/"))
-			return encoded.substring(1);
-		else
-			return encoded;
+			encoded = encoded.substring(1);
+		return encoded;
 	}
 	
-	// Decodes a relative or full URI to UTF-8
-	public static String decodeUriUtf8(String path) {
+	// Decodes a relative or full fragment to UTF-8
+	public static String decodeFragmentUtf8(String fragment) {
 		String decoded = "";
 		try {
-			if (path.contains("/")) {
-				for (String dir : path.split(Pattern.quote("/")))
+			if (fragment.contains("/")) {
+				for (String dir : fragment.split(Pattern.quote("/")))
 					decoded += "/" + URLDecoder.decode(dir, "UTF-8");
 			} else {
-				decoded = URLDecoder.decode(path, "UTF-8");
+				decoded = URLDecoder.decode(fragment, "UTF-8");
 			}
 		} catch (UnsupportedEncodingException e) {
-			return null;
+			throw new RuntimeException("UTF-8 encoding is not supported");
 		}
 		
 		// Trim leading slash if necessary
@@ -99,6 +100,14 @@ public abstract class StringUtil {
 			return decoded.substring(1);
 		else
 			return decoded;
+	}
+	
+	public static String encodePathUtf8(String path) {
+		return encodeFragmentUtf8(path).replace("+", "%20");
+	}
+	
+	public static String decodePathUtf8(String path) {
+		return decodeFragmentUtf8(path);
 	}
 	
 	public static String toDurationString(Integer seconds) {
@@ -125,5 +134,19 @@ public abstract class StringUtil {
 			}
 		}
 		return false;
+	}
+	
+	public static byte[] hexToBytes(String hex) {
+		return new HexBinaryAdapter().unmarshal(hex);
+	}
+	
+	public static String bytesToHex(byte[] data) {
+		return new HexBinaryAdapter().marshal(data);
+		/*
+		StringBuilder sb = new StringBuilder();
+		for (byte b : data) {
+			sb.append(String.format("%02X", b));
+		}
+		return sb.toString();*/
 	}
 }

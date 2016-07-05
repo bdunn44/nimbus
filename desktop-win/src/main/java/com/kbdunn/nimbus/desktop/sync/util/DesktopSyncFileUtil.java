@@ -1,8 +1,8 @@
 package com.kbdunn.nimbus.desktop.sync.util;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ public final class DesktopSyncFileUtil {
 		return new File(syncDir, syncFile.getPath());
 	}
 	
-	public static Map<String, SyncFile> buildMap(List<SyncFile> syncFiles) {
+	public static Map<String, SyncFile> buildMap(Collection<SyncFile> syncFiles) {
 		HashMap<String, SyncFile> map = new HashMap<>();
 		for (SyncFile syncFile : syncFiles) {
 			map.put(syncFile.getPath(), syncFile);
@@ -34,7 +34,7 @@ public final class DesktopSyncFileUtil {
 	public static String toCompositeString(SyncFile file) {
 		return file.getPath() 
 				+ "::" + file.getMd5() 
-				+ "::" + file.isDirectory() 
+				+ "::" + file.isDirectory()
 				+ "::" + file.getSize() 
 				+ "::" + file.getLastHashed() 
 				+ "::" + file.getLastModified();

@@ -97,14 +97,16 @@ public class ConnectForm extends Composite implements SelectionListener, KeyList
 		connect.addSelectionListener(this);
 		fd.setHeight(12);
 		connect.setFont(new Font(getDisplay(), fd));
-	}
-	
-	public void refresh() {
-		if (this.isDisposed()) return;
+		
+		// Set persisted values, if any
 		SyncCredentials creds = SyncPreferences.getCredentials();
 		endpoint.setText(SyncPreferences.getUrl());
 		username.setText(creds.getUsername());
 		apiToken.setText(creds.getApiToken());
+	}
+	
+	public void refresh() {
+		if (this.isDisposed()) return;
 		//nodeName.setText(SyncPreferences.getNodeName());
 		/*endpoint.setSize(100, 50);
 		username.setSize(100, 50);

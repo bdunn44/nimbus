@@ -1,6 +1,7 @@
 package com.kbdunn.nimbus.api.client;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.core.GenericType;
@@ -34,25 +35,29 @@ public class FileSyncManager {
 				client.getCredentials(), 
 				NimbusRequest.Method.GET, 
 				client.getApiEndpoint(), 
-				SYNC_FILES_ENDPOINT + StringUtil.encodeUriUtf8(path),
+				SYNC_FILES_ENDPOINT + "/" + StringUtil.encodePathUtf8(path),
 				new GenericType<SyncFile>(){}
 			), 0);
 		if (!response.succeeded()) {
-			throw new TransportException(response.getError().getMessage());
+			throw new TransportException(
+					response.getError() != null ? response.getError().getMessage() :
+					"An unexpected error occured. HTTP " + response.getStatus());
 		}
 		return response.getEntity();
 	}
 	
 	public List<SyncFile> getSyncFileList() throws InvalidRequestException, InvalidResponseException, TransportException {
-		NimbusResponse<List<SyncFile>> response = client.process(new NimbusRequest<Void, List<SyncFile>>(
+		NimbusResponse<ArrayList<SyncFile>> response = client.process(new NimbusRequest<Void, ArrayList<SyncFile>>(
 				client.getCredentials(), 
 				NimbusRequest.Method.GET, 
 				client.getApiEndpoint(), 
 				SYNC_FILES_ENDPOINT,
-				new GenericType<List<SyncFile>>(){}
+				new GenericType<ArrayList<SyncFile>>(){}
 			), 0);
 		if (!response.succeeded()) {
-			throw new TransportException(response.getError().getMessage());
+			throw new TransportException(
+					response.getError() != null ? response.getError().getMessage() :
+					"An unexpected error occured. HTTP " + response.getStatus());
 		}
 		return response.getEntity();
 	}
@@ -62,12 +67,14 @@ public class FileSyncManager {
 				client.getCredentials(), 
 				NimbusRequest.Method.PUT, 
 				client.getApiEndpoint(), 
-				SYNC_FILES_ENDPOINT + StringUtil.encodeUriUtf8(syncDirectory.getPath()),
+				SYNC_FILES_ENDPOINT + "/" + StringUtil.encodePathUtf8(syncDirectory.getPath()),
 				new FileAddEvent(syncDirectory),
 				new GenericType<PutResponse>(){}
 			), 0);
 		if (!response.succeeded()) {
-			throw new TransportException(response.getError().getMessage());
+			throw new TransportException(
+					response.getError() != null ? response.getError().getMessage() :
+					"An unexpected error occured. HTTP " + response.getStatus());
 		}
 	}
 	
@@ -81,7 +88,9 @@ public class FileSyncManager {
 				new GenericType<PostResponse>(){}
 			), 0);
 		if (!response.succeeded()) {
-			throw new TransportException(response.getError().getMessage());
+			throw new TransportException(
+					response.getError() != null ? response.getError().getMessage() :
+					"An unexpected error occured. HTTP " + response.getStatus());
 		}
 	}
 	
@@ -95,7 +104,9 @@ public class FileSyncManager {
 				new GenericType<PostResponse>(){}
 			), 0);
 		if (!response.succeeded()) {
-			throw new TransportException(response.getError().getMessage());
+			throw new TransportException(
+					response.getError() != null ? response.getError().getMessage() :
+					"An unexpected error occured. HTTP " + response.getStatus());
 		}
 	}
 	
@@ -112,11 +123,13 @@ public class FileSyncManager {
 				client.getCredentials(), 
 				NimbusRequest.Method.DELETE, 
 				client.getApiEndpoint(), 
-				SYNC_FILES_ENDPOINT + StringUtil.encodeUriUtf8(syncFile.getPath()),
+				SYNC_FILES_ENDPOINT + "/" + StringUtil.encodePathUtf8(syncFile.getPath()),
 				new GenericType<Void>(){}
 			), 0);
 		if (!response.succeeded()) {
-			throw new TransportException(response.getError().getMessage());
+			throw new TransportException(
+					response.getError() != null ? response.getError().getMessage() :
+					"An unexpected error occured. HTTP " + response.getStatus());
 		}
 	}
 	
@@ -125,12 +138,14 @@ public class FileSyncManager {
 				client.getCredentials(), 
 				NimbusRequest.Method.POST, 
 				client.getApiEndpoint(), 
-				SYNC_FILES_ENDPOINT + "/upload" + StringUtil.encodeUriUtf8(syncFile.getPath()),
+				SYNC_FILES_ENDPOINT + "/upload/" + StringUtil.encodePathUtf8(syncFile.getPath()),
 				file,
 				new GenericType<Void>(){}
 			), 0);
 		if (!response.succeeded()) {
-			throw new TransportException(response.getError().getMessage());
+			throw new TransportException(
+					response.getError() != null ? response.getError().getMessage() :
+					"An unexpected error occured. HTTP " + response.getStatus());
 		}
 	}
 	
@@ -139,11 +154,13 @@ public class FileSyncManager {
 				client.getCredentials(), 
 				NimbusRequest.Method.GET, 
 				client.getApiEndpoint(), 
-				SYNC_FILES_ENDPOINT + "/download" + StringUtil.encodeUriUtf8(syncFile.getPath()),
+				SYNC_FILES_ENDPOINT + "/download/" + StringUtil.encodePathUtf8(syncFile.getPath()),
 				new GenericType<File>(){}
 			), 0);
 		if (!response.succeeded()) {
-			throw new TransportException(response.getError().getMessage());
+			throw new TransportException(
+					response.getError() != null ? response.getError().getMessage() :
+					"An unexpected error occured. HTTP " + response.getStatus());
 		}
 		return response.getEntity();
 	}

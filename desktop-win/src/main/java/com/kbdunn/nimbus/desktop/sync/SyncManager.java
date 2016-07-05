@@ -1,7 +1,7 @@
 package com.kbdunn.nimbus.desktop.sync;
 
 import java.io.IOException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.kbdunn.nimbus.api.client.NimbusClient;
 import com.kbdunn.nimbus.api.exception.TransportException;
-import com.kbdunn.nimbus.common.util.TrackedExecutorWrapper;
+import com.kbdunn.nimbus.common.util.TrackedScheduledThreadPoolExecutor;
 import com.kbdunn.nimbus.desktop.Application;
 import com.kbdunn.nimbus.desktop.ApplicationProperties;
 import com.kbdunn.nimbus.desktop.model.SyncCredentials;
@@ -29,9 +29,9 @@ public class SyncManager {
 		CONNECTING("Connecting...", false),
 		CONNECTED("Connected", true),
 		CONNECTION_ERROR("Connection error", false),
-		SYNCING("Syncing files...", true),
+		SYNCING("Processing {}...", true),
 		SYNCED("Files synced", true),
-		SYNC_ERROR("Sync error", true),
+		SYNC_ERROR("Failed to process {}", true),
 		PAUSED("Paused", true);
 		
 		private String desc;
@@ -69,7 +69,7 @@ public class SyncManager {
 	private NimbusFileObserver fileObserver;
 	private RemoteFileEventListener remoteEventListener;
 	private LocalFileEventListener localEventListener;
-	private TrackedExecutorWrapper executor;
+	private TrackedScheduledThreadPoolExecutor executor;
 	
 	private final AtomicBoolean batchSyncRunning;
 	
@@ -79,17 +79,20 @@ public class SyncManager {
 	}
 	
 	public Status getSyncStatus() {
-		if (status.isConnected && !client.isConnectedToPushService()) {
-			status = Status.CONNECTION_ERROR;
+		if (status.isConnected && status != Status.SYNCING && !client.isConnectedToPushService()) {
 			pause();
+			status = Status.CONNECTION_ERROR;
 		}
 		if (isSyncActive()) {
-			status = executor.getTaskCount() > 0 ? Status.SYNCING : Status.SYNCED;
+			status = getSyncTaskCount() > 0 ? Status.SYNCING : Status.SYNCED;
+			if (status == Status.SYNCED && SyncStateCache.instance().getCurrentSyncErrors().size() > 0) {
+				status = Status.SYNC_ERROR;
+			}
 		}
 		return status;
 	}
 	
-	public TrackedExecutorWrapper getExecutor() {
+	public TrackedScheduledThreadPoolExecutor getExecutor() {
 		return executor;
 	}
 	
@@ -100,8 +103,8 @@ public class SyncManager {
 			;
 	}
 	
-	public int getSyncTaskCount() {
-		return executor == null ? 0 : executor.getTaskCount();
+	public long getSyncTaskCount() {
+		return executor == null ? 0l : executor.getQueueSize() + executor.getActiveCount();
 	}
 	
 	public boolean connect() {
@@ -112,6 +115,7 @@ public class SyncManager {
 			Application.showNotification("Log in to your cloud to synchronize your files");
 			Application.openSettingsWindow();
 			status = Status.DISCONNECTED;
+			Application.updateSyncStatus();
 		} else {
 			log.info("Connecting to Nimbus at {}...", url);
 			status = Status.CONNECTING;
@@ -153,10 +157,10 @@ public class SyncManager {
 			} catch (Exception e) {
 				status = Status.CONNECTION_ERROR;
 				log.error("Unable to connect to Nimbus", e);
-			} 
+			} finally {
+				Application.updateSyncStatus();
+			}
 		}
-		
-		Application.updateSyncStatus();
 		
 		return status.isConnected();
 	}
@@ -166,23 +170,20 @@ public class SyncManager {
 			return;
 		}
 		log.info("Resuming file synchronization");
-		// Initialize executor
-		if (executor == null || executor.isTerminated()) {
-			executor = new TrackedExecutorWrapper(
-					Executors.newScheduledThreadPool(WORKER_THREAD_COUNT, 
-							new ThreadFactoryBuilder().setNameFormat("Sync Worker Thread #%d").build()));
-		}
-		
 		// Run in the application's background thread
 		Application.asyncExec(() -> {
+			// Initialize executor
+			if (executor == null || executor.isTerminated()) {
+				executor = new TrackedScheduledThreadPoolExecutor(WORKER_THREAD_COUNT, 
+								new ThreadFactoryBuilder().setNameFormat("Sync Worker Thread #%d").build());
+			}
 			// Run sychronization in batch, synchronously
 			try {
-				SyncStateCache.instance().rebuildCurrentState();
 				batchSync();
 			} catch (Exception e) {
 				log.error("Uncaught exception encountered while running batch synchronization", e);
 			}
-			
+			Application.updateSyncStatus();
 			try {
 				if (!client.isConnectedToPushService()) {
 					log.warn("Client is no longer connected to the push service. Reconnecting...");
@@ -220,7 +221,7 @@ public class SyncManager {
 		} catch (IOException e) {
 			log.error("Unable to persist current sync state!", e);
 		}
-
+		
 		status = Status.PAUSED;
 		Application.updateSyncStatus();
 	}
@@ -268,17 +269,27 @@ public class SyncManager {
 		log.debug("Took {}ms to release resources", TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start));
 	}
 	
-	private void batchSync() {
+	private void batchSync() throws InterruptedException, ExecutionException {
 		if (batchSyncRunning.compareAndSet(false, true)) {
-			status = Status.SYNCING;
-			Application.updateSyncStatus();
-			if (new BatchSyncRunner(syncEventHandler, fileManager).start()) {
-				status = Status.SYNCED;
-			} else {
-				status = Status.SYNC_ERROR;
-			}
-			Application.updateSyncStatus();
-			batchSyncRunning.set(false);
+			// Submit in sync worker thread pool to show an active sync task
+			executor.submit(() -> {
+				try {
+					status = Status.SYNCING;
+					Application.updateSyncStatus();
+					SyncStateCache.instance().rebuildCurrentState();
+					if (new BatchSyncRunner(syncEventHandler, fileManager).start()) {
+						status = Status.SYNCED;
+					} else {
+						status = Status.SYNC_ERROR;
+					}
+				} catch (IOException e) {
+					log.error("Failed to rebuild sync state cache", e);
+					status = Status.SYNC_ERROR;
+					return;
+				} finally {
+					batchSyncRunning.set(false);
+				}
+			}).get();
 		}
 	}
 }

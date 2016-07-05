@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -21,9 +23,6 @@ import javax.ws.rs.ext.Provider;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.glassfish.jersey.message.internal.ReaderWriter;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 
 import com.kbdunn.nimbus.api.network.NimbusHttpHeaders;
 import com.kbdunn.nimbus.api.network.util.HmacUtil;
@@ -129,10 +128,10 @@ public class HmacContainerRequestFilter implements ContainerRequestFilter {
 			requestContext.setProperty(NimbusHttpHeaders.Key.REQUESTOR, nmbHeaders.get(NimbusHttpHeaders.Key.REQUESTOR));
 			
 			// Check timestamp isn't old
-			DateTimeFormatter parser = DateTimeFormat.forPattern(DateUtil.DATE_FORMAT).withZoneUTC();
-			DateTime timestamp = parser.parseDateTime(nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP));
-			if (timestamp.compareTo(DateTime.now().minusMinutes(5)) == -1) {
-				devModeOrThrowIae("Stale message!  (" + parser.print(timestamp) + ")");
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateUtil.JAVA8_DATE_FORMAT);
+			ZonedDateTime datetime = ZonedDateTime.parse(nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP), formatter);
+			if (datetime.compareTo(ZonedDateTime.now().minusMinutes(5)) == -1) {
+				throw new IllegalArgumentException("Stale response!  (" + nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP) + ")");
 			}
 			
 			// Check mac hash

@@ -43,7 +43,7 @@ subprojects {
 	dependencies {
 		compile 'log4j:log4j:1.2.17'
 		//compile 'org.slf4j:slf4j-api:1.7.21' // TODO: Switch to SLF4J everywhere
-	    compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
+	    //compile 'com.fasterxml.jackson.core:jackson-annotations:2.5.4'
 	    
 		//  Java Mail 
 		compile 'com.sun.mail:javax.mail:1.5.5'
@@ -223,6 +223,13 @@ project(':server') {
 
 project(':desktop-win') {
 	
+	configurations {
+		// This configuration is used to gather the platform-specific SWT JARs to be distributed,
+		// along with the rest of the compile dependencies. 
+		distributed
+		distributed.extendsFrom(runtime)
+	}
+	
 	configurations.compile.exclude group: 'com.vaadin'
 	configurations.compile.exclude group: 'com.github.scribejava'
 	
@@ -235,7 +242,9 @@ project(':desktop-win') {
 		compile 'commons-io:commons-io:2.4'
 		compile 'org.jsoup:jsoup:1.8.3'
 		compile 'com.google.guava:guava:19.0'
-	    compile fileTree(dir: 'lib', include: '*.jar')
+	    compile fileTree(dir: 'lib', include: '*.jar', exclude: 'swt_*.jar')
+	    compile fileTree(dir: 'lib', include: 'swt_win64.jar') // Here we specify which SWT JAR to use for dev, and compile with
+	    distributed fileTree(dir: 'lib', include: 'swt_*.jar') // Include all SWT JARs in the distribution
 	}
 	
 	jar {
@@ -257,27 +266,27 @@ project(':desktop-win') {
 	
 	task copyLibs(type: Copy) {
 		into 'build/dependency-cache'
-		from configurations.runtime
+		from configurations.distributed
 	}
 	
 	jar.dependsOn(deleteLibs);
 	jar.finalizedBy(copyLibs);
 	
-	task buildLauncher(type: Exec) {
+	task createLauncher(type: Exec) {
 		executable 'C:\\Program Files (x86)\\NSIS\\makensis.exe'
 		args "/DVERSION=" + project.version + "-BETA"
 		args "dist/win32_launcher.nsi"
 	}
 	
-	task buildInstaller(type: Exec) {
+	task createInstaller(type: Exec) {
 		executable 'C:\\Program Files (x86)\\NSIS\\makensisw.exe'
 		args "/DVERSION=" + project.version + "-BETA"
 		args "dist/win32_installer.nsi"
 	}
-	buildInstaller.group = NIMBUS_TASK_GROUP
-	buildInstaller.description = 'Build the installer for the Nimbus Destop application.'
-	buildInstaller.dependsOn(build)
-	buildInstaller.dependsOn(buildLauncher)
+	createInstaller.group = NIMBUS_TASK_GROUP
+	createInstaller.description = 'Create the installer for the Nimbus Destop application.'
+	createInstaller.dependsOn(build)
+	createInstaller.dependsOn(createLauncher)
 }
 
 project(':api') {
@@ -346,12 +355,23 @@ task createDistribution (type: Tar) {
 	
 	from ('dist') {
 		exclude('*.sh')
+		exclude('*.properties')
 	}
 	from ('dist') {
 		// Scripts
 		include('*.sh')
 		// Make them executable
 		fileMode 0755
+		// Ensure Unix line endings, remove EOF characters
+		filter(FixCrLfFilter,
+			eol: FixCrLfFilter.CrLf.newInstance('lf'),
+			tab: FixCrLfFilter.AddAsisRemove.newInstance('asis'),
+			eof: FixCrLfFilter.AddAsisRemove.newInstance('remove'),
+			fixlast: true)
+	}
+	from ('dist') {
+		// Properties Files
+		include('*.properties')
 		// Ensure Unix line endings, remove EOF characters
 		filter(FixCrLfFilter,
 			eol: FixCrLfFilter.CrLf.newInstance('lf'),
@@ -405,7 +425,7 @@ createDistribution.doFirst {
 }
 
 //assemble.dependsOn(prepProguard) // ProGuard breaks push as of 0.6.1
-createDistribution.dependsOn(build)
+createDistribution.dependsOn ':server:build'
 //createDistribution.dependsOn ':common:assemble'
 //createDistribution.dependsOn ':webapp:assemble'
 //createDistribution.dependsOn ':server:assemble'

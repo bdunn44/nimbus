@@ -6,10 +6,7 @@ import java.util.Locale;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.kbdunn.nimbus.common.model.HardDrive;
-import com.kbdunn.nimbus.common.model.MemoryInformation;
-import com.kbdunn.nimbus.common.model.StorageDevice;
-import com.kbdunn.nimbus.common.server.StorageService;
+import com.kbdunn.nimbus.common.model.UsageInformation;
 import com.kbdunn.nimbus.common.util.StringUtil;
 import com.kbdunn.nimbus.web.NimbusUI;
 import com.kbdunn.vaadin.addons.fontawesome.FontAwesome;
@@ -91,34 +88,40 @@ public class DashboardView extends VerticalLayout implements View {
 	}
 	
 	private void updateDisk() {
-		StorageService storageService = NimbusUI.getStorageService();
-		long used = 0;
-		long total = 0;
-		storageService.scanAndMountUSBHardDrives(); // update disk usage 
-		for (StorageDevice d : storageService.getAllStorageDevices()) {
-			if (d instanceof HardDrive) {
-				used += ((HardDrive)d).getUsed();
-				total += ((HardDrive)d).getSize();
-			}
+		final UsageInformation sys = NimbusUI.getStorageService().getSystemDiskUsage();
+		if (sys != null) {
+			log.debug("Disk used: " + sys.getUsedString());
+			log.debug("Disk total: " + sys.getTotalString());
+			disk.setValue(sys.getPercentageString());
+			disk.setSubValue("[ <span style=\"font-weight:bold;\">" + sys.getUsedString() + "</span> "
+					+ "used of "
+					+ "<span style=\"font-weight:bold;\">" + sys.getTotalString() + "</span> ]");
+		} else {
+			disk.setValue("??");
+			disk.setSubValue("[ <span style=\"font-weight:bold;\">??</span> "
+					+ "used of "
+					+ "<span style=\"font-weight:bold;\">??</span> ]");
 		}
-		log.debug("Disk used: " + StringUtil.toHumanSizeString(used));
-		log.debug("Disk total: " + StringUtil.toHumanSizeString(total));
-		disk.setValue((int)Math.ceil((double)used/(double)total*100) + "%");
-		disk.setSubValue("[ <span style=\"font-weight:bold;\">" + StringUtil.toHumanSizeString(used) + "</span> "
-				+ "used of "
-				+ "<span style=\"font-weight:bold;\">" + StringUtil.toHumanSizeString(total) + "</span> ]");
+		
 	}
 	
 	private void updateMemory() {
-		final MemoryInformation mem = NimbusUI.getStorageService().getSystemMemoryInformation();
-		log.debug("Memory used: " + mem.getUsed());
-		log.debug("Memory total: " + mem.getTotal());
-		memory.setValue((int)Math.ceil((double)mem.getUsed()/(double)mem.getTotal()*100) + "%");
-		memory.setSubValue("[ <span style=\"font-weight:bold;\">" + StringUtil.toHumanSizeString(mem.getUsed()) + "</span> "
-				+ "used of "
-				+ "<span style=\"font-weight:bold;\">" + StringUtil.toHumanSizeString(mem.getTotal()) + "</span> ]");
+		final UsageInformation sys = NimbusUI.getStorageService().getSystemMemoryUsage();
+		if (sys != null) {
+			log.debug("Memory used: " + sys.getUsedString());
+			log.debug("Memory total: " + sys.getTotalString());
+			memory.setValue(sys.getPercentageString());
+			memory.setSubValue("[ <span style=\"font-weight:bold;\">" + sys.getUsedString() + "</span> "
+					+ "used of "
+					+ "<span style=\"font-weight:bold;\">" + sys.getTotalString() + "</span> ]");
+		} else {
+			disk.setValue("??");
+			disk.setSubValue("[ <span style=\"font-weight:bold;\">??</span> "
+					+ "used of "
+					+ "<span style=\"font-weight:bold;\">??</span> ]");
+		}
 	}
-
+	
 	private void updateManaged() {
 		managed.setValue(NumberFormat.getNumberInstance(Locale.US).format(NimbusUI.getFileService().getTotalFileCount()));
 		managed.setSubValue("[ <span style=\"font-weight:bold;\">" 

@@ -1,9 +1,14 @@
 package com.kbdunn.nimbus.server.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.LogManager;
@@ -242,14 +247,37 @@ public class LocalUserService implements UserService {
 		NimbusUser old = NimbusUserDAO.getById(user.getId());
 		
 		// Check for name change
+		// TODO: Don't hide errors in here. Fix the sloppy handling
 		if (!old.getName().equals(user.getName())) {
 			log.debug("Renaming user's home folder(s)");
-			for (StorageDevice d : storageService.getStorageDevicesAssignedToUser(user)) {
+			for (StorageDevice d : storageService.getStorageDevicesAssignedToUser(old)) {
 				if (storageService.storageDeviceIsAvailable(d)) {
 					NimbusFile oldRoot = getUserRootFolder(old, d);
+					NimbusFile newRoot = fileService.getFileByPath(oldRoot.getPath() +
+							"/" + StringUtil.getFileNameFromPath(getUserRootFolderPath(user, d)));
+					if (fileService.fileExistsOnDisk(newRoot)) {
+						log.warn("User's new root folder already exists: " + newRoot.getPath());
+						String dateString = new SimpleDateFormat("YYYYMMDDHHMI").format(new Date());
+						if (newRoot.getId() != null) {
+								if (fileService.renameFile(newRoot, newRoot.getName() + "-BACKUP" + dateString) == null) {
+									log.error("Failed to rename old user root: " + newRoot.getPath());
+									return false;
+								}
+						} else {
+							// Manually move the untracked file
+							try {
+								Files.move(Paths.get(newRoot.getPath()), Paths.get(newRoot.getPath() + "-BACKUP" + dateString));
+							} catch (IOException e) {
+								log.error("Failed to rename old user root: " + newRoot.getPath(), e);
+								return false;
+							}
+						}
+					}
+					
 					if (fileService.fileExistsOnDisk(oldRoot) 
-							&& fileService.renameFile(oldRoot, StringUtil.getFileNameFromPath(getUserRootFolderPath(user, d))) != null) {
-							return false;
+							&& fileService.renameFile(oldRoot, StringUtil.getFileNameFromPath(getUserRootFolderPath(user, d))) == null) {
+						log.error("Failed to rename old root folder: " + oldRoot.getPath());
+						return false;
 					}
 				}
 			}

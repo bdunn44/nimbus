@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,6 @@ import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
 import com.kbdunn.nimbus.api.client.model.SyncFile;
 import com.kbdunn.nimbus.api.util.SyncFileUtil;
 import com.kbdunn.nimbus.common.sync.HashUtil;
@@ -33,6 +33,7 @@ public class SyncStateCache {
 
 	private ConcurrentHashMap<String, SyncFile> lastPersistedState;
 	private ConcurrentHashMap<String, SyncFile> currentState;
+	private ConcurrentHashMap<String, SyncFile> syncErrors;
 	private CountDownLatch cacheReadyLatch;
 	
 	private SyncStateCache() {
@@ -41,11 +42,12 @@ public class SyncStateCache {
 		Application.asyncExec(() -> {
 			try {
 				// Set both states to persisted
-				lastPersistedState = currentState = new ConcurrentHashMap<>(DesktopSyncFileUtil.buildMap(readPersistedSyncState()));
-				// Update the current state - this uses the persisted data to determine what needs to be re-hashed
+				readPersistedSyncState(); // Read persisted cached files/errors
+				currentState = new ConcurrentHashMap<>(lastPersistedState);
+				// Update the current state - this uses the persisted data (in currentState) to determine what needs to be re-hashed
 				currentState = new ConcurrentHashMap<>(DesktopSyncFileUtil.buildMap(buildCurrentSyncState()));
-			} catch (ClassNotFoundException|IOException e) {
-				log.error("Error reading persisted sync state", e);
+			} catch (IOException e) {
+				log.error("Error building sync state cache", e);
 			} finally {
 				if (currentState == null) currentState = new ConcurrentHashMap<>();
 				if (lastPersistedState == null) lastPersistedState = new ConcurrentHashMap<>();
@@ -61,6 +63,10 @@ public class SyncStateCache {
 	
 	public Map<String, SyncFile> getCurrentSyncState() {
 		return currentState;
+	}
+	
+	public Map<String, SyncFile> getCurrentSyncErrors() {
+		return syncErrors;
 	}
 	
 	public void rebuildCurrentState() throws IOException {
@@ -81,10 +87,9 @@ public class SyncStateCache {
 	}
 	
 	public SyncFile update(SyncFile toUpdate) {
-		synchronized (currentState) {
-			currentState.put(toUpdate.getPath(), toUpdate);
-			return toUpdate;
-		}
+		syncErrors.remove(toUpdate.getPath());
+		currentState.put(toUpdate.getPath(), toUpdate);
+		return toUpdate;
 	}
 	
 	public SyncFile update(File file) throws IOException {
@@ -103,6 +108,19 @@ public class SyncStateCache {
 		}
 		syncFile = update(getUpdatedSyncFile(file, isDirectory));
 		return syncFile;
+	}
+	
+	public void delete(SyncFile toDelete) {
+		syncErrors.remove(toDelete.getPath());
+		currentState.remove(toDelete.getPath());
+	}
+	
+	public void addError(SyncFile error) {
+		syncErrors.put(error.getPath(), error);
+	}
+	
+	public void removeError(SyncFile error) {
+		syncErrors.remove(error.getPath());
 	}
 	
 	public SyncFile getUpdatedSyncFile(File file, boolean isDirectory) throws IOException {
@@ -138,7 +156,7 @@ public class SyncStateCache {
 				|| ComparatorUtil.nullSafeLongComparator(cachedFile.getSize(), size) != 0 // File size changed
 				|| ComparatorUtil.nullSafeLongComparator(cachedFile.getLastModified(), modified) != 0 // Modified date has changed
 				|| ComparatorUtil.nullSafeLongComparator(cachedFile.getLastHashed(), modified) < 0) {  // Haven't hashed since modification
-			log.info("Calculating MD5 hash of " + syncFile);
+			log.debug("Calculating MD5 hash of " + syncFile);
 			syncFile.setMd5(StringUtil.bytesToHex(HashUtil.hash(file)));
 			syncFile.setLastHashed(System.currentTimeMillis());
 		} else {
@@ -160,8 +178,7 @@ public class SyncStateCache {
 				Iterator<File> files = FileUtils.iterateFilesAndDirs(root, TrueFileFilter.TRUE, TrueFileFilter.TRUE);
 				while (files.hasNext()) {
 					File file = files.next();
-					if (file.equals(root)) {
-						// skip root folder
+					if (file.equals(root) || file.isHidden()) {
 						continue;
 					}
 					visited.add(update(file));
@@ -176,12 +193,6 @@ public class SyncStateCache {
 				// The file wasn't visited, it doesn't exist
 				it.remove();
 			}
-		}
-	}
-	
-	public void delete(SyncFile toDelete) {
-		synchronized (currentState) {
-			currentState.remove(toDelete.getPath());
 		}
 	}
 	
@@ -204,33 +215,32 @@ public class SyncStateCache {
 	}
 	
 	public void persistCurrentState() throws IOException {
-		persist(currentState);
-	}
-	
-	public void persist(Map<String, SyncFile> state) throws IOException {
 		long start = System.nanoTime();
-		log.info("Persisting cached sync state");
-		final List<SyncFile> stateList = Lists.newArrayList(state.values());
+		final Collection<SyncFile> state = currentState.values();
+		final Collection<SyncFile> errors = syncErrors.values();
 		final List<String> lines = new ArrayList<>();
-		for (SyncFile syncFile : stateList) {
-			lines.add(DesktopSyncFileUtil.toCompositeString(syncFile));
+		for (SyncFile syncFile : currentState.values()) {
+			// false == not an error
+			lines.add("false::" + DesktopSyncFileUtil.toCompositeString(syncFile));
+		}
+		for (SyncFile syncFile : syncErrors.values()) {
+			// true == an error
+			lines.add("true::" + DesktopSyncFileUtil.toCompositeString(syncFile));
 		}
 		FileUtils.writeLines(getCachePersistenceFile(), lines, false);
-		lastPersistedState = new ConcurrentHashMap<>(state);
-		log.info("Finished persisting sync state in {}ms. {} file state(s) persisted.", 
-				TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start), stateList.size());
+		lastPersistedState = new ConcurrentHashMap<>(DesktopSyncFileUtil.buildMap(state));
+		log.info("Finished persisting sync state in {}ms. {} file state(s), {} error(s) persisted.", 
+				TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start), state.size(), errors.size());
 	}
 	
 	private List<SyncFile> buildCurrentSyncState() throws IOException {
 		long start = System.nanoTime();
-		log.info("Building current local sync state");
 		List<SyncFile> currentState = new ArrayList<>();
 		final File root = ApplicationProperties.instance().getSyncDirectory();
 		Iterator<File> files = FileUtils.iterateFilesAndDirs(root, TrueFileFilter.TRUE, TrueFileFilter.TRUE);
 		while (files.hasNext()) {
 			File file = files.next();
-			if (file.equals(root)) {
-				// skip root folder
+			if (file.equals(root) || file.isHidden()) {
 				continue;
 			}
 			currentState.add(getUpdatedSyncFile(file, file.isDirectory()));
@@ -240,21 +250,28 @@ public class SyncStateCache {
 		return currentState;
 	}
 	
-	private synchronized List<SyncFile> readPersistedSyncState() throws IOException, ClassNotFoundException {
+	// Read the last persisted sync state - files + errors
+	private synchronized void readPersistedSyncState() throws IOException {
 		long start = System.nanoTime();
-		log.info("Reading last persisted sync state");
-		final List<SyncFile> state = new ArrayList<>();
+		lastPersistedState = new ConcurrentHashMap<>();
+		syncErrors = new ConcurrentHashMap<>();
 		final File stateFile = getCachePersistenceFile();
 		if (!stateFile.exists()) {
 			log.error("Persisted sync state is not available.");
-			return state;
+			return;
 		}
 		for (String line : FileUtils.readLines(stateFile)) {
-			state.add(DesktopSyncFileUtil.fromCompositeString(line));
+			boolean error = line.startsWith("true");
+			line = line.substring(line.indexOf("::") + 2);
+			SyncFile syncFile = DesktopSyncFileUtil.fromCompositeString(line);
+			if (error) {
+				syncErrors.put(syncFile.getPath(), syncFile);
+			} else {
+				lastPersistedState.put(syncFile.getPath(), syncFile);
+			}
 		}
-		log.info("Finished reading persisted sync state in {}ms. {} file state(s) read.", 
-				TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start), state.size());
-		return state;
+		log.info("Finished reading persisted sync state in {}ms. {} file state(s), {} error(s) read.", 
+				TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start), lastPersistedState.size(), syncErrors.size());
 	}
 	
 	private static File getCachePersistenceFile() {

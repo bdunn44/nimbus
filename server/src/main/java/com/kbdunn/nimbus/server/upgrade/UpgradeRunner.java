@@ -10,7 +10,10 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 
 import com.kbdunn.nimbus.common.model.NimbusVersion;
 import com.kbdunn.nimbus.common.util.AbstractCommandLineUtility;
+import com.kbdunn.nimbus.server.upgrade.annotations.RequireUpgradeScript;
+import com.kbdunn.nimbus.server.upgrade.exceptions.ScriptVersionException;
 import com.kbdunn.nimbus.server.upgrade.runners.BaseUpgrader;
+import com.kbdunn.nimbus.server.upgrade.runners.Upgrader;
 import com.kbdunn.nimbus.server.upgrade.runners.V061To062Upgrader;
 
 public class UpgradeRunner extends AbstractCommandLineUtility {
@@ -33,9 +36,16 @@ public class UpgradeRunner extends AbstractCommandLineUtility {
 			System.exit(1);
 		}
 		try {
-			new UpgradeRunner(upgradeSrcDir, upgradeTgtDir).upgrade();
-		} catch (IllegalArgumentException e) {
-			System.out.println("Error detecting Nimbus version " + e.getMessage());
+			UpgradeRunner runner = null;
+			try {
+				runner = new UpgradeRunner(upgradeSrcDir, upgradeTgtDir);
+			} catch (IllegalArgumentException e) {
+				System.out.println("Error detecting Nimbus version " + e.getMessage());
+				System.exit(1);
+			}
+			runner.start();
+		} catch (ScriptVersionException e) {
+			System.out.println(e.getMessage());
 			System.exit(1);
 		} catch (Exception e) {
 			System.out.println("Error performing upgrade! " + e.getMessage());
@@ -43,6 +53,7 @@ public class UpgradeRunner extends AbstractCommandLineUtility {
 		}
 	}
 	
+	private int scriptVersion = -1;
 	private final File upgradeSrcDir, upgradeTgtDir, logFile;
 	private final NimbusVersion newVersion, oldVersion;
 	
@@ -54,23 +65,30 @@ public class UpgradeRunner extends AbstractCommandLineUtility {
 		this.logFile = new File(upgradeTgtDir, "logs/upgrades.log");
 	}
 	
-	private void upgrade() throws Exception {
+	private void start() throws Exception {
 		try {
-			if (!UpgradeRunner.checkUpgradeable(newVersion) || !UpgradeRunner.checkUpgradeable(oldVersion)) {
+			// Read script version set by the upgrade script
+			String scriptVersion = System.getProperty("script.version");
+			if (scriptVersion != null && !scriptVersion.isEmpty()) {
+				this.scriptVersion = Integer.valueOf(scriptVersion);
+			}
+			// Check for upgradeable source & target versions
+			if (!UpgradeRunner.checkUpgradeableVersion(newVersion) || !UpgradeRunner.checkUpgradeableVersion(oldVersion)) {
 				exitWithError("The source or target Nimbus installation is older than 0.6.1 and cannot be upgraded."
 						+ " (" + oldVersion + " -> " + newVersion + ")");
 			}
+			// Check for an upgrade in the right direction
 			if (newVersion.compareTo(oldVersion) < 1) {
 				exitWithError("The version you are upgrading to is equal to or lower than the current installation."
 						+ " (" + oldVersion + " -> " + newVersion + ")");
 			}
-			outln("Nimbus installation at '" + upgradeTgtDir.getAbsolutePath() 
+			outln("The Nimbus installation at '" + upgradeTgtDir.getAbsolutePath() 
 					+ "' will be upgraded from version " + oldVersion + " to " + newVersion);
 			out("Do you want to proceed? [Y/N]: ");
 			boolean go = affirmative(readln());
 			if (!go) System.exit(0);
 			writeUpgradeLogEntry("Nimbus " + oldVersion + " -> " + newVersion + " upgrade started");
-			runUpgrade();
+			doUpgrade();
 			writeUpgradeLogEntry("Nimbus " + oldVersion + " -> " + newVersion + " upgrade suceeded!");
 		} catch (Exception e) {
 			if (logFile != null && logFile.exists()) {
@@ -79,14 +97,26 @@ public class UpgradeRunner extends AbstractCommandLineUtility {
 			throw e;
 		}
 	}
-	
-	private void runUpgrade() throws IOException, SQLException {
+
+	private void doUpgrade() throws IOException, SQLException {
+		// Get the correct upgrader
+		Upgrader upgrader = null;
 		if (oldVersion.equalsIgnoreBuild(new NimbusVersion(0,6,1))
 				&& newVersion.equalsIgnoreBuild(new NimbusVersion(0,6,2))) {
-			new V061To062Upgrader(this).doUpgrade();
+			upgrader = new V061To062Upgrader(this);
 		} else {
-			new BaseUpgrader(this).doUpgrade();
+			upgrader = new BaseUpgrader(this);
 		}
+		
+		// Check annotations for additional preconditions
+		RequireUpgradeScript requireScript = upgrader.getClass().getAnnotation(RequireUpgradeScript.class);
+		if (requireScript != null) {
+			int minVersion = requireScript.minVersion();
+			if (this.scriptVersion < minVersion) throw new ScriptVersionException(minVersion);
+		}
+		
+		// Do the upgrade
+		upgrader.doUpgrade();
 		replaceVersionFile();
 	}
 
@@ -113,8 +143,8 @@ public class UpgradeRunner extends AbstractCommandLineUtility {
 		super.out(out);
 		writeUpgradeLogEntry(out);
 	}
-	
-	private static boolean checkUpgradeable(NimbusVersion version) {
+
+	private static boolean checkUpgradeableVersion(NimbusVersion version) {
 		return version.getMajor() > 0 
 				|| (version.getMajor() == 0 && version.getMinor() > 6)
 				|| (version.getMajor() == 0 && version.getMinor() == 6 && version.getDot() >= 1);

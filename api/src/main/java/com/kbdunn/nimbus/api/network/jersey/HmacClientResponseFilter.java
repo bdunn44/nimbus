@@ -4,7 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
@@ -60,7 +60,7 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 				if (in.available() > 0) {
 					ReaderWriter.writeTo(in, out);
 					byte[] entity = out.toByteArray();
-					content = new String(entity);
+					content = new String(entity, "UTF-8");
 					responseContext.setEntityStream(new ByteArrayInputStream(entity));
 				}
 			} catch (IOException e) {
@@ -92,8 +92,8 @@ public class HmacClientResponseFilter implements ClientResponseFilter {
 			
 			// Check timestamp isn't old
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateUtil.JAVA8_DATE_FORMAT);
-			LocalDateTime datetime = LocalDateTime.parse(nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP), formatter);
-			if (datetime.compareTo(LocalDateTime.now().minusMinutes(5)) == -1) {
+			ZonedDateTime datetime = ZonedDateTime.parse(nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP), formatter);
+			if (datetime.compareTo(ZonedDateTime.now().minusMinutes(5)) == -1) {
 				throw new IllegalArgumentException("Stale response!  (" + nmbHeaders.get(NimbusHttpHeaders.Key.TIMESTAMP) + ")");
 			}
 			

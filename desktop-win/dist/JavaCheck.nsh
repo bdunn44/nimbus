@@ -52,7 +52,7 @@ Function GetJRE
   NoJre:
     StrCpy $R0 "${JAVAEXE}"
 	DetailPrint "A compatible Java installation was not found. Exiting."
-    MessageBox MB_ICONSTOP "Could not find Java Runtime Environment 1.8+. Please install it and try again."
+    MessageBox MB_ICONSTOP "Could not find Java 1.8 or higher on your machine. Please install it and try again. The latest Java version can be downloaded from https://java.com/download."
     Abort
  
   JreFound:

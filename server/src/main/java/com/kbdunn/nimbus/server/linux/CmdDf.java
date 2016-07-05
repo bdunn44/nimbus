@@ -19,7 +19,7 @@ public class CmdDf {
 	}
 	
 	public static List<Filesystem> execute() {
-		String command = "df -k --output=source,used,avail,target,fstype";
+		String command = "df --output=source,size,used,target,fstype";
 		log.debug("Executing: " + command);
 		
 		Process p;
@@ -53,8 +53,8 @@ public class CmdDf {
 		String[] fields = line.split("\\s+");
 		
 		fs.devicePath = fields[0];
-		fs.used = Long.valueOf(fields[1]) * 1024; // df -k outputs 1K blocks
-		fs.size = Long.valueOf(fields[2]) * 1024;
+		fs.size = Long.valueOf(fields[1]) * 1024;
+		fs.used = Long.valueOf(fields[2]) * 1024;
 		fs.mountedPath = fields[3];
 		fs.filesystemType = fields[4];
 		

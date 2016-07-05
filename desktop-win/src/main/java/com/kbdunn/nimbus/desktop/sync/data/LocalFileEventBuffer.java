@@ -84,6 +84,7 @@ public class LocalFileEventBuffer {
 				bufferReadyLatch.countDown();
 			} catch (Exception e) {
 				log.error("Error retrieving network sync file state", e);
+				// TODO: Make error apparent to user
 			}
 		});
 	}

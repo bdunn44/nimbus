@@ -58,8 +58,7 @@ public class EventBus {
     }
     
     public static boolean userIsConnected(NimbusUser user) {
-    	log.info("Checking if " + user.getName() + " is connected. " + (clientMap.containsKey(user.getName())
-			|| clientMap.containsKey(user.getEmail())));
+    	log.info(user.getName() + " is " + (!clientMap.containsKey(user.getName()) ? "not " : "") + "connected.");
     	return clientMap.containsKey(user.getName())
     			|| clientMap.containsKey(user.getEmail());
     }

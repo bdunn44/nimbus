@@ -10,7 +10,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.kbdunn.nimbus.common.model.LinuxBlock;
-import com.kbdunn.nimbus.common.model.MemoryInformation;
+import com.kbdunn.nimbus.common.model.UsageInformation;
 import com.kbdunn.nimbus.common.model.HardDrive;
 import com.kbdunn.nimbus.common.model.NimbusFile;
 import com.kbdunn.nimbus.common.model.NimbusUser;
@@ -20,7 +20,7 @@ import com.kbdunn.nimbus.server.NimbusContext;
 import com.kbdunn.nimbus.server.dao.StorageDAO;
 import com.kbdunn.nimbus.server.linux.BlockFinder;
 import com.kbdunn.nimbus.server.linux.CmdDf;
-import com.kbdunn.nimbus.server.linux.CmdMemInfo;
+import com.kbdunn.nimbus.server.linux.CmdFree;
 import com.kbdunn.nimbus.server.linux.CmdPmount;
 import com.kbdunn.nimbus.server.linux.CmdPumount;
 import com.kbdunn.nimbus.server.linux.CmdDf.Filesystem;
@@ -435,8 +435,21 @@ public class LocalStorageService implements StorageService {
 	
 	// TODO: Move to a system service, not here
 	@Override
-	public MemoryInformation getSystemMemoryInformation() {
-		if (propertiesService.isDevMode()) return new MemoryInformation(50L*1014*1024*1024, 100L*1014*1024*1024);
-		return CmdMemInfo.execute();
+	public UsageInformation getSystemMemoryUsage() {
+		if (propertiesService.isDevMode()) return new UsageInformation(50L*1014*1024*1024, 100L*1014*1024*1024);
+		return CmdFree.execute();
+	}
+
+	// TODO: Move to a system service, not here
+	@Override
+	public UsageInformation getSystemDiskUsage() {
+		if (propertiesService.isDevMode()) return new UsageInformation(50L*1014*1024*1024, 100L*1014*1024*1024);
+		for (Filesystem fs : CmdDf.execute()) {
+			if (fs.getMountedPath().equals("/")) {
+				return new UsageInformation(fs.getUsed(), fs.getSize());
+			}
+		}
+		log.warn("Unable to detect system disk information!");
+		return null;
 	}
 }

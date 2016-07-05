@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +33,6 @@ public class ApplicationProperties {
 		if (installDir == null) {
 			// We're in DEV mode, but let's be sure
 			installDir = System.getProperty("user.dir") + "/src/main/resources/dev";
-			System.out.println(installDir);
 			if (!new File(installDir).isDirectory())
 				throw new IllegalStateException("The " + PROP_INSTALL_DIR + " property is not set");
 		}
@@ -56,7 +54,7 @@ public class ApplicationProperties {
 	}
 	
 	public String getSyncDirectoryPath() {
-		String dir = Pattern.quote(properties.getProperty(PROP_SYNC_DIR)); // Handle backslashes
+		String dir = properties.getProperty(PROP_SYNC_DIR).replace("\\", "\\\\");
 		if (dir == null || dir.isEmpty()) {
 			dir = System.getProperty("user.home") + File.separator + "Nimbus Sync";
 			properties.setProperty(PROP_SYNC_DIR, dir);

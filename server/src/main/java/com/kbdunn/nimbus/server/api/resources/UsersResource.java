@@ -31,7 +31,7 @@ import com.kbdunn.nimbus.common.server.StorageService;
 import com.kbdunn.nimbus.common.server.UserService;
 
 @Path("/users")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
 public class UsersResource {
 	
 	private static final Logger log = LogManager.getLogger(UsersResource.class.getName());

@@ -487,7 +487,9 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 			}
 		} catch (IOException e) {
 			log.error("Error deleting file", e);
+			return false;
 		}
+		log.warn("Uncaught error occurred while deleting file " + file);
 		return false;
 	}
 	
@@ -644,6 +646,7 @@ public class LocalFileService implements FileContainerService<NimbusFile>, FileS
 		
 		setFileAttributes(target);
 		if (move) target.setId(file.getId()); // Save the ID in case of move to maintain FKs to Shares, etc.
+		target.setUserId(file.getUserId());
 		target.setMd5(file.getMd5());
 		target.setLastHashed(file.getLastHashed());
 		save(target, file, move, originationId);

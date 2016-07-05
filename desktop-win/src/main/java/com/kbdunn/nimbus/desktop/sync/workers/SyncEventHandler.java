@@ -36,22 +36,15 @@ public class SyncEventHandler {
 	
 	// Buffer to capture local change events
 	private LocalFileEventBuffer currentBuffer;
-	// Removing this for now.. seems to be asking for bugs
-	//private final ExpectedEventFilter localEventFilter;
 	
 	public SyncEventHandler(RemoteFileManager fileManager, SyncManager syncManager) {
 		this.fileManager = fileManager;
 		this.syncManager = syncManager;
-		//this.localEventFilter = new ExpectedEventFilter();
 	}
 	
 	public void handleLocalFileAdd(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
-		/*if (localEventFilter.filterAdd(file)) {
-			log.debug("Filtered expected local file add event for {}", file);
-			return;
-		}*/
-		logChangeEvent(file, "created locally");
+		logChangeEvent(file, true, "add");
 		checkBuffer();
 		currentBuffer.addFileToUpload(file);
 	}
@@ -62,73 +55,57 @@ public class SyncEventHandler {
 	
 	public void processRemoteFileAdd(SyncFile syncFile) {
 		if (!syncManager.isSyncActive()) return;
-		logChangeEvent(syncFile, "created remotely");
+		logChangeEvent(syncFile, false, "add");
 		try {
 			SyncFile cachedFile = SyncStateCache.instance().get(syncFile);
 			File file = DesktopSyncFileUtil.toFile(syncFile);
 			if (syncFile.isDirectory()) {
 				if (!file.exists()) {
 					// Create the directory locally
-					//localEventFilter.expectAdd(syncFile);
 					FileUtils.forceMkdir(file);
-					log.info("Folder created locally {}", syncFile);
+					log.info("Created folder locally {}", syncFile);
 				} else {
 					log.info("Folder already exists locally {}", syncFile);
 				}
 				SyncStateCache.instance().update(syncFile);
 			} else {
 				if (cachedFile == null || !cachedFile.getMd5().equals(syncFile.getMd5())) {
-					//localEventFilter.expectAdd(syncFile);
 					syncManager.getExecutor().submit(fileManager.createDownloadProcess(syncFile));
-					log.info("Download process submitted for {}", syncFile);
 				} else {
 					log.info("Updated file already exists locally. Skipping download of {}", syncFile);
 				}
 			}
 		} catch (Exception e) {
-			//localEventFilter.filterAdd(syncFile);
-			log.error("Cannot download the remotely added file {}", syncFile);
+			log.error("Could not download the remotely added file {}", syncFile, e);
 		}
 	}
 	
 	public void handleLocalFileUpdate(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
 		if (file.isDirectory()) return;
-		/*if (localEventFilter.filterUpdate(file)
-				|| (localEventFilter.filterDelete(file) && localEventFilter.filterAdd(file))) {
-			log.debug("Filtered expected local file update event for {}", file);
-			return;
-		}*/
-		logChangeEvent(file, "modified locally");
+		logChangeEvent(file, true, "update");
 		checkBuffer();
 		currentBuffer.addFileToUpload(file);
 	}
 	
 	public void processRemoteFileUpdate(SyncFile syncFile) {
 		if (!syncManager.isSyncActive()) return;
-		logChangeEvent(syncFile, "modified remotely");
+		logChangeEvent(syncFile, false, "update");
 		SyncFile cachedFile = SyncStateCache.instance().get(syncFile);
 		try {
 			if (cachedFile == null || !cachedFile.getMd5().equals(syncFile.getMd5())) {
-				//localEventFilter.expectUpdate(cachedFile);
 				syncManager.getExecutor().submit(fileManager.createDownloadProcess(syncFile));
-				log.info("Download process submitted for {}", syncFile);
 			} else {
 				log.info("Updated file already exists locally. Skipping download of {}", syncFile);
 			}
 		} catch (Exception e) {
-			//localEventFilter.filterUpdate(cachedFile);
-			log.error("Cannot download the updated file {}", syncFile);
+			log.error("Could not download the updated file {}", syncFile, e);
 		}
 	}
 	
 	public void handleLocalFileDelete(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
-		/*if (localEventFilter.filterDelete(file)) {
-			log.debug("Filtered expected local file delete event for {}", file);
-			return;
-		}*/
-		logChangeEvent(file, "deleted locally");
+		logChangeEvent(file, true, "delete");
 		checkBuffer();
 		currentBuffer.addFileToDelete(file);
 	}
@@ -139,7 +116,7 @@ public class SyncEventHandler {
 	
 	public void processRemoteFileDelete(SyncFile syncFile) {
 		if (!syncManager.isSyncActive()) return;
-		logChangeEvent(syncFile, "deleted remotely");
+		logChangeEvent(syncFile, false, "delete");
 		File file = DesktopSyncFileUtil.toFile(syncFile);
 		if (!file.exists()) {
 			log.info("File does not exist locally. Skipping delete of {}", syncFile);
@@ -147,31 +124,27 @@ public class SyncEventHandler {
 			return;
 		} 
 		
-		//localEventFilter.expectDelete(syncFile);
 		if (FileUtils.deleteQuietly(file)) {
 			SyncStateCache.instance().delete(syncFile);
-			log.info("Deleted file " + syncFile);
+			log.info("Deleted file locally " + syncFile);
 		} else {
-			//localEventFilter.filterDelete(syncFile);
 			log.error("Could not delete file {}", syncFile);
 		}
 	}
 	
 	public void processRemoteFileMove(FileMoveEvent event) {
 		if (!syncManager.isSyncActive()) return;
-		logChangeEvent(event.getSrcFile(), "moved remotely");
+		logChangeEvent(event.getSrcFile(), false, "move");
 		try {
 			final File srcFile = DesktopSyncFileUtil.toFile(event.getSrcFile());
 			final File destFile = DesktopSyncFileUtil.toFile(event.getDstFile());
 			final SyncFile cachedSrc = SyncStateCache.instance().get(event.getSrcFile());
 			if (!srcFile.exists() || !cachedSrc.getMd5().equals(event.getSrcFile().getMd5())) {
-				log.warn("Cannot process move, local file {} does not exist or differs from the server. Downloading instead.", event.getSrcFile());
+				log.warn("Could not process move, local file {} does not exist or differs from the server. Downloading instead.", event.getSrcFile());
 				processRemoteFileUpdate(event.getDstFile());
 				return;
 			} else if (destFile.exists()) {
 				if (event.getSrcFile().isDirectory()) {
-					// TODO: This expect will cause issues for directory moves
-					//localEventFilter.expectDelete(event.getSrcFile());
 					FileUtils.deleteQuietly(srcFile);
 					SyncStateCache.instance().delete(event.getSrcFile());
 					log.info("Moved folder already exists. Deleted source {}", event.getSrcFile());
@@ -181,16 +154,13 @@ public class SyncEventHandler {
 					log.warn("Will not replace local file that was not replaced remotely {}", event.getDstFile());
 					return;
 				} else {
-					//localEventFilter.expectDelete(event.getDstFile());
 					FileUtils.deleteQuietly(destFile);
 					SyncStateCache.instance().delete(event.getDstFile());
-					log.info("Move destination exists, deleted file {}", event.getDstFile());
+					log.info("Move destination exists, deleted file in preparation for move {}", event.getDstFile());
 				}
 			}
 			
 			if (srcFile.isFile()) {
-				//localEventFilter.expectDelete(event.getSrcFile());
-				//localEventFilter.expectAdd(event.getDstFile());
 				FileUtils.moveFile(srcFile, destFile);
 				SyncStateCache.instance().delete(event.getSrcFile());
 				SyncStateCache.instance().update(event.getDstFile());
@@ -200,9 +170,9 @@ public class SyncEventHandler {
 				SyncStateCache.instance().visit(event.getSrcFile());
 				SyncStateCache.instance().visit(event.getDstFile());
 			}
-			log.info("Moved {} to {}", event.getSrcFile(), event.getDstFile());
+			log.info("Moved local file from {} to {}", event.getSrcFile(), event.getDstFile());
 		} catch (IOException e) {
-			log.error("Error moving {} to {}", event.getSrcFile(), event.getDstFile(), e);
+			log.error("Error moving local file from {} to {}", event.getSrcFile(), event.getDstFile(), e);
 		}
 	}
 	
@@ -212,14 +182,14 @@ public class SyncEventHandler {
 	
 	public void processRemoteFileCopy(FileCopyEvent event) {
 		if (!syncManager.isSyncActive()) return;
-		logChangeEvent(event.getSrcFile(), "copied remotely");
+		logChangeEvent(event.getSrcFile(), false, "copy");
 		try {
 			final SyncFile cachedSrc = SyncStateCache.instance().get(event.getSrcFile());
 			final SyncFile cachedDst = SyncStateCache.instance().get(event.getDstFile());
 			final File srcFile = DesktopSyncFileUtil.toFile(event.getSrcFile());
 			final File destFile = DesktopSyncFileUtil.toFile(event.getDstFile());
 			if (!srcFile.exists() || !cachedSrc.getMd5().equals(event.getSrcFile().getMd5())) {
-				log.warn("Cannot process copy, local file {} does not exist or differs from the server. Downloading instead.", event.getSrcFile());
+				log.warn("Could not process copy, local file {} does not exist or differs from the server. Downloading instead.", event.getSrcFile());
 				processRemoteFileUpdate(event.getDstFile());
 				return;
 			}
@@ -234,14 +204,12 @@ public class SyncEventHandler {
 					log.info("Skipping local file copy, target file is already up-to-date {}", event.getDstFile());
 					return;
 				} else {
-					//localEventFilter.expectDelete(event.getDstFile());
 					FileUtils.deleteQuietly(destFile);
 					SyncStateCache.instance().delete(event.getDstFile());
-					log.info("Copy destination exists, deleted file {}", event.getDstFile());
+					log.info("Copy destination exists, deleted file in preparation for copy {}", event.getDstFile());
 				}
 			}
-
-			//localEventFilter.expectAdd(event.getDstFile());
+			
 			if (srcFile.isFile()) {
 				FileUtils.copyFile(srcFile, destFile);
 			} else {
@@ -249,15 +217,15 @@ public class SyncEventHandler {
 				FileUtils.copyDirectory(srcFile, destFile);
 			}
 			SyncStateCache.instance().update(event.getDstFile());
-			log.info("Copied {} to {}", event.getSrcFile(), event.getDstFile());
+			log.info("Copied local file from {} to {}", event.getSrcFile(), event.getDstFile());
 		} catch (IOException e) {
-			log.error("Error copying {} to {}", event.getSrcFile(), event.getDstFile(), e);
+			log.error("Error copying local file from {} to {}", event.getSrcFile(), event.getDstFile(), e);
 		}
 	}
 	
 	public void processRemoteVersionConfict(SyncFile file) {
 		if (!syncManager.isSyncActive()) return;
-		logChangeEvent(file, "has a remote version conflict");
+		logChangeEvent(file, false, "version conflict");
 		try {
 			// Rename the local file
 			File local = new File(ApplicationProperties.instance().getSyncDirectory(), file.getPath());
@@ -265,24 +233,25 @@ public class SyncEventHandler {
 			String rename = localName.substring(0, localName.lastIndexOf(".")) 
 					+ " - " + SyncPreferences.getNodeName()
 					+ localName.substring(localName.lastIndexOf("."));
-			log.info("Renaming local file {} to {}", local.getAbsolutePath(), rename);
 			if (!local.renameTo(new File(ApplicationProperties.instance().getSyncDirectory(), rename))) {
-				log.warn("Unable to rename file {}", local.getAbsolutePath());
-				// TODO sync error icon on file
+				log.warn("Unable to rename conflicted local file {}", local.getAbsolutePath());
+				SyncStateCache.instance().addError(file);
 				return;
 			}
+			log.info("Renamed conflicted local file {} to {}", local.getAbsolutePath(), rename);
 			
 			// Download the network file
 			Callable<Void> downloadProcess = fileManager.createDownloadProcess(file);
 			syncManager.getExecutor().submit(downloadProcess);
 		} catch (Exception e) {
-			log.error("Cannot download the remote file {}", file);
+			log.error("Could not process remote version conflict {}", file, e);
 		}
 	}
 	
-	private void logChangeEvent(SyncFile file, String event) {
-		log.info("{} {}: {}", 
-				file.isDirectory() ? "Directory" : "File", 
+	private void logChangeEvent(SyncFile file, boolean local, String event) {
+		log.info("Detected {} {} {}: {}",
+				local ? "local" : "remote",
+				file.isDirectory() ? "folder" : "file", 
 				event, 
 				file
 			);
@@ -382,13 +351,6 @@ public class SyncEventHandler {
 	private void filterUploadBuffer(List<SyncFile> toUpload, List<SyncFile> remoteFiles) {
 		// Remove the files from the buffer which are already on the server
 		toUpload.removeIf((localFile) -> {
-			// We've already hashed it if needed
-			/*byte[] localMd5 = null;
-			try {
-				localMd5 = HashUtil.hash(new File(localFile.getPath()));
-			} catch (IOException e) {
-				log.error("Unable to hash file!", e);
-			}*/
 			for (SyncFile remoteFile : remoteFiles) {
 				if (remoteFile.getPath().equals(localFile.getPath()) &&
 						((localFile.isDirectory() && remoteFile.isDirectory())

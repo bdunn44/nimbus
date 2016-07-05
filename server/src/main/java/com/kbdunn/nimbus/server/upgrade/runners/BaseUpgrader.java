@@ -6,6 +6,9 @@ import java.sql.SQLException;
 import com.kbdunn.nimbus.server.upgrade.UpgradeRunner;
 import com.kbdunn.nimbus.server.upgrade.util.UpgradeUtil;
 
+import com.kbdunn.nimbus.server.upgrade.annotations.RequireUpgradeScript;
+
+@RequireUpgradeScript(minVersion = 2)
 public class BaseUpgrader implements Upgrader {
 	
 	private UpgradeRunner upgradeRunner;

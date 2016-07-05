@@ -345,7 +345,6 @@ public abstract class StorageDAO {
 	public static List<NimbusUser> getUsersAssignedToDevice(long driveId) {
 		log.trace("getUsersAssignedToDrive() called for Drive ID " + driveId);
 		
-		List<NimbusUser> result = new ArrayList<NimbusUser>();
 		Connection con = null;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -361,24 +360,10 @@ public abstract class StorageDAO {
 					"WHERE ud.STORAGE_ID = ?; ");
 			ps.setLong(1, driveId);
 			rs = ps.executeQuery();
-			
-			while (rs.next()) {
-				NimbusUser user = new NimbusUser();
-				user.setId(rs.getLong("ID"));
-				user.setName(rs.getNString("NAME"));
-				user.setEmail(rs.getNString("EMAIL"));
-				user.setPasswordDigest(rs.getNString("PW_DIGEST"));
-				user.setPasswordTemporary(rs.getBoolean("HAS_TEMP_PW"));
-				user.setOwner(rs.getBoolean("IS_OWNER"));
-				user.setAdministrator(rs.getBoolean("IS_ADMIN"));
-				user.setCreated(rs.getTimestamp("CREATE_DATE"));
-				user.setUpdated(rs.getTimestamp("LAST_UPDATE_DATE"));
-				result.add(user);
-			}
-			return result;
+			return NimbusUserDAO.toNimbusUserList(rs);
 		} catch (SQLException e) {
 			log.error(e, e);
-			return result;
+			return Collections.emptyList();
 		} finally {
 			try {
 				if (con != null) con.close();

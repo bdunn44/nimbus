@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.log4j.LogManager;
@@ -34,7 +33,7 @@ import com.kbdunn.nimbus.common.sync.HashUtil;
 import com.kbdunn.nimbus.common.util.ComparatorUtil;
 import com.kbdunn.nimbus.common.util.FileUtil;
 import com.kbdunn.nimbus.common.util.StringUtil;
-import com.kbdunn.nimbus.common.util.TrackedExecutorWrapper;
+import com.kbdunn.nimbus.common.util.TrackedScheduledThreadPoolExecutor;
 import com.kbdunn.nimbus.server.NimbusContext;
 import com.kbdunn.nimbus.server.api.async.EventBus;
 import com.kbdunn.nimbus.server.dao.NimbusFileDAO;
@@ -43,13 +42,13 @@ public class FileSyncService {
 
 	private static final Logger log = LogManager.getLogger(FileSyncService.class);
 	
-	private final TrackedExecutorWrapper hashExecutor;
+	private final TrackedScheduledThreadPoolExecutor hashExecutor;
 	private final ConcurrentHashMap<String, Future<?>> hashJobs;
 	private LocalUserService userService;
 	private LocalFileService fileService;
 	
 	public FileSyncService() { 
-		hashExecutor = new TrackedExecutorWrapper(Executors.newSingleThreadScheduledExecutor());
+		hashExecutor = new TrackedScheduledThreadPoolExecutor(1);
 		hashJobs = new ConcurrentHashMap<>();
 	}
 	
@@ -81,7 +80,7 @@ public class FileSyncService {
 						log.warn("Hash was not updated for a file add event! It may no longer exist.");
 						return;
 					}
-					FileAddEvent event = new FileAddEvent(toSyncFile(user, file));
+					FileAddEvent event = new FileAddEvent(toSyncFile(user, fileService.getFileByPath(file.getPath()))); // Get latest file
 					if (originationId != null) event.setOriginationId(originationId);
 					publishFileEvent(user, event);
 				} catch (IOException e) {
@@ -167,7 +166,7 @@ public class FileSyncService {
 		hashJobs.put(file.getPath(), hashExecutor.submit(() -> {
 			try {
 				if (hashIfNeeded(file)) {
-					FileUpdateEvent event = new FileUpdateEvent(toSyncFile(user, file));
+					FileUpdateEvent event = new FileUpdateEvent(toSyncFile(user, fileService.getFileByPath(file.getPath()))); // Get latest file
 					if (originationId != null) event.setOriginationId(originationId);
 					publishFileEvent(user, event);
 				}
@@ -273,15 +272,10 @@ public class FileSyncService {
 		}
 	}
 	
-	public boolean processFileDelete(NimbusUser user, String path, String originationId) throws IOException {
-		final SyncFile syncFile = toSyncFile(user, path);
-		if (syncFile == null) return false;
-		final NimbusFile nimbusFile = toNimbusFile(user, path);
-		if (nimbusFile == null || !fileService.fileExistsOnDisk(nimbusFile)) return false;
-		if (!fileService.delete(nimbusFile, originationId)) {
-			throw new IOException("Error deleting file");
+	public void processFileDelete(NimbusUser user, NimbusFile file, String originationId) throws IOException {
+		if (!fileService.delete(file, originationId)) {
+			throw new IOException("Error deleting file " + file.getPath());
 		}
-		return true;
 	}
 	
 	public void processFileUpload(NimbusUser user, String path, String originationId, InputStream in) throws IOException {

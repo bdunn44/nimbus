@@ -19,11 +19,15 @@ public class V061To062Upgrader extends BaseUpgrader {
 				"ALTER TABLE NIMBUS.FILE ADD LAST_HASHED BIGINT",
 				"ALTER TABLE NIMBUS.FILE ADD LAST_MODIFIED BIGINT",
 				"ALTER TABLE NIMBUS.USER_STORAGE ADD SYNC_ROOT BOOLEAN",
-				"ALTER TABLE NIMBUS.USER DROP COLUMN HMAC_KEY");
+				"ALTER TABLE NIMBUS.USER DROP COLUMN HMAC_KEY",
+				"ALTER TABLE NIMBUS.FILE ALTER COLUMN PATH VARCHAR(4096)",
+				"ALTER TABLE NIMBUS.FILE ALTER COLUMN PARENT_PATH VARCHAR(4096)",
+				"ALTER TABLE NIMBUS.FILE ALTER COLUMN NAME VARCHAR(255)");
 		super.getUpgradeUtil().addLinesToConfigFile("nimbus.ssl.https.port", 
 				"",
 				"# Use this setting if the externally exposed SSL port is something other than nimbus.ssl.https.port. This ensures the redirect",
 				"# from HTTP -> HTTPS works correctly in case, for example, you run SSL on port 8443 and have a proxy to redirect port 443 to 8443.",
 				"nimbus.ssl.https.external.port=");
+		super.getUpgradeUtil().addLinesToLog4jFile(null, "log4j.category.org.atmosphere.container.Jetty9WebSocketHandler=FATAL");
 	}
 }

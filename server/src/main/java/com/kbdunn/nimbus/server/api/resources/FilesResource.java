@@ -15,7 +15,7 @@ import com.kbdunn.nimbus.common.server.FileService;
 import com.kbdunn.nimbus.common.util.FileUtil;
 
 @Path("/files")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
 public class FilesResource {
 	
 	@Context ServletContext context;

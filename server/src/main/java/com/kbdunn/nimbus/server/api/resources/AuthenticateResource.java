@@ -9,7 +9,7 @@ import javax.ws.rs.core.Response;
 import com.kbdunn.nimbus.api.client.model.AuthenticateResponse;
 
 @Path("/authenticate")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
 public class AuthenticateResource {
 	
 	@GET

@@ -264,27 +264,31 @@ public class Launcher {
 		webAppContext.setMimeTypes(mimeTypes);
 		contextHandler.setMimeTypes(mimeTypes);*/
 		
-		// Setup Jersey servlet
-		final JacksonJaxbJsonProvider jsonProvider = new JacksonJaxbJsonProvider();
-		jsonProvider.setMapper(ObjectMapperSingleton.getMapper());
-		final ResourceConfig resourceConfig = new ResourceConfig()
-				.packages("com.kbdunn.nimbus.server.api")
-				.packages("com.kbdunn.nimbus.server.api.resources")
-				.register(jsonProvider)
-				.register(MultiPartFeature.class);
-		EncodingFilter.enableFor(resourceConfig, GZipEncoder.class);
-		final ServletHolder jerseyServletHolder = new ServletHolder(new ServletContainer(resourceConfig));
-		jerseyServletHolder.setInitOrder(2);
-		webappContextHandler.addServlet(jerseyServletHolder, "/request/*");
-		
-		// Setup Atmosphere servlet
-		final ServletHolder atmosphereServletHolder = new ServletHolder(AtmosphereServlet.class);
-		atmosphereServletHolder.setInitParameter(ApplicationConfig.ANNOTATION_PACKAGE, "com.kbdunn.nimbus.server.api.async");
-		atmosphereServletHolder.setInitParameter(ApplicationConfig.WEBSOCKET_CONTENT_TYPE, "application/json");
-		atmosphereServletHolder.setInitParameter(ApplicationConfig.PROPERTY_COMET_SUPPORT, Jetty9AsyncSupportWithWebSocket.class.getName());
-		atmosphereServletHolder.setAsyncSupported(true);
-		atmosphereServletHolder.setInitOrder(1);
-		webappContextHandler.addServlet(atmosphereServletHolder, "/async/*");
+		// Do not enable APIs for the demo
+		ServletHolder atmosphereServletHolder = null;
+		if (!NimbusContext.instance().getPropertiesService().isDemoMode()) {
+			// Setup Jersey servlet
+			final JacksonJaxbJsonProvider jsonProvider = new JacksonJaxbJsonProvider();
+			jsonProvider.setMapper(ObjectMapperSingleton.getMapper());
+			final ResourceConfig resourceConfig = new ResourceConfig()
+					.packages("com.kbdunn.nimbus.server.api")
+					.packages("com.kbdunn.nimbus.server.api.resources")
+					.register(jsonProvider)
+					.register(MultiPartFeature.class);
+			EncodingFilter.enableFor(resourceConfig, GZipEncoder.class);
+			final ServletHolder jerseyServletHolder = new ServletHolder(new ServletContainer(resourceConfig));
+			jerseyServletHolder.setInitOrder(2);
+			webappContextHandler.addServlet(jerseyServletHolder, "/request/*");
+			
+			// Setup Atmosphere servlet
+			atmosphereServletHolder = new ServletHolder(AtmosphereServlet.class);
+			atmosphereServletHolder.setInitParameter(ApplicationConfig.ANNOTATION_PACKAGE, "com.kbdunn.nimbus.server.api.async");
+			atmosphereServletHolder.setInitParameter(ApplicationConfig.WEBSOCKET_CONTENT_TYPE, "application/json");
+			atmosphereServletHolder.setInitParameter(ApplicationConfig.PROPERTY_COMET_SUPPORT, Jetty9AsyncSupportWithWebSocket.class.getName());
+			atmosphereServletHolder.setAsyncSupported(true);
+			atmosphereServletHolder.setInitOrder(1);
+			webappContextHandler.addServlet(atmosphereServletHolder, "/async/*");
+		}
 		
 		// Set server handlers
 		server.setHandler(handlers);
@@ -292,9 +296,11 @@ public class Launcher {
 		try {
 			runDataPrimers();
 			server.start();
-			// Make AtmosphereFramework available in NimbusContext
-			final AtmosphereServlet atmosphereServlet = (AtmosphereServlet) atmosphereServletHolder.getServlet();
-			NimbusContext.instance().setAtmosphereFramework(atmosphereServlet.framework());
+			if (!NimbusContext.instance().getPropertiesService().isDemoMode()) {
+				// Make AtmosphereFramework available in NimbusContext
+				final AtmosphereServlet atmosphereServlet = (AtmosphereServlet) atmosphereServletHolder.getServlet();
+				NimbusContext.instance().setAtmosphereFramework(atmosphereServlet.framework());
+			}
 			server.join();
 		} finally {
 			server.stop();

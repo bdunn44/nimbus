@@ -39,7 +39,7 @@ import com.kbdunn.nimbus.api.network.security.SSLTrustManager;
 
 public class JerseyTransport implements Transport {
 
-	public static final String JERSEY_MEDIA_TYPE = MediaType.APPLICATION_JSON;
+	public static final String JERSEY_MEDIA_TYPE = MediaType.APPLICATION_JSON + ";charset=UTF-8";
 	public static final int DEFAULT_CONNECT_TIMEOUT_MS = 0; // Infinite
 	public static final int DEFAULT_READ_TIMEOUT_MS = 0; // Infinite
 	private static final Logger log = LoggerFactory.getLogger(JerseyTransport.class);

@@ -18,13 +18,17 @@ public class ApplicationResources {
 	private static final Logger log = LoggerFactory.getLogger(ApplicationResources.class);
 	
 	private static ApplicationResources instance;
-	private Image icon, iconSm, logo;
+	private Image logo;
+	private Image[] icons;
 	private Color grey;
 	
 	private ApplicationResources(Display display) { 
 		try {
-			icon = new Image(display, new FileInputStream(new File(ApplicationProperties.instance().getInstallDirectory(), "images/cloudsync-lg.png")));
-			iconSm = new Image(display, new FileInputStream(new File(ApplicationProperties.instance().getInstallDirectory(), "images/cloudsync-sm.png")));
+			icons = new Image[4];
+			icons[0] = new Image(display, new FileInputStream(new File(ApplicationProperties.instance().getInstallDirectory(), "images/cloudsync-16x16.png")));
+			icons[1] = new Image(display, new FileInputStream(new File(ApplicationProperties.instance().getInstallDirectory(), "images/cloudsync-32x32.png")));
+			icons[2] = new Image(display, new FileInputStream(new File(ApplicationProperties.instance().getInstallDirectory(), "images/cloudsync-48x48.png")));
+			icons[3] = new Image(display, new FileInputStream(new File(ApplicationProperties.instance().getInstallDirectory(), "images/cloudsync-256x256.png")));
 			logo = new Image(display, new FileInputStream(new File(ApplicationProperties.instance().getInstallDirectory(), "images/logo.png")));
 		} catch (FileNotFoundException e) {
 			log.error("Error loading application resources", e);
@@ -34,8 +38,8 @@ public class ApplicationResources {
 	
 	public static void dispose() {
 		if (instance == null) return;
-		instance.icon.dispose();
-		instance.iconSm.dispose();
+		for (Image icon : instance.icons) icon.dispose();
+		//instance.icon.dispose();
 		instance.logo.dispose();
 		instance.grey.dispose();
 	}
@@ -44,14 +48,9 @@ public class ApplicationResources {
 		if (instance == null) instance = new ApplicationResources(display);
 	}
 	
-	public static Image getIcon(Display display) {
+	public static Image[] getIcons(Display display) {
 		instantiate(display);
-		return instance.icon;
-	}
-	
-	public static Image getSmallIcon(Display display) {
-		instantiate(display);
-		return instance.iconSm;
+		return instance.icons;
 	}
 	
 	public static Image getLogo(Display display) {

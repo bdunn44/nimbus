@@ -69,7 +69,7 @@ public abstract class NimbusUserDAO {
 			rs = ps.executeQuery();
 			
 			if (!rs.next()) {
-				log.warn("User not found!");
+				log.warn("User name/email was not found in database: " + domainKey);
 				return null;
 			}
 			return toNimbusUser(rs);

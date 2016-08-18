@@ -127,7 +127,7 @@ Section "Install" SecInstall
     CreateShortCut "$PROFILE\Links\${PRODUCT_NAME}.lnk" "$PROFILE\${PRODUCT_NAME}" "" "$INSTDIR\images\cloudsync.ico"
 	${lnkX64IconFix} "$PROFILE\Links\${PRODUCT_NAME}.lnk"
     Call RefreshShellIcons
-    
+	
 	;Create Start Menu shortcuts
     SetOutPath "$INSTDIR\bin"
 	DetailPrint "Creating Start Menu shortcuts..."
@@ -154,6 +154,36 @@ Section "Install" SecInstall
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "EstimatedSize" "22600"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "NoModify" "1"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "NoRepair" "1"
+	
+	; Add to Windows 8+ Namespace Root (sidebar in explorer) https://github.com/svenkle/google-drive-add-to-explorer/blob/develop/Google%20Drive.reg
+	; 32-bit
+	SetRegView 32
+	WriteRegStr HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" "" "${PRODUCT_NAME}"
+	WriteRegDWORD HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" "System.IsPinnedToNamespaceTree" 0x00000001
+	WriteRegDWORD HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" "SortOrderIndex" 0x00000042
+	WriteRegStr HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\InProcServer32" "" "%SYSTEMROOT%\system32\shell32.dll"
+	WriteRegDWORD HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\ShellFolder" "FolderValueFlags" 0x00000028
+	WriteRegDWORD HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\ShellFolder" "Attributes" 0xf080004d
+	WriteRegStr HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\DefaultIcon" "" "$INSTDIR\images\cloudsync.ico"
+	;WriteRegStr HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\Instance" "CLSID" "{}"; TODO: Another UUID, but not sure what this points to. No documentation either, may not be needed
+	WriteRegDWORD HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\Instance\InitPropertyBag" "Attributes" 0x00000011
+	WriteRegStr HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\Instance\InitPropertyBag" "TargetFolderPath" "$PROFILE\${PRODUCT_NAME}"; 
+	WriteRegDWORD HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" 0x00000001
+	WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" "" "${PRODUCT_NAME}"
+	; 64-bit
+	SetRegView 64
+	WriteRegStr HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" "" "${PRODUCT_NAME}"
+	WriteRegDWORD HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" "System.IsPinnedToNamespaceTree" 0x00000001
+	WriteRegDWORD HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" "SortOrderIndex" 0x00000042
+	WriteRegStr HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\InProcServer32" "" "%SYSTEMROOT%\system32\shell32.dll"
+	WriteRegDWORD HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\ShellFolder" "FolderValueFlags" 0x00000028
+	WriteRegDWORD HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\ShellFolder" "Attributes" 0xf080004d
+	WriteRegStr HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\DefaultIcon" "" "$INSTDIR\images\cloudsync.ico"
+	;WriteRegStr HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\Instance" "CLSID" "{}"; TODO: Another UUID, but not sure what this points to. No documentation either, may not be needed
+	WriteRegDWORD HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\Instance\InitPropertyBag" "Attributes" 0x00000011
+	WriteRegStr HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}\Instance\InitPropertyBag" "TargetFolderPath" "$PROFILE\${PRODUCT_NAME}"; 
+	WriteRegDWORD HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" 0x00000001
+	WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}" "" "${PRODUCT_NAME}"
 SectionEnd
 
 ;--------------------------------
@@ -174,6 +204,18 @@ Section "un.Install"
   DetailPrint "Removing Start Menu shortcuts..."
   !insertmacro MUI_STARTMENU_GETFOLDER Application $StartMenuFolder
   RMDir /r "$SMPROGRAMS\$StartMenuFolder"
+  
+  ; Remove from Windows 8+ Namespace root
+  	; 32-bit
+	SetRegView 32
+	DeleteRegKey HKCU "Software\Classes\Wow6432Node\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}"
+	DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{F87D4E7A-8935-46DF-B48F-FF5C463562C4}"
+	DeleteRegKey HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}"
+	; 64-bit
+	SetRegView 64
+	DeleteRegKey HKCU "Software\Classes\CLSID\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}"
+	DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" "{F87D4E7A-8935-46DF-B48F-FF5C463562C4}"
+	DeleteRegKey HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace\{F87D4E7A-8935-46DF-B48F-FF5C463562C4}"
 SectionEnd
 
 ;--------------------------------

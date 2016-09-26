@@ -11,6 +11,7 @@ import com.kbdunn.nimbus.web.NimbusUI;
 import com.kbdunn.nimbus.web.event.HardDriveModificationEvent;
 import com.kbdunn.nimbus.web.settings.drives.StorageController;
 import com.kbdunn.nimbus.web.settings.drives.StorageSettingsTab;
+import com.kbdunn.nimbus.web.settings.nimbusphere.NimbusphereController;
 import com.kbdunn.nimbus.web.settings.profile.ProfileController;
 import com.kbdunn.nimbus.web.settings.profile.ProfileSettingsTab;
 import com.kbdunn.nimbus.web.settings.users.UserSettingsController;
@@ -43,6 +44,7 @@ public class SettingsController implements SelectedTabChangeListener {
 			//controllers.put(dc.getTab().getFragment(), dc);
 			tabs.add(new UserSettingsController(this).getTab());
 			tabs.add(new StorageController(this).getTab());
+			tabs.add(new NimbusphereController(this).getTab());
 		}
 		
 		view = new SettingsView(this);

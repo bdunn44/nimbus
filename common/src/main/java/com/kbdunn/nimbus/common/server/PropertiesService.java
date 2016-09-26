@@ -1,5 +1,7 @@
 package com.kbdunn.nimbus.common.server;
 
+import com.kbdunn.nimbus.common.model.nimbusphere.NimbusphereStatus;
+
 public interface PropertiesService {
 
 	boolean isDevMode();
@@ -41,4 +43,6 @@ public interface PropertiesService {
 	boolean isAutoScan();
 
 	void setAutoScan(boolean autoScan);
+
+	NimbusphereStatus getNimbusphereStatus();
 }

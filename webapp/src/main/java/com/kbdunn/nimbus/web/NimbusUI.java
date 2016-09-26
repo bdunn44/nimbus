@@ -9,10 +9,12 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import com.kbdunn.nimbus.common.model.NimbusUser;
+import com.kbdunn.nimbus.common.model.nimbusphere.NimbusphereStatus;
 import com.kbdunn.nimbus.common.server.AsyncService;
 import com.kbdunn.nimbus.common.server.FileService;
 import com.kbdunn.nimbus.common.server.FileShareService;
 import com.kbdunn.nimbus.common.server.MediaLibraryService;
+import com.kbdunn.nimbus.common.server.NimbusphereService;
 import com.kbdunn.nimbus.common.server.OAuthService;
 import com.kbdunn.nimbus.common.server.PropertiesService;
 import com.kbdunn.nimbus.common.server.StorageService;
@@ -172,7 +174,15 @@ public class NimbusUI extends UI {
 		return NimbusVaadinServlet.getCurrent().getOAuthService();
 	}
 	
+	public static NimbusphereService getNimbusphereService() {
+		return NimbusVaadinServlet.getCurrent().getNimbusphereService();
+	}
+	
 	public static String getUrlGuess() {
+		final NimbusphereStatus ns = getPropertiesService().getNimbusphereStatus();
+		if (ns != null && ns.getAddress() != null && !ns.isDeleted()) {
+			return ns.getAddress();
+		}
 		String l = Page.getCurrent().getLocation().toASCIIString();
 		return l.substring(0, l.indexOf("#!"));
 	}

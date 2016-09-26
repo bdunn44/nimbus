@@ -4,11 +4,13 @@ import org.atmosphere.cpr.AtmosphereFramework;
 import org.atmosphere.cpr.AtmosphereResourceFactory;
 import org.atmosphere.cpr.BroadcasterFactory;
 
+import com.kbdunn.nimbus.common.server.NimbusphereService;
 import com.kbdunn.nimbus.server.service.FileSyncService;
 import com.kbdunn.nimbus.server.service.LocalAsyncService;
 import com.kbdunn.nimbus.server.service.LocalFileService;
 import com.kbdunn.nimbus.server.service.LocalFileShareService;
 import com.kbdunn.nimbus.server.service.LocalMediaLibraryService;
+import com.kbdunn.nimbus.server.service.LocalNimbusphereService;
 import com.kbdunn.nimbus.server.service.LocalOAuthService;
 import com.kbdunn.nimbus.server.service.LocalPropertiesService;
 import com.kbdunn.nimbus.server.service.LocalStorageService;
@@ -29,6 +31,7 @@ public class NimbusContext {
 	private final LocalAsyncService asyncService;
 	private final LocalOAuthService oAuthService;
 	private final FileSyncService syncService;
+	private final LocalNimbusphereService nimbusphereService;
 	
 	// Atmosphere
 	private AtmosphereFramework atmosphereFramework;
@@ -43,6 +46,7 @@ public class NimbusContext {
 		asyncService = new LocalAsyncService();
 		oAuthService = new LocalOAuthService();
 		syncService = new FileSyncService();
+		nimbusphereService = new LocalNimbusphereService();
 		
 		userService.initialize(this);
 		fileService.initialize(this);
@@ -52,6 +56,7 @@ public class NimbusContext {
 		asyncService.initialize(this);
 		oAuthService.initialize(this);
 		syncService.initialize(this);
+		nimbusphereService.initialize(this);
 	}
 	
 	public static NimbusContext instance() {
@@ -95,6 +100,10 @@ public class NimbusContext {
 	
 	public FileSyncService getFileSyncService() {
 		return syncService;
+	}
+	
+	public NimbusphereService getNimbusphereService() {
+		return nimbusphereService;
 	}
 	
 	public AtmosphereFramework getAtmosphereFramework() {

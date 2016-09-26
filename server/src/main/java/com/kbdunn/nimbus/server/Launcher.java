@@ -4,6 +4,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -43,6 +49,7 @@ import com.kbdunn.nimbus.common.server.AsyncService;
 import com.kbdunn.nimbus.common.server.FileService;
 import com.kbdunn.nimbus.common.server.FileShareService;
 import com.kbdunn.nimbus.common.server.MediaLibraryService;
+import com.kbdunn.nimbus.common.server.NimbusphereService;
 import com.kbdunn.nimbus.common.server.OAuthService;
 import com.kbdunn.nimbus.common.server.PropertiesService;
 import com.kbdunn.nimbus.common.server.StorageService;
@@ -50,6 +57,7 @@ import com.kbdunn.nimbus.common.server.UserService;
 import com.kbdunn.nimbus.server.async.ReconcileOperation;
 import com.kbdunn.nimbus.server.jdbc.HikariConnectionPool;
 import com.kbdunn.nimbus.server.security.SecuredRedirectHandler;
+import com.kbdunn.nimbus.server.service.LocalNimbusphereService;
 import com.kbdunn.nimbus.server.util.DatabaseCleaner;
 import com.kbdunn.nimbus.server.util.DemoModePrimer;
 import com.kbdunn.nimbus.server.util.DevModePrimer;
@@ -58,15 +66,22 @@ import com.kbdunn.nimbus.web.NimbusVaadinServlet;
 public class Launcher {
 	
 	private static final Logger log = Logger.getLogger(Launcher.class.getName());
+	private static final int SHUTDOWN_PORT = 8081;
 	
 	private static Launcher instance;
 	
+	private Server server;
+	private Integer port;
+	//private boolean restart = false;
+	
+	private HandlerList handlers;
+	private WebAppContext webappContext;
+	private ServletHolder vaadinServletHolder;
+	private ServletHolder jerseyServletHolder;
+	private ServletHolder atmosphereServletHolder;
+	
 	public static void main(String[] args) throws Exception {
 		System.setProperty("java.awt.headless", "true");
-		if (instance != null) {
-			System.err.println("Nimbus is already running!");
-			System.exit(1);
-		}
 		instance = new Launcher();
 		instance.launch();
 	}
@@ -78,8 +93,26 @@ public class Launcher {
 	public Launcher() {  }
 	
 	private void launch() {
+		port = NimbusContext.instance().getPropertiesService().getHttpPort();
+		if (port == null) {
+			log.warn("The nimbus.http.port property is not set. Defaulting to 8080.");
+			port = 8080;
+		}
+		
+		String mode = NimbusContext.instance().getPropertiesService().isDemoMode() ? " in DEMO mode" 
+				: NimbusContext.instance().getPropertiesService().isDevMode() ? " in DEV mode" : "";
+		
+		log.info("-------------------------------------------------");
+		log.info("Starting Nimbus" + mode);
+		log.info("Nimbus Home: " + System.getProperty("nimbus.home"));
+		log.info("Listening on http://localhost:" + port);
+		log.info("-------------------------------------------------");
+		
 		try {
 			configureLog4j();
+			shutdownServer();
+			initializeDatabase();
+			runDataPrimers();
 			runServer();
 		} catch (Exception e) {
 			log.error(e, e);
@@ -110,33 +143,42 @@ public class Launcher {
 		PropertyConfigurator.configure(log4jprops);
 	}
 	
-	/**
-	 * @throws Exception
-	 */
-	private void runServer() throws Exception {		
-		Integer port = NimbusContext.instance().getPropertiesService().getHttpPort();
-		if (port == null) {
-			log.warn("The nimbus.http.port property is not set. Defaulting to 8080.");
-			port = 8080;
+	private void initializeDatabase() {
+		// Clean database if DEV or DEMO mode
+		if (NimbusContext.instance().getPropertiesService().isDevMode() || NimbusContext.instance().getPropertiesService().isDemoMode()) {
+			log.info("Cleaning database...");
+			new DatabaseCleaner().rebuild();
 		}
+		// Initialize Connection Pool
+		HikariConnectionPool.init();
+		log.info("Hikari Connection Pool initialized");
+	}
+	
+	private void shutdownServer() {
+		if (!NimbusContext.instance().getPropertiesService().isDevMode()) return;
 		
-		String mode = NimbusContext.instance().getPropertiesService().isDemoMode() ? " in DEMO mode" 
-				: NimbusContext.instance().getPropertiesService().isDevMode() ? " in DEV mode" : "";
+		// Try to shutdown existing process, if running
+		try {
+            Socket socket = new Socket((String) null, SHUTDOWN_PORT);
+            socket.getInputStream().read();
+            socket.close();
+        } catch (IOException e) {
+            // Ignore if port is not open (another instance isn't running)
+        }
+	}
+	
+	private void runServer() throws Exception {		
 		
-		log.info("-------------------------------------------------");
-		log.info("Starting Nimbus" + mode);
-		log.info("Nimbus Home: " + System.getProperty("nimbus.home"));
-		log.info("Listening on http://localhost:" + port);
-		log.info("-------------------------------------------------");
+		//restart = false; // Clear restart flag, if set
 		
 		Boolean sslEnabled = NimbusContext.instance().getPropertiesService().isSslEnabled();
 		if (sslEnabled == null) sslEnabled = false;
 		Integer httpsPort = NimbusContext.instance().getPropertiesService().getHttpsPort();
 		
-		final Server server = new Server();
+		server = new Server();
 		
 		// Initialize handler list
-		HandlerList handlers = new HandlerList();
+		handlers = new HandlerList();
 		
 		// HTTP Configuration
 		HttpConfiguration httpConfig = new HttpConfiguration();
@@ -209,23 +251,111 @@ public class Launcher {
 			server.setConnectors(new Connector[] { http });
 		}
 		
-		// Clean database if DEV or DEMO mode
-		if (NimbusContext.instance().getPropertiesService().isDevMode() || NimbusContext.instance().getPropertiesService().isDemoMode()) {
-			log.info("Cleaning database...");
-			new DatabaseCleaner().rebuild();
-		}
-		// Initialize Connection Pool
-		HikariConnectionPool.init();
-		log.info("Hikari Connection Pool initialized");
+		this.buildWebappContext();
+		handlers.addHandler(webappContext.getServletContext().getContextHandler());
+		server.setHandler(handlers);
 		
-		final WebAppContext webappContext = new WebAppContext();
+		// Enable auto-reload if running in dev mode
+		// Couldn't get this to work for the life of me
+		/*if (NimbusContext.instance().getPropertiesService().isDevMode()) {
+            int interval = 1;
+            List<File> classFolders = new ArrayList<File>();
+            ClassLoader cl = server.getClass().getClassLoader();
+            for (URL u : ((URLClassLoader) cl).getURLs()) {
+                File f = new File(u.getPath());
+                if (f.isDirectory()) {
+                    classFolders.add(f);
+                }
+            }
+            classFolders.add(new File("src/main/webapp/VAADIN/themes"));
+            
+            log.debug("Enabling context auto-reload. Scan interval is " + interval + " second(s). Scanned folders are: ");
+            for (File f : classFolders) {
+                log.debug("  " + f.getAbsolutePath());
+                webappContext.setExtraClasspath(f.getAbsolutePath());
+            }
+            
+            Scanner scanner = new Scanner();
+            scanner.setScanInterval(interval);
+
+            scanner.setRecursive(true);
+            scanner.addListener(new Scanner.BulkListener() {
+                @Override
+                public void filesChanged(List<String> filenames) throws Exception {
+                	log.debug("File change detected. Restarting server");
+                	for (String filename : filenames) {
+                		//if (!filename.endsWith(".class") || filename.contains("$")) continue;
+                		filename = filename.replace("\\", "/");
+                		String binaryName = filename
+                				.substring(filename.indexOf("/bin/") + 5)
+                				.replace("/", ".")
+                				.replace(".class", "");
+                		log.debug("Reloading class: " + binaryName);
+                		webappContext.getClassLoader().loadClass(binaryName);
+                		for (Handler handler : handlers.getChildHandlers()) {
+                			handler.getClass().getClassLoader().loadClass(binaryName);
+                		}
+                		instance.getClass().getClassLoader().loadClass(binaryName);
+                	} 
+                	restart = true;
+                	server.stop();
+                	handlers.stop();
+                	for (Handler handler : handlers.getChildHandlers()) {
+                		handlers.removeHandler(handler);
+                	}
+                	handlers = new HandlerList();
+                	buildWebappContext();
+                	handlers.addHandler(webappContext.getServletContext().getContextHandler());
+                	server.stop();
+                	server.setHandler(handlers);
+                	server.start();
+                	//handlers.start();
+                }
+            });
+            scanner.setReportExistingFilesOnStartup(false);
+            scanner.setFilenameFilter(new FilenameFilter() {
+                @Override
+                public boolean accept(File folder, String name) {
+                    return name.endsWith(".class") || name.endsWith(".css");
+                }
+            });
+
+            scanner.setScanDirs(classFolders);
+            scanner.start();
+            server.addBean(scanner);
+        }*/
+		
+		try {
+			server.start();
+			if (!NimbusContext.instance().getPropertiesService().isDemoMode()) {
+				// Make AtmosphereFramework available in NimbusContext
+				final AtmosphereServlet atmosphereServlet = (AtmosphereServlet) atmosphereServletHolder.getServlet();
+				NimbusContext.instance().setAtmosphereFramework(atmosphereServlet.framework());
+			}
+
+			if (NimbusContext.instance().getPropertiesService().isDevMode()) {
+				// Listen on shutdown port
+				this.listenOnShutdownPort(server);
+			}
+			server.join();
+		} finally {
+			server.stop();
+			HikariConnectionPool.destroy();
+			/*if (restart) {
+				this.runServer();
+			}*/
+		}
+	}
+	
+	private void buildWebappContext() {
+		webappContext = new WebAppContext();
 		webappContext.setDefaultsDescriptor(null); // Disable JSP Support (slows down startup)
 		webappContext.setContextPath("/");
 		webappContext.setParentLoaderPriority(true);
+		
 		final ServletContextHandler webappContextHandler = (ServletContextHandler) webappContext.getServletContext().getContextHandler();
 		webappContextHandler.setMaxFormKeys(Integer.MAX_VALUE);
 		webappContextHandler.setMaxFormContentSize(Integer.MAX_VALUE);
-		handlers.addHandler(webappContextHandler);
 		
 		// Set Nimbus services
 		webappContextHandler.setAttribute(AsyncService.class.getName(), NimbusContext.instance().getAsyncService());
@@ -236,9 +366,13 @@ public class Launcher {
 		webappContextHandler.setAttribute(StorageService.class.getName(), NimbusContext.instance().getStorageService());
 		webappContextHandler.setAttribute(UserService.class.getName(), NimbusContext.instance().getUserService());
 		webappContextHandler.setAttribute(OAuthService.class.getName(), NimbusContext.instance().getOAuthService());
+		webappContextHandler.setAttribute(NimbusphereService.class.getName(), NimbusContext.instance().getNimbusphereService());
+		
+		// Start Nimbusphere heartbeat
+		((LocalNimbusphereService) NimbusContext.instance().getNimbusphereService()).startHeartbeat();
 		
 		// Setup Vaadin Servlet
-		ServletHolder vaadinServletHolder = new ServletHolder(new NimbusVaadinServlet());
+		vaadinServletHolder = new ServletHolder(new NimbusVaadinServlet());
 		vaadinServletHolder.setInitOrder(1);
 		vaadinServletHolder.setInitParameter("application", "Nimbus");
 		vaadinServletHolder.setInitParameter("pushmode", "manual");
@@ -251,7 +385,7 @@ public class Launcher {
 		}
 		webappContext.addEventListener(new SessionSupport()); // Needed for Atmosphere (Vaadin push)
 		
-		// Configure MIME types
+		// Configure MIME types 
 		/*MimeTypes mimeTypes = webAppContext.getMimeTypes();
 		mimeTypes.addMimeMapping("ogg", "audio/ogg");
 		mimeTypes.addMimeMapping("ogv", "video/ogg");
@@ -265,7 +399,6 @@ public class Launcher {
 		contextHandler.setMimeTypes(mimeTypes);*/
 		
 		// Do not enable APIs for the demo
-		ServletHolder atmosphereServletHolder = null;
 		if (!NimbusContext.instance().getPropertiesService().isDemoMode()) {
 			// Setup Jersey servlet
 			final JacksonJaxbJsonProvider jsonProvider = new JacksonJaxbJsonProvider();
@@ -276,7 +409,7 @@ public class Launcher {
 					.register(jsonProvider)
 					.register(MultiPartFeature.class);
 			EncodingFilter.enableFor(resourceConfig, GZipEncoder.class);
-			final ServletHolder jerseyServletHolder = new ServletHolder(new ServletContainer(resourceConfig));
+			jerseyServletHolder = new ServletHolder(new ServletContainer(resourceConfig));
 			jerseyServletHolder.setInitOrder(2);
 			webappContextHandler.addServlet(jerseyServletHolder, "/request/*");
 			
@@ -289,23 +422,56 @@ public class Launcher {
 			atmosphereServletHolder.setInitOrder(1);
 			webappContextHandler.addServlet(atmosphereServletHolder, "/async/*");
 		}
-		
-		// Set server handlers
-		server.setHandler(handlers);
-		
-		try {
-			runDataPrimers();
-			server.start();
-			if (!NimbusContext.instance().getPropertiesService().isDemoMode()) {
-				// Make AtmosphereFramework available in NimbusContext
-				final AtmosphereServlet atmosphereServlet = (AtmosphereServlet) atmosphereServletHolder.getServlet();
-				NimbusContext.instance().setAtmosphereFramework(atmosphereServlet.framework());
-			}
-			server.join();
-		} finally {
-			server.stop();
-			HikariConnectionPool.destroy();
-		}
+	}
+	
+	private void listenOnShutdownPort(Server server) throws UnknownHostException, IOException {
+        final ServerSocket serverSocket = new ServerSocket(SHUTDOWN_PORT, 1, InetAddress.getByName("127.0.0.1"));
+        if (serverSocket.isBound()) return;
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    log.debug("Waiting for shutdown signal on port " + serverSocket.getLocalPort());
+                    // Start waiting for a close signal
+                    Socket accept = serverSocket.accept();
+                    // First stop listening to the port
+                    serverSocket.close();
+                    
+                    // Start a thread that kills the JVM if server.stop() doesn't have any effect
+                    Thread interruptThread = new Thread() {
+                        @Override
+                        public void run() {
+                            try {
+                                Thread.sleep(5000);
+                                if (!server.isStopped()) {
+                                    log.debug("Jetty still running. Closing JVM.");
+                                    dumpThreadStacks();
+                                    System.exit(-1);
+                                }
+                            } catch (InterruptedException e) {
+                                // Interrupted if server.stop() was successful
+                            }
+                        }
+                    };
+                    interruptThread.setDaemon(true);
+                    interruptThread.start();
+
+                    // Then stop the jetty server
+                    server.stop();
+
+                    interruptThread.interrupt();
+
+                    // Send a byte to tell the other process that it can start jetty
+                    OutputStream outputStream = accept.getOutputStream();
+                    outputStream.write(0);
+                    outputStream.flush();
+                    // Finally close the socket
+                    accept.close();
+                } catch (Exception e) {
+                    log.error(e, e);
+                }
+            }
+        }.start();
 	}
 	
 	private void runDataPrimers() {		
@@ -325,4 +491,16 @@ public class Launcher {
 	        }
 		}
 	}
+	
+    private static void dumpThreadStacks() {
+        for (Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
+            Thread thread = entry.getKey();
+            StackTraceElement[] stackTraceElements = entry.getValue();
+
+            log.debug(thread.getName() + " - " + thread.getState());
+            for (StackTraceElement stackTraceElement : stackTraceElements) {
+            	log.debug("    at " + stackTraceElement.toString());
+            }
+        }
+    }
 }

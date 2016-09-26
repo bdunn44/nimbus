@@ -11,6 +11,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.kbdunn.nimbus.common.model.nimbusphere.NimbusphereStatus;
 import com.kbdunn.nimbus.common.server.PropertiesService;
 import com.kbdunn.nimbus.server.dao.NimbusSystemDAO;
 
@@ -203,7 +204,13 @@ public class LocalPropertiesService implements PropertiesService {
 	
 	@Override
 	public String getNimbusVersion() {
-		return NimbusSystemDAO.getVersion();
+		if (this.isDevMode()) return "0.6.3.1161";
+		return LocalPropertiesService.class.getPackage().getImplementationVersion();
+	}
+	
+	@Override
+	public NimbusphereStatus getNimbusphereStatus() {
+		return NimbusSystemDAO.getNimbusphereStatus();
 	}
 	
 	/* MODIFYABLE PROPERTIES */

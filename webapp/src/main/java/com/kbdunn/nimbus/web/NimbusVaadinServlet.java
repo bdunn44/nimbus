@@ -12,6 +12,7 @@ import com.kbdunn.nimbus.common.server.AsyncService;
 import com.kbdunn.nimbus.common.server.FileService;
 import com.kbdunn.nimbus.common.server.FileShareService;
 import com.kbdunn.nimbus.common.server.MediaLibraryService;
+import com.kbdunn.nimbus.common.server.NimbusphereService;
 import com.kbdunn.nimbus.common.server.OAuthService;
 import com.kbdunn.nimbus.common.server.PropertiesService;
 import com.kbdunn.nimbus.common.server.StorageService;
@@ -49,6 +50,7 @@ public class NimbusVaadinServlet extends VaadinServlet implements SessionInitLis
 	private PropertiesService propertiesService;
 	private AsyncService asyncService;
 	private OAuthService oAuthService;
+	private NimbusphereService nimbusphereService;
 	
 	/*public AsyncService getAsyncService() {
 		return asyncService;
@@ -93,6 +95,7 @@ public class NimbusVaadinServlet extends VaadinServlet implements SessionInitLis
  		storageService = (StorageService) getServletContext().getAttribute(StorageService.class.getName());
  		userService = (UserService) getServletContext().getAttribute(UserService.class.getName());
  		oAuthService = (OAuthService) getServletContext().getAttribute(OAuthService.class.getName());
+ 		nimbusphereService = (NimbusphereService) getServletContext().getAttribute(NimbusphereService.class.getName());
  		
  		// Set MIME Types
  		FileTypeResolver.addExtension("ogg", "audio/ogg");
@@ -196,5 +199,9 @@ public class NimbusVaadinServlet extends VaadinServlet implements SessionInitLis
 	
 	protected OAuthService getOAuthService() {
 		return oAuthService;
+	}
+	
+	protected NimbusphereService getNimbusphereService() {
+		return nimbusphereService;
 	}
 }
